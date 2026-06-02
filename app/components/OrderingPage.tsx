@@ -35,7 +35,10 @@ export function OrderingPage() {
 
   return (
     <div className="flex min-h-dvh w-full flex-col bg-background">
-      <Header onOpenMobileCart={() => setMobileCartOpen(true)} />
+      <Header
+        showQrLink
+        onOpenMobileCart={() => setMobileCartOpen(true)}
+      />
 
       <main className="flex w-full flex-1 gap-xl px-margin-mobile pb-lg pt-[calc(var(--header-height)+20px)] md:px-margin-desktop lg:gap-8">
         <section className="flex min-h-[calc(100dvh-var(--header-height)-36px)] min-w-0 flex-1 flex-col">
