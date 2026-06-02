@@ -62,18 +62,14 @@ export function isPlacedOrder(order: PlacedOrder): boolean {
   return order.paymentStatus !== "failed";
 }
 
-/** Persists to Supabase via POST /api/orders; returns local order if API unavailable. */
+/** Persists to Supabase via POST /api/orders. Throws if the server cannot save the order. */
 export async function placeOrderWithSimulation(
   order: PlacedOrder,
 ): Promise<PlacedOrder> {
-  try {
-    const result = await submitPlacedOrder(order);
-    return {
-      ...order,
-      orderId: result.orderId,
-      orderNumber: formatOrderNumber(result.orderId),
-    };
-  } catch {
-    return order;
-  }
+  const result = await submitPlacedOrder(order);
+  return {
+    ...order,
+    orderId: result.orderId,
+    orderNumber: formatOrderNumber(result.orderId),
+  };
 }

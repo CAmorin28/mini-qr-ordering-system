@@ -150,6 +150,13 @@ export function StaffTableQrPanel({
       <div className="qr-card-footer">
         <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
         <p className="qr-card-footer-sub">Scans open the menu page directly</p>
+        {menuUrl.includes("localhost") || menuUrl.includes("127.0.0.1") ? (
+          <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-xs text-amber-900 dark:text-amber-100">
+            This QR points to <strong>localhost</strong>, which phones cannot open. On Wi‑Fi testing,
+            open this page at <strong>http://YOUR_PC_LAN_IP:3000</strong> (same Wi‑Fi), click Update QR,
+            then scan again.
+          </p>
+        ) : null}
       </div>
 
       <QrDownloadActions menuUrl={menuUrl} tableLetter={tableLetter} />

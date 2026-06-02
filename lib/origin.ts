@@ -37,25 +37,45 @@ export function getDeploymentOrigin(): string | null {
   );
 }
 
-/** True when the browser host may differ from the server (local Wi‑Fi testing only). */
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function isPrivateLanHost(hostname: string): boolean {
+  return (
+    hostname.endsWith(".local") ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)
+  );
+}
+
+/** True when QR should use the browser origin instead of the server-rendered URL. */
 export function shouldRefreshQrFromBrowser(serverMenuUrl: string): boolean {
   if (typeof window === "undefined") return false;
 
-  // Lock QR to NEXT_PUBLIC_APP_URL (e.g. http://localhost:3000) in local dev.
-  if (originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL)) return false;
+  const browserHost = window.location.hostname;
+  const canonical = originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL);
 
-  const clientMenuUrl = new URL(
-    "/menu",
-    window.location.origin,
-  ).href;
+  // Local dev: NEXT_PUBLIC_APP_URL is often localhost, but phones must scan a LAN IP.
+  if (canonical) {
+    try {
+      const canonicalHost = new URL(canonical).hostname;
+      if (isLoopbackHost(canonicalHost)) {
+        if (isPrivateLanHost(browserHost) || !isLoopbackHost(browserHost)) {
+          return true;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  const clientMenuUrl = new URL("/menu", window.location.origin).href;
   if (clientMenuUrl === serverMenuUrl) return false;
 
-  const host = window.location.hostname;
   return (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.endsWith(".local") ||
-    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
-    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
+    isLoopbackHost(browserHost) ||
+    isPrivateLanHost(browserHost)
   );
 }
