@@ -1,5 +1,8 @@
 /** Customer ordering page — never the staff `/qr` display page. */
-export const MENU_PAGE_PATH = "/" as const;
+export const MENU_PAGE_PATH = "/menu" as const;
+
+/** Staff-only URL to open the QR display page (mobile + desktop). */
+export const STAFF_QR_PAGE_PATH = "/qr?view=staff" as const;
 
 /** Build the absolute menu URL from a site origin (no path segment). */
 export function menuUrlFromOrigin(origin: string): string {

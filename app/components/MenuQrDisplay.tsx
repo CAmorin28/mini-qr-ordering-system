@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { menuUrlFromWindow } from "@/lib/menu-url";
+import { shouldRefreshQrFromBrowser } from "@/lib/origin";
 import {
   MENU_QR_COLORS,
   MENU_QR_DISPLAY_WIDTH,
@@ -10,44 +11,43 @@ import {
 } from "@/lib/qr-code";
 
 interface MenuQrDisplayProps {
-  /** Server fallback before hydration (e.g. SSR). */
-  fallbackMenuUrl: string;
+  /** Server-rendered menu URL (encoded in initialSvg). */
+  menuUrl: string;
+  /** SVG from the server so the code is scannable before JS runs. */
+  initialSvg: string;
 }
 
-export function MenuQrDisplay({ fallbackMenuUrl }: MenuQrDisplayProps) {
-  const [qrSvg, setQrSvg] = useState<string | null>(null);
+async function renderMenuQr(menuUrl: string): Promise<string> {
+  return QRCode.toString(menuUrl, {
+    type: "svg",
+    margin: MENU_QR_MARGIN,
+    width: MENU_QR_DISPLAY_WIDTH,
+    color: MENU_QR_COLORS,
+  });
+}
+
+export function MenuQrDisplay({ menuUrl, initialSvg }: MenuQrDisplayProps) {
+  const [qrSvg, setQrSvg] = useState(initialSvg);
 
   useEffect(() => {
-    const menuUrl = menuUrlFromWindow() ?? fallbackMenuUrl;
+    if (!shouldRefreshQrFromBrowser(menuUrl)) return;
+
+    const targetUrl = menuUrlFromWindow() ?? menuUrl;
+    if (targetUrl === menuUrl) return;
 
     let cancelled = false;
-    QRCode.toString(menuUrl, {
-      type: "svg",
-      margin: MENU_QR_MARGIN,
-      width: MENU_QR_DISPLAY_WIDTH,
-      color: MENU_QR_COLORS,
-    })
+    renderMenuQr(targetUrl)
       .then((svg) => {
         if (!cancelled) setQrSvg(svg);
       })
       .catch(() => {
-        if (!cancelled) setQrSvg(null);
+        /* keep server SVG */
       });
 
     return () => {
       cancelled = true;
     };
-  }, [fallbackMenuUrl]);
-
-  if (!qrSvg) {
-    return (
-      <div
-        className="qr-code-display qr-code-display-loading"
-        aria-busy="true"
-        aria-label="Loading QR code for the TableBite menu"
-      />
-    );
-  }
+  }, [menuUrl]);
 
   return (
     <div

@@ -25,8 +25,28 @@ npm run dev:express
    - **Framework:** Next.js
    - **Build command:** `npm run build`
    - **Output:** automatic
-4. No environment variables are required for the demo.
-5. Deploy.
+4. Deploy.
+
+### QR codes on Vercel (important)
+
+Scanned QR codes open the **menu** at `/menu`, not the staff QR page.
+
+| Who | URL |
+|-----|-----|
+| Customer (scan) | `https://your-domain.com/menu` |
+| Staff (Show QR) | `https://your-domain.com/qr?view=staff` |
+
+**Recommended for Production:** add an environment variable in Vercel → **Settings → Environment Variables**:
+
+| Name | Value | Environment |
+|------|--------|-------------|
+| `NEXT_PUBLIC_APP_URL` | `https://your-production-domain.vercel.app` (or your custom domain) | **Production** |
+
+Use your real live URL (no trailing path). This keeps downloaded/printed QR codes on the correct domain, including custom domains.
+
+After changing env vars, **redeploy** and **re-download** the QR from **Show QR** on the live site.
+
+If someone opens `/qr` without `?view=staff` (e.g. an old link), Vercel middleware redirects them to `/menu`.
 
 API routes are served on the same domain as the app:
 
