@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
+import {
+  MENU_QR_COLORS,
+  MENU_QR_DISPLAY_WIDTH,
+  MENU_QR_MARGIN,
+} from "@/lib/qr-code";
+import { MENU_PAGE_PATH } from "@/lib/menu-url";
 import { getMenuPageUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -35,6 +42,12 @@ const tableNumber = process.env.NEXT_PUBLIC_TABLE_NUMBER;
 
 export default async function QrPage() {
   const menuUrl = await getMenuPageUrl();
+  const qrSvg = await QRCode.toString(menuUrl, {
+    type: "svg",
+    margin: MENU_QR_MARGIN,
+    width: MENU_QR_DISPLAY_WIDTH,
+    color: MENU_QR_COLORS,
+  });
 
   return (
     <QrPageLayout>
@@ -70,7 +83,7 @@ export default async function QrPage() {
             </ol>
 
             <div className="qr-mobile-cta">
-              <Link href="/" className="qr-open-menu-btn">
+              <Link href={MENU_PAGE_PATH} className="qr-open-menu-btn">
                 Open Digital Menu
               </Link>
             </div>
@@ -89,7 +102,7 @@ export default async function QrPage() {
               </div>
 
               <div className="qr-code-frame">
-                <MenuQrDisplay fallbackMenuUrl={menuUrl} />
+                <MenuQrDisplay menuUrl={menuUrl} initialSvg={qrSvg} />
                 <span className="qr-corner qr-corner-tl" aria-hidden />
                 <span className="qr-corner qr-corner-tr" aria-hidden />
                 <span className="qr-corner qr-corner-bl" aria-hidden />

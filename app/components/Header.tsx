@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/app/context/CartContext";
+import { MENU_PAGE_PATH, STAFF_QR_PAGE_PATH } from "@/lib/menu-url";
 
 interface HeaderProps {
   onOpenMobileCart?: () => void;
@@ -50,7 +51,7 @@ export function Header({
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         {showBackToMenu && (
           <Link
-            href="/"
+            href={MENU_PAGE_PATH}
             aria-label={isQr ? "Back to menu" : undefined}
             className={`flex min-h-11 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 sm:px-3 sm:text-base ${
               isQr
@@ -65,7 +66,7 @@ export function Header({
 
         {showQrLink && (
           <Link
-            href="/qr"
+            href={STAFF_QR_PAGE_PATH}
             className="flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-xl border border-on-primary/25 px-2 py-2.5 text-xs font-semibold text-on-primary transition-colors hover:bg-secondary-container hover:text-on-secondary-container sm:gap-2 sm:px-5 sm:py-3 sm:text-base"
           >
             <span className="material-symbols-outlined shrink-0 text-[20px] sm:text-[22px]">
