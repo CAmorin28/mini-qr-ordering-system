@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import QRCode from "qrcode";
+import { menuUrlFromWindow } from "@/lib/menu-url";
 import {
   getQrDownloadFilename,
   MENU_QR_COLORS,
@@ -157,11 +158,12 @@ export function QrDownloadActions({
       setSuccessHint(null);
 
       try {
+        const targetMenuUrl = menuUrlFromWindow() ?? menuUrl;
         const filename = getQrDownloadFilename(format, tableNumber);
         const file =
           format === "png"
-            ? await createPngFile(menuUrl, filename)
-            : await createSvgFile(menuUrl, filename);
+            ? await createPngFile(targetMenuUrl, filename)
+            : await createSvgFile(targetMenuUrl, filename);
 
         const result = await saveQrFile(file);
 
