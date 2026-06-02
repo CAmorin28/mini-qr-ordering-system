@@ -1,0 +1,82 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { CheckoutLineItem } from "@/app/components/CheckoutLineItem";
+import { CheckoutShell } from "@/app/components/CheckoutShell";
+import { PriceBreakdown } from "@/app/components/PriceBreakdown";
+import { useCart } from "@/app/context/CartContext";
+import { useCheckout } from "@/app/context/CheckoutContext";
+import { computeSubtotal } from "@/lib/checkout";
+import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { lines, itemCount } = useCart();
+  const { cutlery, setCutlery } = useCheckout();
+  const subtotal = computeSubtotal(lines);
+
+  useEffect(() => {
+    if (itemCount === 0) {
+      router.replace(MENU_PAGE_PATH);
+    }
+  }, [itemCount, router]);
+
+  if (itemCount === 0) {
+    return null;
+  }
+
+  return (
+    <CheckoutShell
+      step={1}
+      title="Checkout"
+      subtitle="Review your order before delivery and payment details."
+    >
+      <section className="space-y-md">
+        <h2 className="text-headline-md font-semibold text-on-surface">Order summary</h2>
+        <div className="space-y-md">
+          {lines.map((line) => (
+            <CheckoutLineItem key={line.item.id} line={line} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-lg rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
+        <h2 className="mb-md text-headline-md font-semibold text-on-surface">
+          Price breakdown
+        </h2>
+        <label className="mb-md flex cursor-pointer items-center gap-3 rounded-xl border border-surface-variant bg-surface-container-low px-md py-sm transition-colors has-[:checked]:border-secondary-container has-[:checked]:bg-secondary-container/10">
+          <input
+            type="checkbox"
+            checked={cutlery}
+            onChange={(e) => setCutlery(e.target.checked)}
+            className="h-5 w-5 rounded border-outline-variant accent-secondary"
+          />
+          <div>
+            <span className="font-semibold text-on-surface">Add cutlery</span>
+            <p className="text-xs text-on-surface-variant">Optional — no extra charge</p>
+          </div>
+          <span className="material-symbols-outlined ml-auto text-secondary">restaurant</span>
+        </label>
+        <PriceBreakdown subtotal={subtotal} showCutleryNote cutlery={cutlery} />
+      </section>
+
+      <div className="mt-lg flex flex-col gap-sm sm:flex-row sm:justify-between">
+        <Link
+          href={MENU_PAGE_PATH}
+          className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"
+        >
+          Add more items
+        </Link>
+        <Link
+          href={CHECKOUT_REVIEW_PATH}
+          className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
+        >
+          Continue to payment
+          <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+        </Link>
+      </div>
+    </CheckoutShell>
+  );
+}
