@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import QRCode from "qrcode";
+import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
-import {
-  MENU_QR_COLORS,
-  MENU_QR_DISPLAY_WIDTH,
-  MENU_QR_MARGIN,
-} from "@/lib/qr-code";
 import { getMenuPageUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -40,12 +35,6 @@ const tableNumber = process.env.NEXT_PUBLIC_TABLE_NUMBER;
 
 export default async function QrPage() {
   const menuUrl = await getMenuPageUrl();
-  const qrSvg = await QRCode.toString(menuUrl, {
-    type: "svg",
-    margin: MENU_QR_MARGIN,
-    width: MENU_QR_DISPLAY_WIDTH,
-    color: MENU_QR_COLORS,
-  });
 
   return (
     <QrPageLayout>
@@ -100,11 +89,7 @@ export default async function QrPage() {
               </div>
 
               <div className="qr-code-frame">
-                <div
-                  className="qr-code-display"
-                  aria-label="QR code linking to the TableBite menu"
-                  dangerouslySetInnerHTML={{ __html: qrSvg }}
-                />
+                <MenuQrDisplay fallbackMenuUrl={menuUrl} />
                 <span className="qr-corner qr-corner-tl" aria-hidden />
                 <span className="qr-corner qr-corner-tr" aria-hidden />
                 <span className="qr-corner qr-corner-bl" aria-hidden />
