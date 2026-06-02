@@ -23,7 +23,7 @@ export function PaymentProcessingOverlay({
       aria-labelledby="payment-processing-title"
       aria-busy="true"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-surface-variant bg-surface-container-lowest p-xl shadow-[0_24px_64px_rgba(5,5,27,0.25)]">
+      <div className="w-full max-w-[min(100%,24rem)] rounded-2xl border border-surface-variant bg-surface-container-lowest p-xl shadow-[0_24px_64px_rgba(5,5,27,0.25)]">
         <div className="flex flex-col items-center text-center">
           <PaymentMethodIcon method={paymentMethod} selected />
           <div className="payment-spinner mt-lg" aria-hidden />

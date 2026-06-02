@@ -30,6 +30,12 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
+  /* Layout max-widths — max-w-* must not use spacing scale (e.g. max-w-lg ≠ 24px) */
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+
   --text-headline-md: 20px;
   --text-headline-md--line-height: 28px;
   --text-headline-sm: 16px;
@@ -735,6 +741,132 @@ body:has(.qr-page-root) {
     var(--color-surface-container-lowest) 0%,
     color-mix(in srgb, var(--color-secondary-container) 12%, var(--color-surface-container-low)) 100%
   );
+}
+
+.admin-login-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.admin-login-page {
+  display: grid;
+  width: 100%;
+  min-height: 100dvh;
+  flex: 1 1 auto;
+  grid-template-columns: 1fr;
+  background: var(--color-background);
+}
+
+@media (min-width: 1024px) {
+  .admin-login-page {
+    grid-template-columns: minmax(26rem, 46%) minmax(0, 1fr);
+  }
+}
+
+.admin-login-hero {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow-y: auto;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: linear-gradient(
+    160deg,
+    var(--color-primary) 0%,
+    color-mix(in srgb, var(--color-primary-container) 85%, var(--color-primary)) 55%,
+    color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary)) 100%
+  );
+  color: var(--color-on-primary);
+}
+
+.admin-login-hero-inner {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.admin-login-hero-lead {
+  width: 100%;
+  max-width: 32rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-login-hero-title {
+  width: 100%;
+  max-width: 32rem;
+  text-wrap: balance;
+}
+
+.admin-login-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: var(--color-background);
+}
+
+.admin-login-form-wrap {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.admin-login-card {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--color-surface-variant);
+  background: var(--color-surface-container-lowest);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  box-shadow: 0 4px 24px rgba(5, 5, 27, 0.06);
+}
+
+.admin-login-field {
+  position: relative;
+  width: 100%;
+}
+
+.admin-login-field .checkout-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-login-field-icon {
+  pointer-events: none;
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  z-index: 1;
+  translate: 0 -50%;
+  font-size: 1.25rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-login-toggle {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  translate: 0 -50%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-login-toggle:hover {
+  background: var(--color-surface-container);
 }
 
 @media print {

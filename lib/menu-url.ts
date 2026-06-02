@@ -5,6 +5,9 @@ export const CHECKOUT_PAGE_PATH = "/checkout" as const;
 export const CHECKOUT_REVIEW_PATH = "/checkout/review" as const;
 export const ORDERS_HISTORY_PATH = "/orders" as const;
 
+export const ADMIN_LOGIN_PATH = "/admin/login" as const;
+export const ADMIN_DASHBOARD_PATH = "/admin" as const;
+
 export function checkoutConfirmationPath(orderId: string): string {
   return `/checkout/confirmation/${encodeURIComponent(orderId)}`;
 }

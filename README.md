@@ -4,18 +4,19 @@ Food ordering UI with menu filtering, cart, and checkout. Built with **Next.js**
 
 ## Local development
 
+Use **one** dev server on **http://localhost:3000** (menu, checkout, admin, and `/api/*` are all same-origin).
+
 ```bash
 npm install
+cp .env.example .env.local   # then add Supabase keys
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Set `NEXT_PUBLIC_APP_URL=http://localhost:3000` in `.env.local` so QR codes always point at that URL (not `127.0.0.1`, LAN IP, or port 3002).
 
-Optional: run the legacy Express + Next custom server (local only, not used on Vercel):
+If port 3000 is already in use, stop the other `next dev` process and run `npm run dev` again.
 
-```bash
-npm run dev:express
-```
+Optional legacy Express + Next server (not used on Vercel): `npm run dev:express`
 
 ## Deploy on Vercel
 
@@ -57,6 +58,24 @@ API routes are served on the same domain as the app:
 - `GET /api/orders` — list recent orders
 - `GET /api/orders/:orderId` — single order
 
+### Admin dashboard
+
+| URL | Purpose |
+|-----|---------|
+| `/admin/login` | Staff sign in (username + password only — no sign up) |
+| `/admin` | Dashboard after login |
+
+Default credentials: **username** `admin`, **password** `12345`. Override with `ADMIN_USERNAME` / `ADMIN_PASSWORD` in env for production.
+
+- View recent orders
+- Update order status and payment status
+
+Protected API routes (require admin session cookie):
+
+- `GET /api/admin/orders` — list orders
+- `PATCH /api/admin/orders/:orderId` — update `status` and/or `paymentStatus`
+- `POST /api/admin/auth` — sign in (`username`, `password`) · `DELETE /api/admin/auth` — sign out
+
 ## Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
@@ -68,6 +87,7 @@ API routes are served on the same domain as the app:
 | `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Server only** — required for POST/GET orders |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | **Server only** — optional override for `/admin/login` |
 
 4. Redeploy on Vercel after saving env vars.
 

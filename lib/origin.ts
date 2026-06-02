@@ -41,6 +41,9 @@ export function getDeploymentOrigin(): string | null {
 export function shouldRefreshQrFromBrowser(serverMenuUrl: string): boolean {
   if (typeof window === "undefined") return false;
 
+  // Lock QR to NEXT_PUBLIC_APP_URL (e.g. http://localhost:3000) in local dev.
+  if (originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL)) return false;
+
   const clientMenuUrl = new URL(
     "/menu",
     window.location.origin,
