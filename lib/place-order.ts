@@ -62,6 +62,14 @@ export function buildPlacedOrder({
   };
 }
 
+/** Paid GCash or confirmed COD (pay on delivery). Excludes failed / unpaid GCash. */
+export function isPlacedOrder(order: PlacedOrder): boolean {
+  if (order.paymentStatus === "failed") return false;
+  if (order.paymentStatus === "paid") return true;
+  if (order.paymentMethod === "cod" && order.status === "confirmed") return true;
+  return order.status === "confirmed" || (order.status as string) === "placed";
+}
+
 /** Persists to Supabase via POST /api/orders; returns local order if API unavailable. */
 export async function placeOrderWithSimulation(
   order: PlacedOrder,

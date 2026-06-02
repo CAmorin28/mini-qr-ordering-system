@@ -30,7 +30,7 @@ import {
   checkoutConfirmationPath,
   MENU_PAGE_PATH,
 } from "@/lib/menu-url";
-import type { PaymentMethod } from "@/lib/types";
+import type { PaymentMethod, PaymentStatus } from "@/lib/types";
 
 const PAYMENT_OPTIONS: {
   id: PaymentMethod;
@@ -92,13 +92,17 @@ export default function CheckoutReviewClient() {
     setDelivery(form);
     setProcessingPayment(true);
 
-    const paymentResult = await simulateMockPayment();
-
-    if (!paymentResult.success) {
-      setProcessingPayment(false);
-      setPaymentError(paymentResult.message);
-      return;
+    if (paymentMethod === "gcash") {
+      const paymentResult = await simulateMockPayment();
+      if (!paymentResult.success) {
+        setProcessingPayment(false);
+        setPaymentError(paymentResult.message);
+        return;
+      }
     }
+
+    const paymentStatus: PaymentStatus =
+      paymentMethod === "gcash" ? "paid" : "pending";
 
     try {
       const draft = buildPlacedOrder({
@@ -108,7 +112,7 @@ export default function CheckoutReviewClient() {
         paymentMethod,
         delivery: form,
         status: "confirmed",
-        paymentStatus: "paid",
+        paymentStatus,
       });
 
       const placed = await placeOrderWithSimulation(draft);
@@ -144,7 +148,7 @@ export default function CheckoutReviewClient() {
         subtitle="Confirm delivery details, then pay to complete your order."
       >
         <form onSubmit={handlePlaceOrder} className="space-y-lg">
-          <MockPaymentDevControls />
+          <MockPaymentDevControls paymentMethod={paymentMethod} />
 
           <section className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
             <h2 className="mb-md flex items-center gap-2 text-headline-md font-semibold">
@@ -222,7 +226,10 @@ export default function CheckoutReviewClient() {
                     key={opt.id}
                     type="button"
                     disabled={processingPayment}
-                    onClick={() => setPaymentMethod(opt.id)}
+                    onClick={() => {
+                      setPaymentMethod(opt.id);
+                      setPaymentError(null);
+                    }}
                     className={`flex items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
                       selected
                         ? "border-secondary-container bg-secondary-container/15 ring-2 ring-secondary-container/40"

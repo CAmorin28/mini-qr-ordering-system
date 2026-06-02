@@ -14,18 +14,10 @@ import {
   paymentStatusLabel,
 } from "@/lib/order-labels";
 import { consumePendingOrder, getOrder } from "@/lib/order-history";
+import { isPlacedOrder } from "@/lib/place-order";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH, ORDERS_HISTORY_PATH } from "@/lib/menu-url";
 import type { PlacedOrder } from "@/lib/types";
-
-function isPaidOrder(order: PlacedOrder): boolean {
-  if (order.paymentStatus === "paid") return true;
-  if (order.paymentStatus === "failed" || order.paymentStatus === "pending") {
-    return false;
-  }
-  if (order.status === "confirmed") return true;
-  return (order.status as string) === "placed";
-}
 
 export default function OrderConfirmationPage() {
   const params = useParams();
@@ -41,7 +33,7 @@ export default function OrderConfirmationPage() {
 
     async function load() {
       const pending = consumePendingOrder(orderId);
-      if (pending && isPaidOrder(pending)) {
+      if (pending && isPlacedOrder(pending)) {
         if (!cancelled) {
           setOrder(pending);
           clearCart();
@@ -53,7 +45,7 @@ export default function OrderConfirmationPage() {
 
       try {
         const fromApi = await fetchOrderById(orderId);
-        if (fromApi && isPaidOrder(fromApi)) {
+        if (fromApi && isPlacedOrder(fromApi)) {
           if (!cancelled) {
             setOrder(fromApi);
             clearCart();
@@ -67,7 +59,7 @@ export default function OrderConfirmationPage() {
       }
 
       const local = getOrder(orderId);
-      if (!local || !isPaidOrder(local)) {
+      if (!local || !isPlacedOrder(local)) {
         router.replace(local ? CHECKOUT_REVIEW_PATH : MENU_PAGE_PATH);
         return;
       }

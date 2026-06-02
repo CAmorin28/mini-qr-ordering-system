@@ -5,6 +5,7 @@ import {
   setMockPaymentMode,
   type MockPaymentMode,
 } from "@/lib/mock-payment";
+import type { PaymentMethod } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const MODES: { id: MockPaymentMode; label: string }[] = [
@@ -13,9 +14,14 @@ const MODES: { id: MockPaymentMode; label: string }[] = [
   { id: "failure", label: "Force fail" },
 ];
 
+interface MockPaymentDevControlsProps {
+  paymentMethod: PaymentMethod | null;
+}
+
 /** Shown on all environments so demo payment can be tested on Vercel. */
-export function MockPaymentDevControls() {
+export function MockPaymentDevControls({ paymentMethod }: MockPaymentDevControlsProps) {
   const [mode, setMode] = useState<MockPaymentMode>("random");
+  const appliesToCheckout = paymentMethod === "gcash";
 
   useEffect(() => {
     setMode(getMockPaymentMode());
@@ -27,8 +33,14 @@ export function MockPaymentDevControls() {
         Payment simulation (demo)
       </p>
       <p className="mt-1 text-xs text-on-surface-variant">
-        Not a real payment gateway. Choose an outcome before Pay now / Place order.
+        Not a real payment gateway. Choose an outcome before Pay now. Cash on Delivery
+        always places the order; success/fail applies to GCash only.
       </p>
+      {!appliesToCheckout && paymentMethod === "cod" && (
+        <p className="mt-1 text-xs font-medium text-on-surface-variant/80">
+          Current method: COD — simulation controls are saved for when you switch to GCash.
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap gap-2">
         {MODES.map((m) => (
           <button

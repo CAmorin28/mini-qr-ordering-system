@@ -8,15 +8,8 @@ import { formatPrice } from "@/lib/format";
 import { listOrders } from "@/lib/order-history";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
 import { PAYMENT_METHOD_LABELS, paymentStatusLabel } from "@/lib/order-labels";
+import { isPlacedOrder } from "@/lib/place-order";
 import type { PlacedOrder } from "@/lib/types";
-
-function isConfirmedOrder(order: PlacedOrder): boolean {
-  if (order.paymentStatus === "paid") return true;
-  if (order.paymentStatus === "failed" || order.paymentStatus === "pending") {
-    return false;
-  }
-  return order.status === "confirmed" || (order.status as string) === "placed";
-}
 
 export default function OrdersHistoryPage() {
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
@@ -27,10 +20,10 @@ export default function OrdersHistoryPage() {
     async function load() {
       try {
         const fromApi = await fetchOrderHistory();
-        setOrders(fromApi.filter(isConfirmedOrder));
+        setOrders(fromApi.filter(isPlacedOrder));
         setSource("database");
       } catch {
-        setOrders(listOrders().filter(isConfirmedOrder));
+        setOrders(listOrders().filter(isPlacedOrder));
         setSource("local");
       }
     }
