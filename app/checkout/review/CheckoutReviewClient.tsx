@@ -74,6 +74,7 @@ export default function CheckoutReviewClient() {
   const grandTotal = computeGrandTotal(subtotal);
   const isPayNow = paymentMethod === "gcash";
   const isDineIn = form.orderType === "dine_in";
+  const hasTable = Boolean((form.tableLetter || tableLetter).trim());
   const menuPath = pathWithSession(MENU_PAGE_PATH);
 
   useEffect(() => {
@@ -101,8 +102,10 @@ export default function CheckoutReviewClient() {
       setFormError("Please enter your name for the order.");
       return;
     }
-    if (isDineIn && !form.tableLetter.trim()) {
-      setFormError("Dine-in requires a table QR session. Scan your table QR code first.");
+    if (!hasTable) {
+      setFormError(
+        "A table QR session is required. Scan your table QR code from staff before ordering.",
+      );
       return;
     }
     if (!paymentMethod) {
@@ -112,7 +115,7 @@ export default function CheckoutReviewClient() {
 
     const customerDetails = {
       ...form,
-      tableLetter: isDineIn ? form.tableLetter : form.tableLetter || tableLetter,
+      tableLetter: form.tableLetter || tableLetter,
     };
 
     setCustomer(customerDetails);
@@ -173,10 +176,14 @@ export default function CheckoutReviewClient() {
         <form onSubmit={handlePlaceOrder} className="space-y-lg">
           <MockPaymentDevControls paymentMethod={paymentMethod} />
 
-          {hasTableSession && (
+          {hasTableSession ? (
             <div className="rounded-xl border border-secondary-container/30 bg-secondary-container/10 px-md py-sm text-sm">
               <span className="font-semibold text-on-surface">{formatTableLabel(tableLetter)}</span>
               <span className="text-on-surface-variant"> · QR table session</span>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-error/40 bg-error-container/30 px-md py-sm text-sm text-error">
+              Scan your table QR code before placing an order (dine-in and pick-up).
             </div>
           )}
 
@@ -206,7 +213,7 @@ export default function CheckoutReviewClient() {
                       <p className="mt-0.5 text-xs text-on-surface-variant">
                         {opt.id === "dine_in"
                           ? "We will bring your order to your table"
-                          : "Pick up at the counter when ready"}
+                          : "Collect at the counter when ready (same table QR session)"}
                       </p>
                     </div>
                   </button>
@@ -232,18 +239,14 @@ export default function CheckoutReviewClient() {
                   placeholder="Your name"
                 />
               </label>
-              {isDineIn && (
-                <div className="block">
-                  <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                    Table
-                  </span>
-                  <div className="checkout-input flex items-center bg-surface-container-low font-bold text-on-surface">
-                    {form.tableLetter
-                      ? formatTableLabel(form.tableLetter)
-                      : "Scan table QR code"}
-                  </div>
+              <div className="block">
+                <span className="mb-1 block text-sm font-medium text-on-surface-variant">
+                  Table session
+                </span>
+                <div className="checkout-input flex items-center bg-surface-container-low font-bold text-on-surface">
+                  {hasTable ? formatTableLabel(form.tableLetter || tableLetter) : "Scan table QR code"}
                 </div>
-              )}
+              </div>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-on-surface-variant">
                   Contact number (optional)

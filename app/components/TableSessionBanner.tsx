@@ -28,8 +28,8 @@ export function TableSessionBanner() {
     <div className="mb-md rounded-2xl border border-dashed border-surface-variant bg-surface-container-low px-md py-3 text-sm text-on-surface-variant">
       <p className="font-semibold text-on-surface">Scan your table QR code</p>
       <p className="mt-1">
-        Dine-in ordering requires a table QR (e.g. Table A). Ask staff if you need a code. Pick-up
-        at counter does not need a table session.
+        All orders (dine-in and pick-up) require a table QR from staff (e.g. Table A). Scan the code
+        at your table or ask staff if you need one.
       </p>
     </div>
   );

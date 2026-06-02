@@ -16,7 +16,7 @@ interface CartDropdownProps {
 
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
   const { lines, itemCount } = useCart();
-  const { pathWithSession } = useTableSession();
+  const { pathWithSession, hasTableSession } = useTableSession();
   const panelRef = useRef<HTMLDivElement>(null);
   const subtotal = computeSubtotal(lines);
 
@@ -94,21 +94,27 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             <span className="text-sm font-medium text-on-surface-variant">Subtotal</span>
             <span className="text-xl font-bold text-secondary">{formatPrice(subtotal)}</span>
           </div>
-          <Link
-            href={pathWithSession(CHECKOUT_PAGE_PATH)}
-            onClick={() => {
-              if (itemCount > 0) onClose();
-            }}
-            className={`checkout-cta flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
-              itemCount === 0
-                ? "pointer-events-none cursor-not-allowed bg-surface-variant text-on-surface-variant opacity-60"
-                : "bg-primary text-on-primary shadow-md hover:bg-primary-container active:scale-[0.99]"
-            }`}
-            aria-disabled={itemCount === 0}
-          >
-            Proceed to Checkout
-            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-          </Link>
+          {hasTableSession ? (
+            <Link
+              href={pathWithSession(CHECKOUT_PAGE_PATH)}
+              onClick={() => {
+                if (itemCount > 0) onClose();
+              }}
+              className={`checkout-cta flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
+                itemCount === 0
+                  ? "pointer-events-none cursor-not-allowed bg-surface-variant text-on-surface-variant opacity-60"
+                  : "bg-primary text-on-primary shadow-md hover:bg-primary-container active:scale-[0.99]"
+              }`}
+              aria-disabled={itemCount === 0}
+            >
+              Proceed to Checkout
+              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            </Link>
+          ) : (
+            <p className="rounded-xl border border-dashed border-surface-variant bg-surface-container-low px-md py-3 text-center text-xs text-on-surface-variant">
+              Scan your table QR code to start checkout (dine-in and pick-up).
+            </p>
+          )}
         </div>
       </div>
     </>

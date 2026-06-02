@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { TableSessionBanner } from "@/app/components/TableSessionBanner";
 import { CheckoutLineItem } from "@/app/components/CheckoutLineItem";
 import { CheckoutShell } from "@/app/components/CheckoutShell";
 import { PriceBreakdown } from "@/app/components/PriceBreakdown";
@@ -16,7 +17,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { lines, itemCount } = useCart();
   const { cutlery, setCutlery } = useCheckout();
-  const { pathWithSession } = useTableSession();
+  const { pathWithSession, hasTableSession } = useTableSession();
   const subtotal = computeSubtotal(lines);
   const menuPath = pathWithSession(MENU_PAGE_PATH);
 
@@ -36,6 +37,8 @@ export default function CheckoutPage() {
       title="Checkout"
       subtitle="Review your order before payment."
     >
+      <TableSessionBanner />
+
       <section className="space-y-md">
         <h2 className="text-headline-md font-semibold text-on-surface">Order summary</h2>
         <div className="space-y-md">
@@ -72,13 +75,23 @@ export default function CheckoutPage() {
         >
           Add more items
         </Link>
-        <Link
-          href={pathWithSession(CHECKOUT_REVIEW_PATH)}
-          className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
-        >
-          Continue to payment
-          <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-        </Link>
+        {hasTableSession ? (
+          <Link
+            href={pathWithSession(CHECKOUT_REVIEW_PATH)}
+            className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
+          >
+            Continue to payment
+            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+          </Link>
+        ) : (
+          <span
+            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-surface-variant px-lg py-3.5 text-headline-sm font-bold text-on-surface-variant opacity-60"
+            title="Scan your table QR code first"
+          >
+            Scan table QR to continue
+            <span className="material-symbols-outlined text-[20px]">qr_code_2</span>
+          </span>
+        )}
       </div>
     </CheckoutShell>
   );
