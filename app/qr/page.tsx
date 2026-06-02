@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
+import {
+  MENU_QR_COLORS,
+  MENU_QR_DISPLAY_WIDTH,
+  MENU_QR_MARGIN,
+} from "@/lib/qr-code";
 import { getMenuPageUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -36,12 +42,9 @@ export default async function QrPage() {
   const menuUrl = await getMenuPageUrl();
   const qrSvg = await QRCode.toString(menuUrl, {
     type: "svg",
-    margin: 1,
-    width: 600,
-    color: {
-      dark: "#05051b",
-      light: "#ffffff",
-    },
+    margin: MENU_QR_MARGIN,
+    width: MENU_QR_DISPLAY_WIDTH,
+    color: MENU_QR_COLORS,
   });
 
   return (
@@ -78,10 +81,7 @@ export default async function QrPage() {
             </ol>
 
             <div className="qr-mobile-cta">
-              <Link
-                href="/"
-                className="qr-open-menu-btn"
-              >
+              <Link href="/" className="qr-open-menu-btn">
                 Open Digital Menu
               </Link>
             </div>
@@ -117,6 +117,8 @@ export default async function QrPage() {
                   <p className="qr-card-footer-sub">Table No: {tableNumber}</p>
                 ) : null}
               </div>
+
+              <QrDownloadActions menuUrl={menuUrl} tableNumber={tableNumber} />
             </div>
           </div>
         </section>

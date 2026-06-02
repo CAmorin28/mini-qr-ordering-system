@@ -1,3 +1,6 @@
 export function formatPrice(amount: number): string {
-  return `$${amount.toFixed(2)}`;
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(amount);
 }
