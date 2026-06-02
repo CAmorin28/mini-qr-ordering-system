@@ -1,6 +1,14 @@
 /** Customer ordering page — never the staff `/qr` display page. */
 export const MENU_PAGE_PATH = "/menu" as const;
 
+export const CHECKOUT_PAGE_PATH = "/checkout" as const;
+export const CHECKOUT_REVIEW_PATH = "/checkout/review" as const;
+export const ORDERS_HISTORY_PATH = "/orders" as const;
+
+export function checkoutConfirmationPath(orderId: string): string {
+  return `/checkout/confirmation/${encodeURIComponent(orderId)}`;
+}
+
 /** Staff-only URL to open the QR display page (mobile + desktop). */
 export const STAFF_QR_PAGE_PATH = "/qr?view=staff" as const;
 
