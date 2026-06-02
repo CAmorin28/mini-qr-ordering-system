@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: #05051b;
+  --color-on-primary: #ffffff;
+  --color-secondary: #9b4500;
+  --color-secondary-container: #fc8a40;
+  --color-on-secondary-container: #672c00;
+  --color-background: #f9f9f4;
+  --color-on-surface: #1a1c19;
+  --color-on-surface-variant: #47464d;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f4f4ef;
+  --color-surface-container: #eeeee9;
+  --color-surface-variant: #e2e3de;
+  --color-outline-variant: #c8c5ce;
+  --color-primary-container: #1d1d35;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --spacing-gutter: 16px;
+  --spacing-margin-mobile: 16px;
+  --spacing-margin-desktop: 24px;
+  --spacing-cart-width: 400px;
+  --spacing-base: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-sm: 16px;
+  --text-headline-sm--line-height: 24px;
+  --text-label-lg: 14px;
+  --text-label-lg--line-height: 20px;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-price-display: 18px;
+  --text-price-display--line-height: 24px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+.cart-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cart-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cart-scroll::-webkit-scrollbar-thumb {
+  background: #dadad6;
+  border-radius: 4px;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+:root {
+  --header-height: 72px;
+}
+
+html {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  background: var(--color-background);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  width: 100%;
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
 }
