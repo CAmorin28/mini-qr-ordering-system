@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -14,12 +15,17 @@ import {
   updateAdminOrder,
 } from "@/lib/api-admin";
 import { formatPrice } from "@/lib/format";
-import { ADMIN_LOGIN_PATH } from "@/lib/menu-url";
+import { ADMIN_LOGIN_PATH, staffQrPath } from "@/lib/menu-url";
 import {
+  adminStatusOptions,
+  customerOrderStatusLabel,
   ORDER_STATUS_LABELS,
+  ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
 } from "@/lib/order-labels";
+import { canStartPreparing, getNextStatus, syncStatuses } from "@/lib/order-workflow";
+import { formatTableLabel } from "@/lib/table-session";
 import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
 
 type FilterKey = "all" | "pending_payment" | "paid" | "failed";
@@ -60,8 +66,20 @@ function OrderDetailPanel({
     setError(null);
     setSaved(false);
     try {
-      const updated = await updateAdminOrder(order.orderId, { status, paymentStatus });
+      const synced = syncStatuses(status, paymentStatus);
+      if (
+        synced.status === "preparing" &&
+        order.customer.orderType === "dine_in" &&
+        !canStartPreparing({ ...order, ...synced })
+      ) {
+        setError("Dine-in orders must be paid before preparation begins.");
+        setSaving(false);
+        return;
+      }
+      const updated = await updateAdminOrder(order.orderId, synced);
       onUpdated(updated);
+      setStatus(updated.status);
+      setPaymentStatus(updated.paymentStatus);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -110,7 +128,7 @@ function OrderDetailPanel({
             <AdminStatusBadge
               kind="order"
               value={order.status}
-              label={ORDER_STATUS_LABELS[order.status]}
+              label={customerOrderStatusLabel(order)}
             />
             <AdminStatusBadge
               kind="payment"
@@ -127,12 +145,19 @@ function OrderDetailPanel({
 
           <section className="mt-lg">
             <h3 className="text-sm font-bold text-on-surface">Customer</h3>
-            <p className="mt-1 text-sm text-on-surface">{order.delivery.fullName}</p>
-            <p className="text-sm text-on-surface-variant">{order.delivery.contactNumber}</p>
-            <p className="mt-1 text-sm text-on-surface-variant">{order.delivery.address}</p>
-            {order.delivery.notes ? (
+            <p className="mt-1 text-sm text-on-surface">{order.customer.fullName}</p>
+            <p className="text-sm text-on-surface-variant">
+              {ORDER_TYPE_LABELS[order.customer.orderType]}
+              {order.customer.tableLetter
+                ? ` · ${formatTableLabel(order.customer.tableLetter)}`
+                : ""}
+            </p>
+            {order.customer.contactNumber ? (
+              <p className="text-sm text-on-surface-variant">{order.customer.contactNumber}</p>
+            ) : null}
+            {order.customer.notes ? (
               <p className="mt-2 rounded-lg bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
-                {order.delivery.notes}
+                {order.customer.notes}
               </p>
             ) : null}
           </section>
@@ -170,7 +195,7 @@ function OrderDetailPanel({
                 onChange={(e) => setStatus(e.target.value as OrderStatus)}
                 className="checkout-input mt-1 w-full"
               >
-                {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((key) => (
+                {(adminStatusOptions(order) as OrderStatus[]).map((key) => (
                   <option key={key} value={key}>
                     {ORDER_STATUS_LABELS[key]}
                   </option>
@@ -200,16 +225,43 @@ function OrderDetailPanel({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentStatus("paid");
-                  setStatus("confirmed");
-                }}
-                className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
-              >
-                Mark paid & confirm
-              </button>
+              {order.paymentStatus !== "paid" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentStatus("paid");
+                    setStatus("paid");
+                  }}
+                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                >
+                  Mark as paid
+                </button>
+              )}
+              {getNextStatus(order) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = getNextStatus({ ...order, status, paymentStatus });
+                    if (!next) return;
+                    if (
+                      next === "preparing" &&
+                      order.customer.orderType === "dine_in" &&
+                      paymentStatus !== "paid" &&
+                      status !== "paid"
+                    ) {
+                      setError("Mark payment as paid before starting preparation.");
+                      return;
+                    }
+                    setStatus(next);
+                    if (next !== "pending_payment") {
+                      setPaymentStatus("paid");
+                    }
+                  }}
+                  className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                >
+                  Advance to {ORDER_STATUS_LABELS[getNextStatus({ ...order, status, paymentStatus })!]}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setPaymentStatus("failed")}
@@ -369,6 +421,13 @@ export function AdminApp() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href={staffQrPath()}
+              className="flex min-h-10 items-center gap-1 rounded-xl border border-on-primary/25 px-3 py-2 text-sm font-semibold text-on-primary hover:bg-on-primary/10"
+            >
+              <span className="material-symbols-outlined text-[20px]">qr_code_2</span>
+              <span className="hidden sm:inline">Table QR</span>
+            </Link>
             <button
               type="button"
               onClick={() => loadOrders()}
@@ -466,7 +525,10 @@ export function AdminApp() {
                       <p className="font-bold text-on-surface">{order.orderNumber}</p>
                       <p className="text-xs text-on-surface-variant">
                         {new Date(order.createdAt).toLocaleString("en-PH")} ·{" "}
-                        {order.delivery.fullName}
+                        {order.customer.fullName}
+                        {order.customer.tableLetter
+                          ? ` · ${formatTableLabel(order.customer.tableLetter)}`
+                          : ""}
                       </p>
                     </div>
                     <p className="text-lg font-bold text-secondary">
@@ -477,7 +539,7 @@ export function AdminApp() {
                     <AdminStatusBadge
                       kind="order"
                       value={order.status}
-                      label={ORDER_STATUS_LABELS[order.status]}
+                      label={customerOrderStatusLabel(order)}
                     />
                     <AdminStatusBadge
                       kind="payment"

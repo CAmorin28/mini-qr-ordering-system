@@ -8,49 +8,50 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { DeliveryDetails, PaymentMethod } from "@/lib/types";
+import type { CustomerDetails, PaymentMethod } from "@/lib/types";
 
 interface CheckoutContextValue {
   cutlery: boolean;
-  delivery: DeliveryDetails | null;
+  customer: CustomerDetails | null;
   paymentMethod: PaymentMethod | null;
   setCutlery: (value: boolean) => void;
-  setDelivery: (details: DeliveryDetails) => void;
+  setCustomer: (details: CustomerDetails) => void;
   setPaymentMethod: (method: PaymentMethod) => void;
   clearCheckout: () => void;
 }
 
 const CheckoutContext = createContext<CheckoutContextValue | null>(null);
 
-const emptyDelivery: DeliveryDetails = {
+export const emptyCustomer: CustomerDetails = {
   fullName: "",
   contactNumber: "",
-  address: "",
   notes: "",
+  orderType: "dine_in",
+  tableLetter: "",
 };
 
 export function CheckoutProvider({ children }: { children: ReactNode }) {
   const [cutlery, setCutlery] = useState(false);
-  const [delivery, setDelivery] = useState<DeliveryDetails | null>(null);
+  const [customer, setCustomer] = useState<CustomerDetails | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const clearCheckout = useCallback(() => {
     setCutlery(false);
-    setDelivery(null);
+    setCustomer(null);
     setPaymentMethod(null);
   }, []);
 
   const value = useMemo(
     () => ({
       cutlery,
-      delivery,
+      customer,
       paymentMethod,
       setCutlery,
-      setDelivery,
+      setCustomer,
       setPaymentMethod,
       clearCheckout,
     }),
-    [cutlery, delivery, paymentMethod, clearCheckout],
+    [cutlery, customer, paymentMethod, clearCheckout],
   );
 
   return (
@@ -65,5 +66,3 @@ export function useCheckout() {
   }
   return ctx;
 }
-
-export { emptyDelivery };

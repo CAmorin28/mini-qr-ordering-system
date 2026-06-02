@@ -4,7 +4,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateOrderInDb } from "@/lib/supabase/orders";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
 
-const ORDER_STATUSES: OrderStatus[] = ["pending", "confirmed"];
+const ORDER_STATUSES: OrderStatus[] = [
+  "pending_payment",
+  "paid",
+  "preparing",
+  "serving",
+  "served",
+  "ready_for_pickup",
+];
 const PAYMENT_STATUSES: PaymentStatus[] = ["pending", "paid", "failed"];
 
 function isOrderStatus(value: unknown): value is OrderStatus {

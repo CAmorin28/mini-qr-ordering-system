@@ -4,25 +4,34 @@ import Link from "next/link";
 import { useState } from "react";
 import { CartDropdown } from "@/app/components/CartDropdown";
 import { useCart } from "@/app/context/CartContext";
-import { MENU_PAGE_PATH, STAFF_QR_PAGE_PATH } from "@/lib/menu-url";
+import { useTableSession } from "@/app/context/TableSessionContext";
+import { ADMIN_DASHBOARD_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
 
 interface HeaderProps {
   showCart?: boolean;
-  showQrLink?: boolean;
   showBackToMenu?: boolean;
+  showTableBadge?: boolean;
+  backHref?: string;
+  backLabel?: string;
   /** Minimal dark bar for the QR display page */
   variant?: "default" | "qr";
 }
 
 export function Header({
   showCart = true,
-  showQrLink = false,
   showBackToMenu = false,
+  showTableBadge = false,
+  backHref,
+  backLabel,
   variant = "default",
 }: HeaderProps) {
   const { itemCount } = useCart();
+  const { tableLabel, hasTableSession, pathWithSession } = useTableSession();
   const [cartOpen, setCartOpen] = useState(false);
   const isQr = variant === "qr";
+  const menuHref = hasTableSession ? pathWithSession(MENU_PAGE_PATH) : MENU_PAGE_PATH;
+  const navBackHref = backHref ?? menuHref;
+  const navBackLabel = backLabel ?? "Back to menu";
 
   return (
     <>
@@ -48,33 +57,33 @@ export function Header({
           >
             TableBite
           </span>
+          {showTableBadge && hasTableSession && !isQr && (
+            <span className="hidden rounded-full bg-secondary-container px-2.5 py-1 text-xs font-bold text-on-secondary-container sm:inline">
+              {tableLabel}
+            </span>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          {showTableBadge && hasTableSession && !isQr && (
+            <span className="inline rounded-full bg-on-primary/15 px-2 py-1 text-[11px] font-bold text-on-primary sm:hidden">
+              {tableLabel}
+            </span>
+          )}
           {showBackToMenu && (
             <Link
-              href={MENU_PAGE_PATH}
-              aria-label={isQr ? "Back to menu" : undefined}
+              href={navBackHref}
+              aria-label={isQr ? navBackLabel : undefined}
               className={`flex min-h-11 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 sm:px-3 sm:text-base ${
                 isQr
                   ? "qr-header-back"
                   : "rounded-xl border border-on-primary/25 text-on-primary hover:bg-secondary-container hover:text-on-secondary-container"
               }`}
             >
-              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-              <span className={isQr ? "qr-header-back-label" : undefined}>Back to menu</span>
-            </Link>
-          )}
-
-          {showQrLink && (
-            <Link
-              href={STAFF_QR_PAGE_PATH}
-              className="flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-xl border border-on-primary/25 px-2 py-2.5 text-xs font-semibold text-on-primary transition-colors hover:bg-secondary-container hover:text-on-secondary-container sm:gap-2 sm:px-5 sm:py-3 sm:text-base"
-            >
-              <span className="material-symbols-outlined shrink-0 text-[20px] sm:text-[22px]">
-                qr_code_2
+              <span className="material-symbols-outlined text-[22px]">
+                {backHref === ADMIN_DASHBOARD_PATH ? "admin_panel_settings" : "arrow_back"}
               </span>
-              <span className="whitespace-nowrap">Show QR</span>
+              <span className={isQr ? "qr-header-back-label" : undefined}>{navBackLabel}</span>
             </Link>
           )}
 

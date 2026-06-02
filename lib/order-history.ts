@@ -1,12 +1,16 @@
 import type { PlacedOrder } from "@/lib/types";
+import {
+  activeOrderStorageKey,
+  normalizeTableLetter,
+  ordersStorageKey,
+} from "@/lib/table-session";
 
-const STORAGE_KEY = "tablebite_orders";
 const PENDING_KEY = "tablebite_pending_order";
 
-function readAll(): PlacedOrder[] {
+function readAll(tableLetter = ""): PlacedOrder[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(ordersStorageKey(tableLetter));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as PlacedOrder[];
     return Array.isArray(parsed) ? parsed : [];
@@ -15,22 +19,45 @@ function readAll(): PlacedOrder[] {
   }
 }
 
-function writeAll(orders: PlacedOrder[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+function writeAll(orders: PlacedOrder[], tableLetter = ""): void {
+  localStorage.setItem(ordersStorageKey(tableLetter), JSON.stringify(orders));
 }
 
 export function saveOrder(order: PlacedOrder): void {
-  const orders = readAll().filter((o) => o.orderId !== order.orderId);
+  const tableLetter = normalizeTableLetter(order.customer.tableLetter);
+  const orders = readAll(tableLetter).filter((o) => o.orderId !== order.orderId);
   orders.unshift(order);
-  writeAll(orders.slice(0, 50));
+  writeAll(orders.slice(0, 50), tableLetter);
+  setActiveOrderId(order.orderId, tableLetter);
 }
 
-export function getOrder(orderId: string): PlacedOrder | null {
-  return readAll().find((o) => o.orderId === orderId) ?? null;
+export function getOrder(orderId: string, tableLetter = ""): PlacedOrder | null {
+  const letter = normalizeTableLetter(tableLetter);
+  const fromTable = readAll(letter).find((o) => o.orderId === orderId);
+  if (fromTable) return fromTable;
+  if (letter) return null;
+  for (const key of Object.keys(localStorage)) {
+    if (!key.startsWith("tablebite_orders_")) continue;
+    const match = readAll(key.replace("tablebite_orders_", "")).find(
+      (o) => o.orderId === orderId,
+    );
+    if (match) return match;
+  }
+  return null;
 }
 
-export function listOrders(): PlacedOrder[] {
-  return readAll();
+export function listOrders(tableLetter = ""): PlacedOrder[] {
+  return readAll(normalizeTableLetter(tableLetter));
+}
+
+export function setActiveOrderId(orderId: string, tableLetter = ""): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(activeOrderStorageKey(tableLetter), orderId);
+}
+
+export function getActiveOrderId(tableLetter = ""): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(activeOrderStorageKey(tableLetter));
 }
 
 /** Stash order before navigation so confirmation loads immediately (avoids cart-clear race). */
@@ -53,6 +80,6 @@ export function consumePendingOrder(orderId: string): PlacedOrder | null {
   }
 }
 
-export function resolveOrder(orderId: string): PlacedOrder | null {
-  return consumePendingOrder(orderId) ?? getOrder(orderId);
+export function resolveOrder(orderId: string, tableLetter = ""): PlacedOrder | null {
+  return consumePendingOrder(orderId) ?? getOrder(orderId, tableLetter);
 }

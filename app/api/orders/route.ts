@@ -10,8 +10,8 @@ function isPlacedOrder(body: unknown): body is PlacedOrder {
     typeof o.orderId === "string" &&
     Array.isArray(o.lines) &&
     typeof o.subtotal === "number" &&
-    o.delivery != null &&
-    typeof o.delivery.fullName === "string"
+    o.customer != null &&
+    typeof o.customer.fullName === "string"
   );
 }
 

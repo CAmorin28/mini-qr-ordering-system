@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { menuUrlFromWindow } from "@/lib/menu-url";
+import { menuUrlForTable, menuUrlFromWindow } from "@/lib/menu-url";
 import { shouldRefreshQrFromBrowser } from "@/lib/origin";
 import {
   MENU_QR_COLORS,
@@ -11,10 +11,12 @@ import {
 } from "@/lib/qr-code";
 
 interface MenuQrDisplayProps {
-  /** Server-rendered menu URL (encoded in initialSvg). */
+  /** Absolute menu URL encoded in the QR (includes /menu?table=…). */
   menuUrl: string;
   /** SVG from the server so the code is scannable before JS runs. */
   initialSvg: string;
+  /** Table letter for LAN / mobile origin refresh. */
+  tableLetter?: string;
 }
 
 async function renderMenuQr(menuUrl: string): Promise<string> {
@@ -23,16 +25,22 @@ async function renderMenuQr(menuUrl: string): Promise<string> {
     margin: MENU_QR_MARGIN,
     width: MENU_QR_DISPLAY_WIDTH,
     color: MENU_QR_COLORS,
+    errorCorrectionLevel: "M",
   });
 }
 
-export function MenuQrDisplay({ menuUrl, initialSvg }: MenuQrDisplayProps) {
+export function MenuQrDisplay({ menuUrl, initialSvg, tableLetter }: MenuQrDisplayProps) {
   const [qrSvg, setQrSvg] = useState(initialSvg);
+
+  useEffect(() => {
+    setQrSvg(initialSvg);
+  }, [initialSvg, menuUrl]);
 
   useEffect(() => {
     if (!shouldRefreshQrFromBrowser(menuUrl)) return;
 
-    const targetUrl = menuUrlFromWindow() ?? menuUrl;
+    const targetUrl =
+      menuUrlFromWindow(tableLetter) ?? menuUrlForTable(menuUrl, tableLetter ?? "");
     if (targetUrl === menuUrl) return;
 
     let cancelled = false;
@@ -47,7 +55,7 @@ export function MenuQrDisplay({ menuUrl, initialSvg }: MenuQrDisplayProps) {
     return () => {
       cancelled = true;
     };
-  }, [menuUrl]);
+  }, [menuUrl, tableLetter]);
 
   return (
     <div

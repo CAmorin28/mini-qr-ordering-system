@@ -13,7 +13,7 @@ import {
 
 interface QrDownloadActionsProps {
   menuUrl: string;
-  tableNumber?: string | null;
+  tableLetter?: string | null;
 }
 
 type DownloadFormat = "png" | "svg";
@@ -44,6 +44,7 @@ const qrRenderOptions = {
   margin: MENU_QR_MARGIN,
   width: MENU_QR_DOWNLOAD_WIDTH,
   color: MENU_QR_COLORS,
+  errorCorrectionLevel: "M" as const,
 };
 
 function isTouchMobileDevice(): boolean {
@@ -146,7 +147,7 @@ async function createSvgFile(menuUrl: string, filename: string): Promise<File> {
 
 export function QrDownloadActions({
   menuUrl,
-  tableNumber,
+  tableLetter,
 }: QrDownloadActionsProps) {
   const [busyFormat, setBusyFormat] = useState<DownloadFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +163,7 @@ export function QrDownloadActions({
         const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl)
           ? (menuUrlFromWindow() ?? menuUrl)
           : menuUrl;
-        const filename = getQrDownloadFilename(format, tableNumber);
+        const filename = getQrDownloadFilename(format, tableLetter);
         const file =
           format === "png"
             ? await createPngFile(targetMenuUrl, filename)
@@ -196,7 +197,7 @@ export function QrDownloadActions({
         setBusyFormat(null);
       }
     },
-    [menuUrl, tableNumber],
+    [menuUrl, tableLetter],
   );
 
   return (

@@ -9,16 +9,14 @@ import { PaymentFailedPanel } from "@/app/components/PaymentFailedPanel";
 import { PaymentProcessingOverlay } from "@/app/components/PaymentProcessingOverlay";
 import { PaymentMethodIcon } from "@/app/components/PaymentMethodIcon";
 import { useCart } from "@/app/context/CartContext";
-import { emptyDelivery, useCheckout } from "@/app/context/CheckoutContext";
+import { emptyCustomer, useCheckout } from "@/app/context/CheckoutContext";
+import { useTableSession } from "@/app/context/TableSessionContext";
 import {
   computeGrandTotal,
   computeSubtotal,
   lineSubtotal,
-  DELIVERY_FEE,
-  SERVICE_FEE,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
-import { simulateMockPayment } from "@/lib/mock-payment";
 import { saveOrder, setPendingOrder } from "@/lib/order-history";
 import {
   buildPlacedOrder,
@@ -30,7 +28,9 @@ import {
   checkoutConfirmationPath,
   MENU_PAGE_PATH,
 } from "@/lib/menu-url";
-import type { PaymentMethod, PaymentStatus } from "@/lib/types";
+import { formatTableLabel } from "@/lib/table-session";
+import { simulateMockPayment } from "@/lib/mock-payment";
+import type { OrderType, PaymentMethod } from "@/lib/types";
 
 const PAYMENT_OPTIONS: {
   id: PaymentMethod;
@@ -40,22 +40,31 @@ const PAYMENT_OPTIONS: {
   {
     id: "gcash",
     label: "GCash",
-    description: "Pay via mobile wallet (simulation)",
+    description: "Simulated mobile wallet — pay now",
   },
   {
-    id: "cod",
-    label: "Cash on Delivery",
-    description: "Pay when your order arrives",
+    id: "cash",
+    label: "Cash",
+    description: "Pay at the table or counter (confirmed by staff)",
   },
+];
+
+const ORDER_TYPE_OPTIONS: { id: OrderType; label: string; icon: string }[] = [
+  { id: "dine_in", label: "Dine-in", icon: "restaurant" },
+  { id: "pickup", label: "Pick-up at counter", icon: "takeout_dining" },
 ];
 
 export default function CheckoutReviewClient() {
   const router = useRouter();
   const { lines, itemCount } = useCart();
-  const { cutlery, delivery, paymentMethod, setDelivery, setPaymentMethod } =
+  const { cutlery, customer, paymentMethod, setCustomer, setPaymentMethod } =
     useCheckout();
+  const { tableLetter, hasTableSession, pathWithSession } = useTableSession();
 
-  const [form, setForm] = useState(delivery ?? emptyDelivery);
+  const [form, setForm] = useState(() => ({
+    ...(customer ?? emptyCustomer),
+    tableLetter: customer?.tableLetter || tableLetter,
+  }));
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -64,12 +73,20 @@ export default function CheckoutReviewClient() {
   const subtotal = computeSubtotal(lines);
   const grandTotal = computeGrandTotal(subtotal);
   const isPayNow = paymentMethod === "gcash";
+  const isDineIn = form.orderType === "dine_in";
+  const menuPath = pathWithSession(MENU_PAGE_PATH);
+
+  useEffect(() => {
+    if (tableLetter && form.tableLetter !== tableLetter) {
+      setForm((f) => ({ ...f, tableLetter }));
+    }
+  }, [tableLetter, form.tableLetter]);
 
   useEffect(() => {
     if (itemCount === 0 && !processingPayment && !placedSuccessfully.current) {
-      router.replace(MENU_PAGE_PATH);
+      router.replace(menuPath);
     }
-  }, [itemCount, router, processingPayment]);
+  }, [itemCount, router, processingPayment, menuPath]);
 
   if (itemCount === 0 && !processingPayment) {
     return null;
@@ -80,29 +97,37 @@ export default function CheckoutReviewClient() {
     setFormError(null);
     setPaymentError(null);
 
-    if (!form.fullName.trim() || !form.contactNumber.trim() || !form.address.trim()) {
-      setFormError("Please fill in your name, contact number, and delivery address.");
+    if (!form.fullName.trim()) {
+      setFormError("Please enter your name for the order.");
+      return;
+    }
+    if (isDineIn && !form.tableLetter.trim()) {
+      setFormError("Dine-in requires a table QR session. Scan your table QR code first.");
       return;
     }
     if (!paymentMethod) {
-      setFormError("Please select a payment method (GCash or Cash on Delivery).");
+      setFormError("Please select a payment method.");
       return;
     }
 
-    setDelivery(form);
-    setProcessingPayment(true);
+    const customerDetails = {
+      ...form,
+      tableLetter: isDineIn ? form.tableLetter : form.tableLetter || tableLetter,
+    };
+
+    setCustomer(customerDetails);
 
     if (paymentMethod === "gcash") {
+      setProcessingPayment(true);
       const paymentResult = await simulateMockPayment();
       if (!paymentResult.success) {
         setProcessingPayment(false);
         setPaymentError(paymentResult.message);
         return;
       }
+    } else {
+      setProcessingPayment(true);
     }
-
-    const paymentStatus: PaymentStatus =
-      paymentMethod === "gcash" ? "paid" : "pending";
 
     try {
       const draft = buildPlacedOrder({
@@ -110,16 +135,14 @@ export default function CheckoutReviewClient() {
         lines,
         cutlery,
         paymentMethod,
-        delivery: form,
-        status: "confirmed",
-        paymentStatus,
+        customer: customerDetails,
       });
 
       const placed = await placeOrderWithSimulation(draft);
       saveOrder(placed);
       setPendingOrder(placed);
       placedSuccessfully.current = true;
-      router.push(checkoutConfirmationPath(placed.orderId));
+      router.push(pathWithSession(checkoutConfirmationPath(placed.orderId)));
     } catch (err) {
       placedSuccessfully.current = false;
       setProcessingPayment(false);
@@ -144,37 +167,88 @@ export default function CheckoutReviewClient() {
 
       <CheckoutShell
         step={2}
-        title="Review payment & address"
-        subtitle="Confirm delivery details, then pay to complete your order."
+        title="Review & pay"
+        subtitle="Confirm your order details and choose how to pay."
       >
         <form onSubmit={handlePlaceOrder} className="space-y-lg">
           <MockPaymentDevControls paymentMethod={paymentMethod} />
 
+          {hasTableSession && (
+            <div className="rounded-xl border border-secondary-container/30 bg-secondary-container/10 px-md py-sm text-sm">
+              <span className="font-semibold text-on-surface">{formatTableLabel(tableLetter)}</span>
+              <span className="text-on-surface-variant"> · QR table session</span>
+            </div>
+          )}
+
           <section className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
             <h2 className="mb-md flex items-center gap-2 text-headline-md font-semibold">
-              <span className="material-symbols-outlined text-secondary">local_shipping</span>
-              Delivery information
+              <span className="material-symbols-outlined text-secondary">storefront</span>
+              Order type
+            </h2>
+            <div className="grid gap-sm sm:grid-cols-2">
+              {ORDER_TYPE_OPTIONS.map((opt) => {
+                const selected = form.orderType === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={processingPayment}
+                    onClick={() => setForm((f) => ({ ...f, orderType: opt.id }))}
+                    className={`flex items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
+                      selected
+                        ? "border-secondary-container bg-secondary-container/15 ring-2 ring-secondary-container/40"
+                        : "border-surface-variant bg-surface-container-low hover:border-outline-variant"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-secondary">{opt.icon}</span>
+                    <div>
+                      <span className="font-semibold text-on-surface">{opt.label}</span>
+                      <p className="mt-0.5 text-xs text-on-surface-variant">
+                        {opt.id === "dine_in"
+                          ? "We will bring your order to your table"
+                          : "Pick up at the counter when ready"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
+            <h2 className="mb-md flex items-center gap-2 text-headline-md font-semibold">
+              <span className="material-symbols-outlined text-secondary">person</span>
+              Your details
             </h2>
             <div className="grid gap-md sm:grid-cols-2">
               <label className="block sm:col-span-2">
-                <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Full name
-                </span>
+                <span className="mb-1 block text-sm font-medium text-on-surface-variant">Name</span>
                 <input
                   required
                   disabled={processingPayment}
                   value={form.fullName}
                   onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
                   className="checkout-input w-full"
-                  placeholder="Juan Dela Cruz"
+                  placeholder="Your name"
                 />
               </label>
+              {isDineIn && (
+                <div className="block">
+                  <span className="mb-1 block text-sm font-medium text-on-surface-variant">
+                    Table
+                  </span>
+                  <div className="checkout-input flex items-center bg-surface-container-low font-bold text-on-surface">
+                    {form.tableLetter
+                      ? formatTableLabel(form.tableLetter)
+                      : "Scan table QR code"}
+                  </div>
+                </div>
+              )}
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Contact number
+                  Contact number (optional)
                 </span>
                 <input
-                  required
                   disabled={processingPayment}
                   type="tel"
                   value={form.contactNumber}
@@ -185,21 +259,7 @@ export default function CheckoutReviewClient() {
               </label>
               <label className="block sm:col-span-2">
                 <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Complete delivery address
-                </span>
-                <textarea
-                  required
-                  disabled={processingPayment}
-                  rows={3}
-                  value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="checkout-input w-full resize-none"
-                  placeholder="Unit / street / barangay / city"
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Additional notes (optional)
+                  Special requests (optional)
                 </span>
                 <textarea
                   disabled={processingPayment}
@@ -207,7 +267,7 @@ export default function CheckoutReviewClient() {
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   className="checkout-input w-full resize-none"
-                  placeholder="Gate code, landmarks, etc."
+                  placeholder="Allergies, extra sauce, etc."
                 />
               </label>
             </div>
@@ -270,26 +330,8 @@ export default function CheckoutReviewClient() {
                 </li>
               ))}
             </ul>
-            <div className="space-y-1 text-sm text-on-surface-variant">
-              <div className="flex justify-between">
-                <span>Delivery fee</span>
-                <span>{formatPrice(DELIVERY_FEE)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Service fee</span>
-                <span>{formatPrice(SERVICE_FEE)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment</span>
-                <span className="font-medium text-on-surface">
-                  {paymentMethod
-                    ? PAYMENT_OPTIONS.find((p) => p.id === paymentMethod)?.label
-                    : "—"}
-                </span>
-              </div>
-            </div>
             <div className="mt-md flex justify-between border-t border-dashed border-surface-variant pt-md">
-              <span className="font-semibold text-on-surface">Grand total</span>
+              <span className="font-semibold text-on-surface">Total</span>
               <span className="text-xl font-bold text-secondary">{formatPrice(grandTotal)}</span>
             </div>
           </section>
@@ -306,7 +348,7 @@ export default function CheckoutReviewClient() {
 
           <div className="flex flex-col gap-sm sm:flex-row sm:justify-between">
             <Link
-              href={CHECKOUT_PAGE_PATH}
+              href={pathWithSession(CHECKOUT_PAGE_PATH)}
               className={`inline-flex items-center justify-center rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant ${
                 processingPayment ? "pointer-events-none opacity-50" : ""
               }`}

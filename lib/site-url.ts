@@ -9,7 +9,7 @@ import { menuUrlFromOrigin } from "@/lib/menu-url";
  * on your live domain. Set `NEXT_PUBLIC_APP_URL` in Vercel → Environment Variables
  * (Production) to lock QR codes to your canonical domain (recommended for custom domains).
  */
-async function getSiteOrigin(): Promise<string> {
+export async function getSiteOrigin(): Promise<string> {
   const canonical = originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL);
   if (canonical) return canonical;
 
@@ -31,8 +31,11 @@ async function getSiteOrigin(): Promise<string> {
   return "http://localhost:3000";
 }
 
-/** Absolute URL of the customer menu (`/menu`). */
-export async function getMenuPageUrl(): Promise<string> {
+/** Absolute URL of the customer menu (`/menu`), with optional table letter. */
+export async function getMenuPageUrl(tableLetter?: string): Promise<string> {
   const origin = await getSiteOrigin();
-  return menuUrlFromOrigin(origin);
+  const letter =
+    tableLetter?.trim().toUpperCase() ||
+    process.env.NEXT_PUBLIC_TABLE_LETTER?.trim().toUpperCase();
+  return menuUrlFromOrigin(origin, letter || undefined);
 }

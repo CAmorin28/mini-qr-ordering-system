@@ -39,7 +39,7 @@ function resolveOutcome(mode: MockPaymentMode): boolean {
 
 /**
  * Simulates GCash payment processing for 2–3 seconds, then returns success or failure.
- * Outcome follows `mode`, session override, or ~70% random success. Not used for COD.
+ * Outcome follows `mode`, session override, or ~70% random success. Not used for pay-at-counter.
  */
 export async function simulateMockPayment(
   mode: MockPaymentMode = getMockPaymentMode(),
@@ -51,7 +51,7 @@ export async function simulateMockPayment(
   if (success) {
     return {
       success: true,
-      message: "Payment successful. Your order is confirmed.",
+      message: "Payment successful. Your order has been sent to the kitchen.",
     };
   }
 

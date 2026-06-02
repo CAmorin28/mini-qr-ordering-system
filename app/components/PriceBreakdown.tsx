@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  DELIVERY_FEE,
-  SERVICE_FEE,
   computeGrandTotal,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
@@ -30,14 +28,6 @@ export function PriceBreakdown({
       <div className={`${rowClass} text-on-surface-variant`}>
         <span>Subtotal</span>
         <span className="font-medium text-on-surface">{formatPrice(subtotal)}</span>
-      </div>
-      <div className={`${rowClass} text-on-surface-variant`}>
-        <span>Delivery fee</span>
-        <span className="font-medium text-on-surface">{formatPrice(DELIVERY_FEE)}</span>
-      </div>
-      <div className={`${rowClass} text-on-surface-variant`}>
-        <span>Service fee</span>
-        <span className="font-medium text-on-surface">{formatPrice(SERVICE_FEE)}</span>
       </div>
       {showCutleryNote && (
         <div className={`${rowClass} text-on-surface-variant`}>

@@ -2,7 +2,7 @@
 
 const STEPS = [
   { id: 1, label: "Order summary" },
-  { id: 2, label: "Payment & address" },
+  { id: 2, label: "Review & pay" },
   { id: 3, label: "Confirmation" },
 ] as const;
 

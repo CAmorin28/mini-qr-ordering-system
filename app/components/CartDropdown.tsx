@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { CartItemRow } from "@/app/components/CartItemRow";
 import { useCart } from "@/app/context/CartContext";
+import { useTableSession } from "@/app/context/TableSessionContext";
 import { computeSubtotal } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import { CHECKOUT_PAGE_PATH } from "@/lib/menu-url";
@@ -15,6 +16,7 @@ interface CartDropdownProps {
 
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
   const { lines, itemCount } = useCart();
+  const { pathWithSession } = useTableSession();
   const panelRef = useRef<HTMLDivElement>(null);
   const subtotal = computeSubtotal(lines);
 
@@ -93,7 +95,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             <span className="text-xl font-bold text-secondary">{formatPrice(subtotal)}</span>
           </div>
           <Link
-            href={CHECKOUT_PAGE_PATH}
+            href={pathWithSession(CHECKOUT_PAGE_PATH)}
             onClick={() => {
               if (itemCount > 0) onClose();
             }}

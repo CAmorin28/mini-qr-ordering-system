@@ -33,12 +33,12 @@ export function MockPaymentDevControls({ paymentMethod }: MockPaymentDevControls
         Payment simulation (demo)
       </p>
       <p className="mt-1 text-xs text-on-surface-variant">
-        Not a real payment gateway. Choose an outcome before Pay now. Cash on Delivery
+        Not a real payment gateway. Choose an outcome before Pay now. Pay at counter
         always places the order; success/fail applies to GCash only.
       </p>
-      {!appliesToCheckout && paymentMethod === "cod" && (
+      {!appliesToCheckout && paymentMethod === "cash" && (
         <p className="mt-1 text-xs font-medium text-on-surface-variant/80">
-          Current method: COD — simulation controls are saved for when you switch to GCash.
+          Current method: Pay at counter — simulation controls apply when you switch to GCash.
         </p>
       )}
       <div className="mt-2 flex flex-wrap gap-2">

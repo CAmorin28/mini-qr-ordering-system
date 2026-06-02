@@ -5,18 +5,24 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckoutShell } from "@/app/components/CheckoutShell";
 import { OrderReceipt } from "@/app/components/OrderReceipt";
+import { OrderStatusTracker } from "@/app/components/OrderStatusTracker";
 import { useCart } from "@/app/context/CartContext";
 import { useCheckout } from "@/app/context/CheckoutContext";
+import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderById } from "@/lib/api";
 import {
   PAYMENT_METHOD_LABELS,
-  orderStatusLabel,
+  customerOrderStatusLabel,
   paymentStatusLabel,
 } from "@/lib/order-labels";
 import { consumePendingOrder, getOrder } from "@/lib/order-history";
 import { isPlacedOrder } from "@/lib/place-order";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
-import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH, ORDERS_HISTORY_PATH } from "@/lib/menu-url";
+import {
+  CHECKOUT_REVIEW_PATH,
+  MENU_PAGE_PATH,
+  ORDERS_HISTORY_PATH,
+} from "@/lib/menu-url";
 import type { PlacedOrder } from "@/lib/types";
 
 export default function OrderConfirmationPage() {
@@ -25,6 +31,7 @@ export default function OrderConfirmationPage() {
   const orderId = decodeURIComponent(params.orderId as string);
   const { clearCart } = useCart();
   const { clearCheckout } = useCheckout();
+  const { pathWithSession } = useTableSession();
   const [order, setOrder] = useState<PlacedOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +67,7 @@ export default function OrderConfirmationPage() {
 
       const local = getOrder(orderId);
       if (!local || !isPlacedOrder(local)) {
-        router.replace(local ? CHECKOUT_REVIEW_PATH : MENU_PAGE_PATH);
+        router.replace(local ? pathWithSession(CHECKOUT_REVIEW_PATH) : pathWithSession(MENU_PAGE_PATH));
         return;
       }
 
@@ -76,7 +83,7 @@ export default function OrderConfirmationPage() {
     return () => {
       cancelled = true;
     };
-  }, [orderId, router, clearCart, clearCheckout]);
+  }, [orderId, router, clearCart, clearCheckout, pathWithSession]);
 
   function handlePrint() {
     window.print();
@@ -90,31 +97,31 @@ export default function OrderConfirmationPage() {
     );
   }
 
+  const paidViaGcash = order.paymentMethod === "gcash" && order.paymentStatus === "paid";
+
   return (
     <CheckoutShell
       step={3}
-      title="Payment successful"
-      subtitle="Your order is confirmed. Here is your digital receipt."
+      title={paidViaGcash ? "Payment successful" : "Order placed"}
+      subtitle="Track your order status below. The kitchen will update progress as your food is prepared."
     >
-      <div className="confirmation-success mb-lg rounded-2xl border border-secondary-container/30 bg-gradient-to-br from-secondary-container/20 to-surface-container-lowest p-lg">
+      <OrderStatusTracker orderId={order.orderId} initialOrder={order} onUpdate={setOrder} />
+
+      <div className="confirmation-success mb-lg mt-lg rounded-2xl border border-secondary-container/30 bg-gradient-to-br from-secondary-container/20 to-surface-container-lowest p-lg">
         <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-md sm:text-left">
           <span className="material-symbols-outlined text-[56px] text-secondary">
             check_circle
           </span>
           <div className="mt-3 sm:mt-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
-              Payment successful
+              {paidViaGcash ? "Payment successful" : "Order received"}
             </p>
             <h2 className="mt-1 text-xl font-bold text-on-surface">
-              {orderStatusLabel(order.status)}
+              {customerOrderStatusLabel(order)}
             </h2>
             <p className="mt-2 text-sm text-on-surface-variant">
-              <span className="font-medium text-on-surface">Payment status:</span>{" "}
-              {paymentStatusLabel(order.paymentStatus, order.status)}
-            </p>
-            <p className="mt-2 text-sm text-on-surface-variant">
-              <span className="font-medium text-on-surface">Estimated delivery:</span>{" "}
-              {order.estimatedDelivery}
+              <span className="font-medium text-on-surface">Payment:</span>{" "}
+              {paymentStatusLabel(order.paymentStatus)}
             </p>
             <p className="mt-1 text-sm text-on-surface-variant">
               <span className="font-medium text-on-surface">Payment method:</span>{" "}
@@ -147,14 +154,14 @@ export default function OrderConfirmationPage() {
           Download receipt as PDF
         </button>
         <Link
-          href={MENU_PAGE_PATH}
+          href={pathWithSession(MENU_PAGE_PATH)}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
         >
-          <span className="material-symbols-outlined text-[20px]">home</span>
-          Back to home
+          <span className="material-symbols-outlined text-[20px]">restaurant_menu</span>
+          Back to menu
         </Link>
         <Link
-          href={ORDERS_HISTORY_PATH}
+          href={pathWithSession(ORDERS_HISTORY_PATH)}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary sm:col-span-2"
         >
           <span className="material-symbols-outlined text-[20px]">history</span>

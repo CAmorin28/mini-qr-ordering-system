@@ -17,19 +17,16 @@ create table if not exists public.orders (
   order_id text not null unique,
   order_number text not null,
   created_at timestamptz not null default now(),
-  status text not null default 'pending',
+  status text not null default 'pending_payment',
   payment_status text not null default 'pending',
-  payment_method text not null check (payment_method in ('gcash', 'cod')),
+  payment_method text not null check (payment_method in ('gcash', 'cash', 'cod')),
+  order_type text not null default 'dine_in' check (order_type in ('dine_in', 'pickup')),
+  table_number text,
   cutlery boolean not null default false,
   subtotal numeric(10, 2) not null,
-  delivery_fee numeric(10, 2) not null,
-  service_fee numeric(10, 2) not null,
-  taxes numeric(10, 2) not null default 0,
   grand_total numeric(10, 2) not null,
-  estimated_delivery text not null,
-  customer_name text not null,
-  contact_number text not null,
-  address text not null,
+  customer_name text not null default '',
+  contact_number text not null default '',
   notes text not null default '',
   lines jsonb not null
 );
@@ -47,3 +44,13 @@ create policy "Products are publicly readable"
   using (true);
 
 -- Orders are written/read via Next.js API using the service role key (bypasses RLS).
+
+-- Migration from delivery schema (run once if upgrading an existing database):
+-- alter table public.orders drop column if exists delivery_fee;
+-- alter table public.orders drop column if exists service_fee;
+-- alter table public.orders drop column if exists taxes;
+-- alter table public.orders drop column if exists estimated_delivery;
+-- alter table public.orders drop column if exists address;
+-- alter table public.orders add column if not exists order_type text not null default 'dine_in';
+-- alter table public.orders add column if not exists table_number text;
+-- update public.orders set grand_total = subtotal where grand_total is distinct from subtotal;

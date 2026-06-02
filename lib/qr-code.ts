@@ -3,7 +3,7 @@ export const MENU_QR_COLORS = {
   light: "#ffffff",
 } as const;
 
-export const MENU_QR_MARGIN = 1;
+export const MENU_QR_MARGIN = 2;
 
 /** Size for on-screen SVG in the QR page */
 export const MENU_QR_DISPLAY_WIDTH = 600;
@@ -13,10 +13,10 @@ export const MENU_QR_DOWNLOAD_WIDTH = 1200;
 
 export function getQrDownloadFilename(
   extension: "png" | "svg",
-  tableNumber?: string | null,
+  tableLetter?: string | null,
 ): string {
-  const base = tableNumber
-    ? `tablebite-table-${tableNumber}-qr`
+  const base = tableLetter
+    ? `tablebite-table-${tableLetter.toUpperCase()}-qr`
     : "tablebite-menu-qr";
   return `${base}.${extension}`;
 }

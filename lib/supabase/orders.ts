@@ -1,54 +1,77 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import type { CartLine, OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
+import { normalizeOrderStatus } from "@/lib/order-labels";
+import type {
+  CartLine,
+  CustomerDetails,
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+  PaymentStatus,
+  PlacedOrder,
+} from "@/lib/types";
 
 interface OrderRow {
   order_id: string;
   order_number: string;
   created_at: string;
-  status: PlacedOrder["status"];
-  payment_status: PlacedOrder["paymentStatus"];
-  payment_method: PlacedOrder["paymentMethod"];
+  status: string;
+  payment_status: PaymentStatus;
+  payment_method: string;
+  order_type: OrderType;
+  table_number: string | null;
   cutlery: boolean;
   subtotal: number;
-  delivery_fee: number;
-  service_fee: number;
-  taxes: number;
   grand_total: number;
-  estimated_delivery: string;
   customer_name: string;
   contact_number: string;
-  address: string;
   notes: string;
   lines: CartLine[];
+  /** Legacy columns — may exist on older databases. */
+  delivery_fee?: number;
+  service_fee?: number;
+  address?: string;
+  estimated_delivery?: string;
+}
+
+function normalizePaymentMethod(method: string): PaymentMethod {
+  if (method === "gcash") return "gcash";
+  return "cash";
 }
 
 function rowToPlacedOrder(row: OrderRow): PlacedOrder {
+  const subtotal = Number(row.subtotal);
+  const legacyFees =
+    Number(row.delivery_fee ?? 0) + Number(row.service_fee ?? 0);
+  const grandTotal =
+    row.grand_total != null
+      ? Number(row.grand_total)
+      : subtotal + legacyFees;
+
+  const customer: CustomerDetails = {
+    fullName: row.customer_name ?? "",
+    contactNumber: row.contact_number ?? "",
+    notes: row.notes ?? "",
+    orderType: row.order_type ?? "dine_in",
+    tableLetter: row.table_number ?? "",
+  };
+
   return {
     orderId: row.order_id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
-    status: row.status,
+    status: normalizeOrderStatus(row.status, customer.orderType),
     paymentStatus: row.payment_status,
     lines: row.lines,
-    subtotal: Number(row.subtotal),
-    deliveryFee: Number(row.delivery_fee),
-    serviceFee: Number(row.service_fee),
-    taxes: Number(row.taxes),
+    subtotal,
     cutlery: row.cutlery,
-    paymentMethod: row.payment_method,
-    delivery: {
-      fullName: row.customer_name,
-      contactNumber: row.contact_number,
-      address: row.address,
-      notes: row.notes ?? "",
-    },
-    grandTotal: Number(row.grand_total),
-    estimatedDelivery: row.estimated_delivery,
+    paymentMethod: normalizePaymentMethod(row.payment_method),
+    customer,
+    grandTotal,
   };
 }
 
-function orderToRow(order: PlacedOrder): OrderRow {
+function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "service_fee" | "address" | "estimated_delivery"> {
   return {
     order_id: order.orderId,
     order_number: order.orderNumber,
@@ -56,17 +79,14 @@ function orderToRow(order: PlacedOrder): OrderRow {
     status: order.status,
     payment_status: order.paymentStatus,
     payment_method: order.paymentMethod,
+    order_type: order.customer.orderType,
+    table_number: order.customer.tableLetter.trim() || null,
     cutlery: order.cutlery,
     subtotal: order.subtotal,
-    delivery_fee: order.deliveryFee,
-    service_fee: order.serviceFee,
-    taxes: order.taxes,
     grand_total: order.grandTotal,
-    estimated_delivery: order.estimatedDelivery,
-    customer_name: order.delivery.fullName,
-    contact_number: order.delivery.contactNumber,
-    address: order.delivery.address,
-    notes: order.delivery.notes ?? "",
+    customer_name: order.customer.fullName,
+    contact_number: order.customer.contactNumber,
+    notes: order.customer.notes ?? "",
     lines: order.lines,
   };
 }

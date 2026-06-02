@@ -24,16 +24,31 @@ export interface OrderResponse {
   message: string;
 }
 
-export type PaymentMethod = "gcash" | "cod";
+export type PaymentMethod = "gcash" | "cash";
 
-export interface DeliveryDetails {
+export type OrderType = "dine_in" | "pickup";
+
+export interface CustomerDetails {
   fullName: string;
   contactNumber: string;
-  address: string;
   notes: string;
+  orderType: OrderType;
+  /** Table letter from QR session (e.g. A, B, C). */
+  tableLetter: string;
 }
 
-export type OrderStatus = "pending" | "confirmed";
+/**
+ * Admin-controlled workflow status.
+ * Dine-in: pending_payment → paid → preparing → serving → served
+ * Pick-up: pending_payment → paid → preparing → ready_for_pickup
+ */
+export type OrderStatus =
+  | "pending_payment"
+  | "paid"
+  | "preparing"
+  | "serving"
+  | "served"
+  | "ready_for_pickup";
 
 export type PaymentStatus = "pending" | "paid" | "failed";
 
@@ -45,12 +60,8 @@ export interface PlacedOrder {
   paymentStatus: PaymentStatus;
   lines: CartLine[];
   subtotal: number;
-  deliveryFee: number;
-  serviceFee: number;
-  taxes: number;
   cutlery: boolean;
   paymentMethod: PaymentMethod;
-  delivery: DeliveryDetails;
+  customer: CustomerDetails;
   grandTotal: number;
-  estimatedDelivery: string;
 }

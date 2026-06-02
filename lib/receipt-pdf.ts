@@ -1,8 +1,11 @@
+"use client";
+
 import { jsPDF } from "jspdf";
 import { formatPrice } from "@/lib/format";
 import type { PlacedOrder } from "@/lib/types";
-import { DELIVERY_FEE, SERVICE_FEE, lineSubtotal } from "@/lib/checkout";
+import { lineSubtotal } from "@/lib/checkout";
 import {
+  ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
   orderStatusLabel,
   paymentStatusLabel,
@@ -36,8 +39,8 @@ export function downloadReceiptPdf(order: PlacedOrder): void {
   addLine("TableBite", 22, true);
   addLine("Digital Receipt", 14, true);
   y += 4;
-  addLine(orderStatusLabel(order.status), 11, true);
-  addLine(`Payment: ${paymentStatusLabel(order.paymentStatus, order.status)}`, 10);
+  addLine(orderStatusLabel(order.status, order.customer.orderType), 11, true);
+  addLine(`Payment: ${paymentStatusLabel(order.paymentStatus)}`, 10);
   y += 6;
 
   addLine("Receipt information", 12, true);
@@ -46,11 +49,16 @@ export function downloadReceiptPdf(order: PlacedOrder): void {
     "Date & time:",
     new Date(order.createdAt).toLocaleString("en-PH"),
   );
-  addRow("Customer:", order.delivery.fullName);
-  addRow("Contact:", order.delivery.contactNumber);
-  addRow("Address:", order.delivery.address);
-  if (order.delivery.notes) {
-    addRow("Notes:", order.delivery.notes);
+  addRow("Customer:", order.customer.fullName);
+  addRow("Order type:", ORDER_TYPE_LABELS[order.customer.orderType]);
+  if (order.customer.tableLetter) {
+    addRow("Table:", `Table ${order.customer.tableLetter}`);
+  }
+  if (order.customer.contactNumber) {
+    addRow("Contact:", order.customer.contactNumber);
+  }
+  if (order.customer.notes) {
+    addRow("Notes:", order.customer.notes);
   }
   addRow("Payment method:", PAYMENT_METHOD_LABELS[order.paymentMethod]);
   y += 6;
@@ -66,15 +74,7 @@ export function downloadReceiptPdf(order: PlacedOrder): void {
   y += 6;
   addLine("Charges summary", 12, true);
   addRow("Subtotal:", formatPrice(order.subtotal));
-  addRow("Delivery fee:", formatPrice(order.deliveryFee ?? DELIVERY_FEE));
-  addRow("Service fee:", formatPrice(order.serviceFee ?? SERVICE_FEE));
-  addRow(
-    "Taxes:",
-    order.taxes > 0 ? formatPrice(order.taxes) : "Not applicable",
-  );
-  addRow("Grand total:", formatPrice(order.grandTotal));
-  y += 4;
-  addRow("Est. delivery:", order.estimatedDelivery);
+  addRow("Total:", formatPrice(order.grandTotal));
 
   doc.save(`${order.orderNumber}-receipt.pdf`);
 }

@@ -1,65 +1,74 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import QRCode from "qrcode";
-import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
-import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
+import { StaffTableQrPanel } from "@/app/components/StaffTableQrPanel";
 import {
   MENU_QR_COLORS,
   MENU_QR_DISPLAY_WIDTH,
   MENU_QR_MARGIN,
 } from "@/lib/qr-code";
-import { MENU_PAGE_PATH } from "@/lib/menu-url";
-import { getMenuPageUrl } from "@/lib/site-url";
+import { ADMIN_DASHBOARD_PATH, MENU_PAGE_PATH, menuUrlFromOrigin } from "@/lib/menu-url";
+import { getSiteOrigin } from "@/lib/site-url";
+import { normalizeTableLetter } from "@/lib/table-session";
 
 export const metadata: Metadata = {
   title: "Scan to Order — TableBite",
-  description: "Scan the QR code to open the TableBite menu",
+  description: "Generate table QR codes for TableBite ordering",
 };
 
 const steps = [
   {
     icon: "photo_camera",
     title: "Scan",
-    description:
-      "Scan this code with your phone camera to access our digital interface.",
+    description: "Each table has its own QR code with a unique letter or code.",
   },
   {
     icon: "restaurant_menu",
     title: "Browse",
-    description:
-      "Explore our curated selection of seasonal dishes and chef's specials.",
+    description: "The menu opens with your table letter shown at the top.",
   },
   {
     icon: "shopping_cart_checkout",
     title: "Order",
-    description:
-      "Add items to your cart, confirm your table number, and place your order.",
+    description: "Add items, choose dine-in or pick-up, and pay with cash or GCash.",
   },
 ] as const;
 
-const tableNumber = process.env.NEXT_PUBLIC_TABLE_NUMBER;
+interface QrPageProps {
+  searchParams: Promise<{ view?: string; table?: string }>;
+}
 
-export default async function QrPage() {
-  const menuUrl = await getMenuPageUrl();
+export default async function QrPage({ searchParams }: QrPageProps) {
+  const params = await searchParams;
+  const isStaff = params.view === "staff";
+  const tableLetter = normalizeTableLetter(params.table) || "A";
+  const origin = await getSiteOrigin();
+  const menuUrl = menuUrlFromOrigin(origin, tableLetter);
   const qrSvg = await QRCode.toString(menuUrl, {
     type: "svg",
     margin: MENU_QR_MARGIN,
     width: MENU_QR_DISPLAY_WIDTH,
     color: MENU_QR_COLORS,
+    errorCorrectionLevel: "M",
   });
 
   return (
-    <QrPageLayout>
+    <QrPageLayout
+      backHref={isStaff ? ADMIN_DASHBOARD_PATH : undefined}
+      backLabel={isStaff ? "Admin dashboard" : undefined}
+    >
       <div className="qr-page-shell">
         <section className="qr-panel-left">
           <div className="qr-panel-left-inner">
             <div className="qr-hero-block">
               <span className="qr-eyebrow">QR table ordering</span>
-              <h1 className="qr-title">Scan to order</h1>
+              <h1 className="qr-title">{isStaff ? "Generate table QR" : "Scan to order"}</h1>
               <p className="qr-lead">
-                Ready to eat? Skip the wait and order directly from your smartphone
-                in three simple steps.
+                {isStaff
+                  ? "Type a table letter and print or download its QR code. Customers scan to open the menu — no login required."
+                  : "Ready to eat? Scan your table QR code to open the menu and order from your phone."}
               </p>
             </div>
 
@@ -90,33 +99,29 @@ export default async function QrPage() {
           </div>
         </section>
 
-        <section className="qr-panel-right" aria-label="Menu QR code">
+        <section className="qr-panel-right" aria-label="Table QR code">
           <div className="qr-panel-right-glow" aria-hidden />
           <div className="qr-panel-right-inner">
             <div className="qr-card">
-              <div className="qr-scan-pill">
-                <span className="material-symbols-outlined qr-scan-pill-icon">
-                  center_focus_strong
-                </span>
-                <span>Scan with camera</span>
-              </div>
-
-              <div className="qr-code-frame">
-                <MenuQrDisplay menuUrl={menuUrl} initialSvg={qrSvg} />
-                <span className="qr-corner qr-corner-tl" aria-hidden />
-                <span className="qr-corner qr-corner-tr" aria-hidden />
-                <span className="qr-corner qr-corner-bl" aria-hidden />
-                <span className="qr-corner qr-corner-br" aria-hidden />
-              </div>
-
-              <div className="qr-card-footer">
-                <p className="qr-card-footer-title">Opens TableBite Menu</p>
-                {tableNumber ? (
-                  <p className="qr-card-footer-sub">Table No: {tableNumber}</p>
-                ) : null}
-              </div>
-
-              <QrDownloadActions menuUrl={menuUrl} tableNumber={tableNumber} />
+              {isStaff ? (
+                <Suspense fallback={<p className="p-md text-center text-sm">Loading QR generator…</p>}>
+                  <StaffTableQrPanel
+                    initialTableLetter={tableLetter}
+                    serverMenuUrl={menuUrl}
+                    initialSvg={qrSvg}
+                  />
+                </Suspense>
+              ) : (
+                <>
+                  <p className="qr-card-footer-sub px-md pt-md text-center">
+                    Staff should use{" "}
+                    <Link href="/qr?view=staff" className="font-semibold text-secondary">
+                      /qr?view=staff
+                    </Link>{" "}
+                    to generate table QR codes.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </section>

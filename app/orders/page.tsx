@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Header } from "@/app/components/Header";
+import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderHistory } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { listOrders } from "@/lib/order-history";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
-import { PAYMENT_METHOD_LABELS, paymentStatusLabel } from "@/lib/order-labels";
+import {
+  PAYMENT_METHOD_LABELS,
+  customerOrderStatusLabel,
+} from "@/lib/order-labels";
 import { isPlacedOrder } from "@/lib/place-order";
 import type { PlacedOrder } from "@/lib/types";
 
 export default function OrdersHistoryPage() {
+  const { tableLetter, pathWithSession } = useTableSession();
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"database" | "local">("database");
@@ -20,16 +25,21 @@ export default function OrdersHistoryPage() {
     async function load() {
       try {
         const fromApi = await fetchOrderHistory();
-        setOrders(fromApi.filter(isPlacedOrder));
+        const placed = fromApi.filter(isPlacedOrder);
+        const filtered = tableLetter
+          ? placed.filter((o) => o.customer.tableLetter === tableLetter)
+          : placed;
+        setOrders(filtered);
         setSource("database");
       } catch {
-        setOrders(listOrders().filter(isPlacedOrder));
+        const local = listOrders(tableLetter).filter(isPlacedOrder);
+        setOrders(local);
         setSource("local");
       }
     }
 
     load().finally(() => setLoading(false));
-  }, []);
+  }, [tableLetter]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -37,6 +47,9 @@ export default function OrdersHistoryPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop">
         <h1 className="text-2xl font-bold text-on-surface">Order history</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
+          {tableLetter
+            ? `Orders for Table ${tableLetter} · `
+            : ""}
           {source === "database"
             ? "Recent orders from the database."
             : "Orders saved on this device (database empty or unavailable)."}
@@ -51,7 +64,7 @@ export default function OrdersHistoryPage() {
             </span>
             <p className="mt-md text-on-surface-variant">No orders yet.</p>
             <Link
-              href={MENU_PAGE_PATH}
+              href={pathWithSession(MENU_PAGE_PATH)}
               className="mt-md inline-flex rounded-xl bg-primary px-lg py-3 text-sm font-bold text-on-primary"
             >
               Browse menu
@@ -62,7 +75,7 @@ export default function OrdersHistoryPage() {
             {orders.map((order) => (
               <li key={order.orderId}>
                 <Link
-                  href={checkoutConfirmationPath(order.orderId)}
+                  href={pathWithSession(checkoutConfirmationPath(order.orderId))}
                   className="block rounded-2xl border border-surface-variant bg-surface-container-lowest p-md shadow-sm transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -79,7 +92,7 @@ export default function OrdersHistoryPage() {
                   <p className="mt-2 text-sm text-on-surface-variant">
                     {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
                     {PAYMENT_METHOD_LABELS[order.paymentMethod]} ·{" "}
-                    {paymentStatusLabel(order.paymentStatus, order.status)}
+                    {customerOrderStatusLabel(order)}
                   </p>
                 </Link>
               </li>

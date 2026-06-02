@@ -1,4 +1,5 @@
-/** Customer ordering page — never the staff `/qr` display page. */
+import { normalizeTableLetter } from "@/lib/table-session";
+import { shouldRefreshQrFromBrowser } from "@/lib/origin";
 export const MENU_PAGE_PATH = "/menu" as const;
 
 export const CHECKOUT_PAGE_PATH = "/checkout" as const;
@@ -15,13 +16,77 @@ export function checkoutConfirmationPath(orderId: string): string {
 /** Staff-only URL to open the QR display page (mobile + desktop). */
 export const STAFF_QR_PAGE_PATH = "/qr?view=staff" as const;
 
-/** Build the absolute menu URL from a site origin (no path segment). */
-export function menuUrlFromOrigin(origin: string): string {
-  return new URL(MENU_PAGE_PATH, origin).href;
+export function staffQrPath(tableLetter?: string): string {
+  const params = new URLSearchParams({ view: "staff" });
+  const table = normalizeTableLetter(tableLetter);
+  if (table) params.set("table", table);
+  return `/qr?${params.toString()}`;
+}
+
+/** Build the absolute menu URL from a site origin (optional table letter query param). */
+export function menuUrlFromOrigin(origin: string, tableLetter?: string): string {
+  const url = new URL(MENU_PAGE_PATH, origin);
+  const table = normalizeTableLetter(tableLetter);
+  if (table) {
+    url.searchParams.set("table", table);
+  }
+  return url.href;
+}
+
+/**
+ * Resolve the scannable menu URL for a table using a reference URL for origin detection.
+ * Uses the browser origin on LAN/dev so phone scans work on desktop-generated codes.
+ */
+export function menuUrlForTable(referenceMenuUrl: string, tableLetter: string): string {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table) {
+    try {
+      return new URL(referenceMenuUrl).href;
+    } catch {
+      return referenceMenuUrl;
+    }
+  }
+
+  if (typeof window !== "undefined" && shouldRefreshQrFromBrowser(referenceMenuUrl)) {
+    return menuUrlFromOrigin(window.location.origin, table);
+  }
+
+  try {
+    return menuUrlFromOrigin(new URL(referenceMenuUrl).origin, table);
+  } catch {
+    const fallback = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    return menuUrlFromOrigin(fallback.replace(/\/$/, ""), table);
+  }
+}
+
+/** Read table letter from menu page search params. */
+export function tableLetterFromSearch(search: string): string {
+  if (!search) return "";
+  const value = new URLSearchParams(search).get("table");
+  return normalizeTableLetter(value);
+}
+
+/** Append ?table=X to an app path when a table session is active. */
+export function pathWithTable(path: string, tableLetter: string): string {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table) return path;
+  const [pathname, existingQuery = ""] = path.split("?");
+  const params = new URLSearchParams(existingQuery);
+  params.set("table", table);
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
 }
 
 /** Menu URL for the current browser tab (client only). */
-export function menuUrlFromWindow(): string | null {
+export function menuUrlFromWindow(tableLetter?: string): string | null {
   if (typeof window === "undefined") return null;
-  return menuUrlFromOrigin(window.location.origin);
+  const table =
+    normalizeTableLetter(tableLetter) ||
+    tableLetterFromSearch(window.location.search);
+  return menuUrlFromOrigin(window.location.origin, table || undefined);
+}
+
+/** @deprecated Use tableLetterFromSearch */
+export function tableNumberFromSearch(search: string): string {
+  return tableLetterFromSearch(search);
 }

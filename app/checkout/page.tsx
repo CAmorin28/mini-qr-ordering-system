@@ -8,6 +8,7 @@ import { CheckoutShell } from "@/app/components/CheckoutShell";
 import { PriceBreakdown } from "@/app/components/PriceBreakdown";
 import { useCart } from "@/app/context/CartContext";
 import { useCheckout } from "@/app/context/CheckoutContext";
+import { useTableSession } from "@/app/context/TableSessionContext";
 import { computeSubtotal } from "@/lib/checkout";
 import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
 
@@ -15,13 +16,15 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { lines, itemCount } = useCart();
   const { cutlery, setCutlery } = useCheckout();
+  const { pathWithSession } = useTableSession();
   const subtotal = computeSubtotal(lines);
+  const menuPath = pathWithSession(MENU_PAGE_PATH);
 
   useEffect(() => {
     if (itemCount === 0) {
-      router.replace(MENU_PAGE_PATH);
+      router.replace(menuPath);
     }
-  }, [itemCount, router]);
+  }, [itemCount, router, menuPath]);
 
   if (itemCount === 0) {
     return null;
@@ -31,7 +34,7 @@ export default function CheckoutPage() {
     <CheckoutShell
       step={1}
       title="Checkout"
-      subtitle="Review your order before delivery and payment details."
+      subtitle="Review your order before payment."
     >
       <section className="space-y-md">
         <h2 className="text-headline-md font-semibold text-on-surface">Order summary</h2>
@@ -64,13 +67,13 @@ export default function CheckoutPage() {
 
       <div className="mt-lg flex flex-col gap-sm sm:flex-row sm:justify-between">
         <Link
-          href={MENU_PAGE_PATH}
+          href={menuPath}
           className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"
         >
           Add more items
         </Link>
         <Link
-          href={CHECKOUT_REVIEW_PATH}
+          href={pathWithSession(CHECKOUT_REVIEW_PATH)}
           className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
         >
           Continue to payment

@@ -1,19 +1,17 @@
 import type {
   CartLine,
-  DeliveryDetails,
+  CustomerDetails,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
   PlacedOrder,
 } from "@/lib/types";
 import {
-  DELIVERY_FEE,
-  SERVICE_FEE,
   computeGrandTotal,
   computeSubtotal,
-  estimatedDeliveryLabel,
   formatOrderNumber,
 } from "@/lib/checkout";
+import { initialOrderStatus } from "@/lib/order-workflow";
 import { submitPlacedOrder } from "@/lib/api";
 
 export function generateOrderId(): string {
@@ -25,7 +23,7 @@ interface BuildOrderInput {
   lines: CartLine[];
   cutlery: boolean;
   paymentMethod: PaymentMethod;
-  delivery: DeliveryDetails;
+  customer: CustomerDetails;
   status?: OrderStatus;
   paymentStatus?: PaymentStatus;
 }
@@ -35,39 +33,33 @@ export function buildPlacedOrder({
   lines,
   cutlery,
   paymentMethod,
-  delivery,
-  status = "pending",
-  paymentStatus = "pending",
+  customer,
+  status,
+  paymentStatus,
 }: BuildOrderInput): PlacedOrder {
   const subtotal = computeSubtotal(lines);
+  const defaults = initialOrderStatus(paymentMethod);
   return {
     orderId,
     orderNumber: formatOrderNumber(orderId),
     createdAt: new Date().toISOString(),
-    status,
-    paymentStatus,
+    status: status ?? defaults.status,
+    paymentStatus: paymentStatus ?? defaults.paymentStatus,
     lines: lines.map((line) => ({
       item: { ...line.item },
       quantity: line.quantity,
     })),
     subtotal,
-    deliveryFee: DELIVERY_FEE,
-    serviceFee: SERVICE_FEE,
-    taxes: 0,
     cutlery,
     paymentMethod,
-    delivery: { ...delivery },
+    customer: { ...customer },
     grandTotal: computeGrandTotal(subtotal),
-    estimatedDelivery: estimatedDeliveryLabel(),
   };
 }
 
-/** Paid GCash or confirmed COD (pay on delivery). Excludes failed / unpaid GCash. */
+/** Excludes failed mock payments. Cash and paid GCash orders count as placed. */
 export function isPlacedOrder(order: PlacedOrder): boolean {
-  if (order.paymentStatus === "failed") return false;
-  if (order.paymentStatus === "paid") return true;
-  if (order.paymentMethod === "cod" && order.status === "confirmed") return true;
-  return order.status === "confirmed" || (order.status as string) === "placed";
+  return order.paymentStatus !== "failed";
 }
 
 /** Persists to Supabase via POST /api/orders; returns local order if API unavailable. */

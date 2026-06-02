@@ -1,8 +1,9 @@
 "use client";
 
-import { DELIVERY_FEE, SERVICE_FEE, lineSubtotal } from "@/lib/checkout";
+import { lineSubtotal } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import {
+  ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
   orderStatusLabel,
   paymentStatusLabel,
@@ -16,8 +17,6 @@ interface OrderReceiptProps {
 
 export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps) {
   const date = new Date(order.createdAt);
-  const deliveryFee = order.deliveryFee ?? DELIVERY_FEE;
-  const serviceFee = order.serviceFee ?? SERVICE_FEE;
 
   return (
     <article
@@ -33,7 +32,7 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
             <h2 className="mt-1 text-lg font-bold text-on-surface">TableBite</h2>
           </div>
           <span className="rounded-full bg-secondary-container/25 px-3 py-1 text-xs font-bold text-secondary">
-            {paymentStatusLabel(order.paymentStatus, order.status)}
+            {paymentStatusLabel(order.paymentStatus)}
           </span>
         </div>
       </header>
@@ -70,9 +69,21 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
           <div>
             <dt className="text-on-surface-variant">Order status</dt>
             <dd className="font-medium text-on-surface">
-              {orderStatusLabel(order.status)}
+              {orderStatusLabel(order.status, order.customer.orderType)}
             </dd>
           </div>
+          <div>
+            <dt className="text-on-surface-variant">Order type</dt>
+            <dd className="font-medium text-on-surface">
+              {ORDER_TYPE_LABELS[order.customer.orderType]}
+            </dd>
+          </div>
+          {order.customer.tableLetter ? (
+            <div>
+              <dt className="text-on-surface-variant">Table</dt>
+              <dd className="font-medium text-on-surface">Table {order.customer.tableLetter}</dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-on-surface-variant">Payment method</dt>
             <dd className="font-medium text-on-surface">
@@ -82,25 +93,23 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
           <div>
             <dt className="text-on-surface-variant">Payment status</dt>
             <dd className="font-medium text-on-surface">
-              {paymentStatusLabel(order.paymentStatus, order.status)}
+              {paymentStatusLabel(order.paymentStatus)}
             </dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-on-surface-variant">Customer name</dt>
-            <dd className="font-medium text-on-surface">{order.delivery.fullName}</dd>
+            <dd className="font-medium text-on-surface">{order.customer.fullName}</dd>
           </div>
-          <div>
-            <dt className="text-on-surface-variant">Contact number</dt>
-            <dd className="font-medium text-on-surface">{order.delivery.contactNumber}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-on-surface-variant">Delivery address</dt>
-            <dd className="font-medium text-on-surface">{order.delivery.address}</dd>
-          </div>
-          {order.delivery.notes ? (
+          {order.customer.contactNumber ? (
+            <div>
+              <dt className="text-on-surface-variant">Contact number</dt>
+              <dd className="font-medium text-on-surface">{order.customer.contactNumber}</dd>
+            </div>
+          ) : null}
+          {order.customer.notes ? (
             <div className="sm:col-span-2">
-              <dt className="text-on-surface-variant">Delivery notes</dt>
-              <dd className="text-on-surface">{order.delivery.notes}</dd>
+              <dt className="text-on-surface-variant">Special requests</dt>
+              <dd className="text-on-surface">{order.customer.notes}</dd>
             </div>
           ) : null}
         </dl>
@@ -142,26 +151,12 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
 
       <section className="mt-md border-t border-dashed border-surface-variant pt-md">
         <h3 className="mb-sm text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-          Charges summary
+          Total
         </h3>
         <dl className="space-y-1.5 text-sm">
           <div className="flex justify-between text-on-surface-variant">
             <dt>Subtotal</dt>
             <dd className="font-medium text-on-surface">{formatPrice(order.subtotal)}</dd>
-          </div>
-          <div className="flex justify-between text-on-surface-variant">
-            <dt>Delivery fee</dt>
-            <dd className="font-medium text-on-surface">{formatPrice(deliveryFee)}</dd>
-          </div>
-          <div className="flex justify-between text-on-surface-variant">
-            <dt>Service fee</dt>
-            <dd className="font-medium text-on-surface">{formatPrice(serviceFee)}</dd>
-          </div>
-          <div className="flex justify-between text-on-surface-variant">
-            <dt>Taxes</dt>
-            <dd className="font-medium text-on-surface">
-              {order.taxes > 0 ? formatPrice(order.taxes) : "Not applicable"}
-            </dd>
           </div>
           <div className="flex justify-between border-t border-surface-variant pt-2 text-base font-bold">
             <dt className="text-on-surface">Grand total</dt>

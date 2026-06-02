@@ -36,7 +36,7 @@ export function PaymentProcessingOverlay({
           <p className="mt-2 text-sm text-on-surface-variant">
             {isWallet
               ? "Simulating GCash payment. Please wait."
-              : "Confirming your cash on delivery order."}
+              : "Confirming your pay-at-counter order."}
           </p>
           <p className="mt-md text-xl font-bold text-secondary">
             {formatPrice(amount)}
