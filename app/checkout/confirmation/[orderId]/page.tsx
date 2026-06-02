@@ -7,12 +7,13 @@ import { CheckoutShell } from "@/app/components/CheckoutShell";
 import { OrderReceipt } from "@/app/components/OrderReceipt";
 import { useCart } from "@/app/context/CartContext";
 import { useCheckout } from "@/app/context/CheckoutContext";
+import { fetchOrderById } from "@/lib/api";
 import {
   PAYMENT_METHOD_LABELS,
   orderStatusLabel,
   paymentStatusLabel,
 } from "@/lib/order-labels";
-import { resolveOrder } from "@/lib/order-history";
+import { consumePendingOrder, getOrder } from "@/lib/order-history";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH, ORDERS_HISTORY_PATH } from "@/lib/menu-url";
 import type { PlacedOrder } from "@/lib/types";
@@ -36,15 +37,53 @@ export default function OrderConfirmationPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const found = resolveOrder(orderId);
-    if (!found || !isPaidOrder(found)) {
-      router.replace(found ? CHECKOUT_REVIEW_PATH : MENU_PAGE_PATH);
-      return;
+    let cancelled = false;
+
+    async function load() {
+      const pending = consumePendingOrder(orderId);
+      if (pending && isPaidOrder(pending)) {
+        if (!cancelled) {
+          setOrder(pending);
+          clearCart();
+          clearCheckout();
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const fromApi = await fetchOrderById(orderId);
+        if (fromApi && isPaidOrder(fromApi)) {
+          if (!cancelled) {
+            setOrder(fromApi);
+            clearCart();
+            clearCheckout();
+            setLoading(false);
+          }
+          return;
+        }
+      } catch {
+        /* fall through to local */
+      }
+
+      const local = getOrder(orderId);
+      if (!local || !isPaidOrder(local)) {
+        router.replace(local ? CHECKOUT_REVIEW_PATH : MENU_PAGE_PATH);
+        return;
+      }
+
+      if (!cancelled) {
+        setOrder(local);
+        clearCart();
+        clearCheckout();
+        setLoading(false);
+      }
     }
-    setOrder(found);
-    clearCart();
-    clearCheckout();
-    setLoading(false);
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [orderId, router, clearCart, clearCheckout]);
 
   function handlePrint() {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Header } from "@/app/components/Header";
+import { fetchOrderHistory } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { listOrders } from "@/lib/order-history";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
@@ -19,9 +20,22 @@ function isConfirmedOrder(order: PlacedOrder): boolean {
 
 export default function OrdersHistoryPage() {
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"database" | "local">("database");
 
   useEffect(() => {
-    setOrders(listOrders().filter(isConfirmedOrder));
+    async function load() {
+      try {
+        const fromApi = await fetchOrderHistory();
+        setOrders(fromApi.filter(isConfirmedOrder));
+        setSource("database");
+      } catch {
+        setOrders(listOrders().filter(isConfirmedOrder));
+        setSource("local");
+      }
+    }
+
+    load().finally(() => setLoading(false));
   }, []);
 
   return (
@@ -30,10 +44,14 @@ export default function OrdersHistoryPage() {
       <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop">
         <h1 className="text-2xl font-bold text-on-surface">Order history</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
-          Your recent TableBite orders on this device.
+          {source === "database"
+            ? "Recent orders from the database."
+            : "Orders saved on this device (database empty or unavailable)."}
         </p>
 
-        {orders.length === 0 ? (
+        {loading ? (
+          <p className="mt-lg text-on-surface-variant">Loading orders…</p>
+        ) : orders.length === 0 ? (
           <div className="mt-xl rounded-2xl border border-dashed border-surface-variant bg-surface-container-lowest p-xl text-center">
             <span className="material-symbols-outlined text-[48px] text-surface-variant">
               receipt_long

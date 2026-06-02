@@ -14,7 +14,7 @@ import {
   estimatedDeliveryLabel,
   formatOrderNumber,
 } from "@/lib/checkout";
-import { submitOrder } from "@/lib/api";
+import { submitPlacedOrder } from "@/lib/api";
 
 export function generateOrderId(): string {
   return `ord_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -62,18 +62,12 @@ export function buildPlacedOrder({
   };
 }
 
-/** Simulation-first: always returns a placed order; syncs with API when available. */
+/** Persists to Supabase via POST /api/orders; returns local order if API unavailable. */
 export async function placeOrderWithSimulation(
   order: PlacedOrder,
 ): Promise<PlacedOrder> {
   try {
-    const result = await submitOrder({
-      items: order.lines.map((line) => ({
-        menuItemId: line.item.id,
-        quantity: line.quantity,
-      })),
-      total: order.subtotal,
-    });
+    const result = await submitPlacedOrder(order);
     return {
       ...order,
       orderId: result.orderId,

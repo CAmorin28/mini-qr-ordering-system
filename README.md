@@ -50,9 +50,28 @@ If someone opens `/qr` without `?view=staff` (e.g. an old link), Vercel middlewa
 
 API routes are served on the same domain as the app:
 
-- `GET /api/health`
-- `GET /api/menu?category=all`
-- `POST /api/orders`
+- `GET /api/health` — app + database status
+- `GET /api/products?category=all` — products from Supabase
+- `GET /api/menu?category=all` — alias of products (`items` key)
+- `POST /api/orders` — save a completed order
+- `GET /api/orders` — list recent orders
+- `GET /api/orders/:orderId` — single order
+
+## Supabase database
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In **SQL Editor**, run `supabase/schema.sql` then `supabase/seed.sql`.
+3. Add environment variables (local `.env.local` and Vercel → Settings → Environment Variables):
+
+| Name | Notes |
+|------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** — required for POST/GET orders |
+
+4. Redeploy on Vercel after saving env vars.
+
+Tables: **`products`**, **`orders`** (order line items stored in `orders.lines` as JSON).
 
 ## Project structure
 
