@@ -8,6 +8,8 @@ interface HeaderProps {
   showCart?: boolean;
   showQrLink?: boolean;
   showBackToMenu?: boolean;
+  /** Minimal dark bar for the QR display page */
+  variant?: "default" | "qr";
 }
 
 export function Header({
@@ -15,16 +17,32 @@ export function Header({
   showCart = true,
   showQrLink = false,
   showBackToMenu = false,
+  variant = "default",
 }: HeaderProps) {
   const { itemCount } = useCart();
+  const isQr = variant === "qr";
 
   return (
-    <header className="bg-primary text-on-primary fixed top-0 z-50 flex h-[var(--header-height)] w-full items-center justify-between gap-3 px-margin-mobile shadow-md md:px-margin-desktop lg:px-8 xl:px-12">
+    <header
+      className={`fixed top-0 z-50 flex w-full items-center justify-between gap-2 sm:gap-3 ${
+        isQr
+          ? "qr-header"
+          : "h-[var(--header-height)] bg-primary px-margin-mobile text-on-primary shadow-md md:px-margin-desktop lg:px-8 xl:px-12"
+      }`}
+    >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="material-symbols-outlined shrink-0 text-[32px] text-secondary-container sm:text-[36px]">
+        <span
+          className={`material-symbols-outlined shrink-0 text-[32px] sm:text-[36px] ${
+            isQr ? "qr-header-icon" : "text-secondary-container"
+          }`}
+        >
           restaurant
         </span>
-        <span className="truncate text-xl font-bold tracking-tight text-on-primary sm:text-2xl">
+        <span
+          className={`truncate text-xl font-bold tracking-tight sm:text-2xl ${
+            isQr ? "qr-header-title" : "text-on-primary"
+          }`}
+        >
           TableBite
         </span>
       </div>
@@ -33,10 +51,15 @@ export function Header({
         {showBackToMenu && (
           <Link
             href="/"
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-on-primary/25 px-3 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-secondary-container hover:text-on-secondary-container sm:px-5 sm:text-base"
+            aria-label={isQr ? "Back to menu" : undefined}
+            className={`flex min-h-11 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 sm:px-3 sm:text-base ${
+              isQr
+                ? "qr-header-back"
+                : "rounded-xl border border-on-primary/25 text-on-primary hover:bg-secondary-container hover:text-on-secondary-container"
+            }`}
           >
             <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-            <span>Back to menu</span>
+            <span className={isQr ? "qr-header-back-label" : undefined}>Back to menu</span>
           </Link>
         )}
 
