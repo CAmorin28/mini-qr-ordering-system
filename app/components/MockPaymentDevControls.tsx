@@ -18,29 +18,25 @@ interface MockPaymentDevControlsProps {
   paymentMethod: PaymentMethod | null;
 }
 
-/** Shown on all environments so demo payment can be tested on Vercel. */
+/** Shown when GCash is selected so demo payment can be tested on Vercel. */
 export function MockPaymentDevControls({ paymentMethod }: MockPaymentDevControlsProps) {
   const [mode, setMode] = useState<MockPaymentMode>("random");
-  const appliesToCheckout = paymentMethod === "gcash";
 
   useEffect(() => {
     setMode(getMockPaymentMode());
   }, []);
 
+  if (paymentMethod !== "gcash") return null;
+
   return (
     <div className="rounded-xl border border-dashed border-secondary-container/60 bg-secondary-container/10 p-md">
       <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        Payment simulation (demo)
+        GCash simulation (demo)
       </p>
       <p className="mt-1 text-xs text-on-surface-variant">
-        Not a real payment gateway. Choose an outcome before Pay now. Pay at counter
-        always places the order; success/fail applies to GCash only.
+        Not a real payment gateway. Choose an outcome before Pay now. Cash orders skip
+        simulation and are sent to the kitchen immediately.
       </p>
-      {!appliesToCheckout && paymentMethod === "cash" && (
-        <p className="mt-1 text-xs font-medium text-on-surface-variant/80">
-          Current method: Pay at counter — simulation controls apply when you switch to GCash.
-        </p>
-      )}
       <div className="mt-2 flex flex-wrap gap-2">
         {MODES.map((m) => (
           <button

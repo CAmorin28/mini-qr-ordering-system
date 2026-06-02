@@ -149,9 +149,13 @@ export default function CheckoutReviewClient() {
     } catch (err) {
       placedSuccessfully.current = false;
       setProcessingPayment(false);
-      setPaymentError(
-        err instanceof Error ? err.message : "Could not complete your order.",
-      );
+      const message =
+        err instanceof Error ? err.message : "Could not complete your order.";
+      if (paymentMethod === "gcash") {
+        setPaymentError(message);
+      } else {
+        setFormError(message);
+      }
     }
   }
 
@@ -161,7 +165,7 @@ export default function CheckoutReviewClient() {
 
   return (
     <>
-      {processingPayment && paymentMethod && (
+      {processingPayment && paymentMethod === "gcash" && (
         <PaymentProcessingOverlay
           paymentMethod={paymentMethod}
           amount={grandTotal}
@@ -174,7 +178,9 @@ export default function CheckoutReviewClient() {
         subtitle="Confirm your order details and choose how to pay."
       >
         <form onSubmit={handlePlaceOrder} className="space-y-lg">
-          <MockPaymentDevControls paymentMethod={paymentMethod} />
+          {paymentMethod === "gcash" ? (
+            <MockPaymentDevControls paymentMethod={paymentMethod} />
+          ) : null}
 
           {hasTableSession ? (
             <div className="rounded-xl border border-secondary-container/30 bg-secondary-container/10 px-md py-sm text-sm">
@@ -339,7 +345,7 @@ export default function CheckoutReviewClient() {
             </div>
           </section>
 
-          {paymentError && (
+          {paymentError && paymentMethod === "gcash" && (
             <PaymentFailedPanel message={paymentError} onRetry={handleRetryPayment} />
           )}
 
