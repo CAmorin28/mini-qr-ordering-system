@@ -10,7 +10,7 @@ export const STAFF_QR_VIEW_VALUE = "staff";
  * Guests who land on /qr (e.g. old printed codes) are sent to the menu.
  * Staff use /qr?view=staff to show the QR code.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname !== "/qr") {
     return NextResponse.next();
   }

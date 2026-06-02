@@ -13,6 +13,7 @@ const MODES: { id: MockPaymentMode; label: string }[] = [
   { id: "failure", label: "Force fail" },
 ];
 
+/** Shown on all environments so demo payment can be tested on Vercel. */
 export function MockPaymentDevControls() {
   const [mode, setMode] = useState<MockPaymentMode>("random");
 
@@ -20,14 +21,13 @@ export function MockPaymentDevControls() {
     setMode(getMockPaymentMode());
   }, []);
 
-  if (process.env.NODE_ENV !== "development") {
-    return null;
-  }
-
   return (
     <div className="rounded-xl border border-dashed border-secondary-container/60 bg-secondary-container/10 p-md">
       <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        Payment simulation (dev)
+        Payment simulation (demo)
+      </p>
+      <p className="mt-1 text-xs text-on-surface-variant">
+        Not a real payment gateway. Choose an outcome before Pay now / Place order.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {MODES.map((m) => (
