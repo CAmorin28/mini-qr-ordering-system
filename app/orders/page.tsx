@@ -5,37 +5,40 @@ import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/app/components/Header";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderHistory } from "@/lib/api";
-import { customerVisibleOrders } from "@/lib/customer-table-session";
 import { formatPrice } from "@/lib/format";
 import { listOrders } from "@/lib/order-history";
+import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
+import { normalizeTableLetter } from "@/lib/table-session";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
 import {
   PAYMENT_METHOD_LABELS,
   customerOrderStatusLabel,
 } from "@/lib/order-labels";
-import { isPlacedOrder } from "@/lib/place-order";
 import type { PlacedOrder } from "@/lib/types";
 
 const POLL_MS = 8000;
 
 export default function OrdersHistoryPage() {
-  const { tableLetter, pathWithSession } = useTableSession();
+  const { tableLetter, hasTableSession, pathWithSession } = useTableSession();
+  const table = normalizeTableLetter(tableLetter);
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"database" | "local">("database");
 
   const loadOrders = useCallback(async () => {
+    if (!table) {
+      setOrders([]);
+      return;
+    }
     try {
-      const fromApi = await fetchOrderHistory(tableLetter);
-      const placed = customerVisibleOrders(fromApi.filter(isPlacedOrder));
-      setOrders(placed);
+      const fromApi = await fetchOrderHistory(table);
+      setOrders(activePlacedOrdersForTable(fromApi, table));
       setSource("database");
     } catch {
-      const local = listOrders(tableLetter).filter(isPlacedOrder);
-      setOrders(local);
+      setOrders(activePlacedOrdersForTable(listOrders(table), table));
       setSource("local");
     }
-  }, [tableLetter]);
+  }, [table]);
 
   useEffect(() => {
     loadOrders().finally(() => setLoading(false));
@@ -71,9 +74,9 @@ export default function OrdersHistoryPage() {
               receipt_long
             </span>
             <p className="mt-md text-on-surface-variant">
-              {tableLetter
-                ? "No active orders for this table. Scan the QR or browse the menu to start a new order."
-                : "No active orders yet."}
+              {!hasTableSession
+                ? "Scan your table QR code first. Order status is only shown for the table you scanned."
+                : "No active orders for this table. Browse the menu to start a new order."}
             </p>
             <Link
               href={pathWithSession(MENU_PAGE_PATH)}

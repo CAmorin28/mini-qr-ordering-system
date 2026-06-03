@@ -2,24 +2,30 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchOrderHistory } from "@/lib/api";
-import { activePlacedOrders } from "@/lib/order-status-nav";
+import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { listOrders } from "@/lib/order-history";
+import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
 const POLL_MS = 8000;
 
 export function useActiveCustomerOrders(tableLetter: string) {
+  const table = normalizeTableLetter(tableLetter);
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    try {
-      const fromApi = await fetchOrderHistory(tableLetter);
-      setOrders(activePlacedOrders(fromApi));
-    } catch {
-      setOrders(activePlacedOrders(listOrders(tableLetter)));
+    if (!table) {
+      setOrders([]);
+      return;
     }
-  }, [tableLetter]);
+    try {
+      const fromApi = await fetchOrderHistory(table);
+      setOrders(activePlacedOrdersForTable(fromApi, table));
+    } catch {
+      setOrders(activePlacedOrdersForTable(listOrders(table), table));
+    }
+  }, [table]);
 
   useEffect(() => {
     let cancelled = false;

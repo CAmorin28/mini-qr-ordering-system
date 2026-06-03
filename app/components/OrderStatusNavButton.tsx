@@ -14,11 +14,11 @@ interface OrderStatusNavButtonProps {
 
 export function OrderStatusNavButton({ showLabel = true }: OrderStatusNavButtonProps) {
   const pathname = usePathname();
-  const { tableLetter, pathWithSession } = useTableSession();
+  const { tableLetter, hasTableSession, pathWithSession } = useTableSession();
   const { orders, loading } = useActiveCustomerOrders(tableLetter);
 
   const href = resolveOrderStatusHref(orders, tableLetter, pathWithSession);
-  if (!href || loading) return null;
+  if (!hasTableSession || !href || loading) return null;
 
   const onStatusPage =
     pathname.startsWith("/checkout/confirmation/") ||

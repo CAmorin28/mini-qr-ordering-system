@@ -7,11 +7,11 @@ import { customerOrderStatusLabel } from "@/lib/order-labels";
 import { resolveOrderStatusHref } from "@/lib/order-status-nav";
 
 export function ActiveOrderBanner() {
-  const { tableLetter, pathWithSession } = useTableSession();
+  const { tableLetter, tableLabel, hasTableSession, pathWithSession } = useTableSession();
   const { orders, loading } = useActiveCustomerOrders(tableLetter);
 
   const href = resolveOrderStatusHref(orders, tableLetter, pathWithSession);
-  if (!href || loading || orders.length === 0) return null;
+  if (!hasTableSession || !href || loading || orders.length === 0) return null;
 
   const primary = orders[0];
 
@@ -24,7 +24,9 @@ export function ActiveOrderBanner() {
         receipt_long
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-on-surface">Your order is in progress</p>
+        <p className="text-sm font-bold text-on-surface">
+          Your order is in progress · {tableLabel}
+        </p>
         <p className="mt-0.5 truncate text-xs text-on-surface-variant">
           {primary.orderNumber} · {customerOrderStatusLabel(primary)}
         </p>

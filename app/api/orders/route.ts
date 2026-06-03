@@ -29,10 +29,17 @@ export async function GET(request: Request) {
   const tableLetter = normalizeTableLetter(searchParams.get("table"));
   const includeCompleted = searchParams.get("includeCompleted") === "true";
 
+  if (!tableLetter) {
+    return NextResponse.json(
+      { error: "Table QR required. Pass ?table=A from your scan.", orders: [] },
+      { status: 400 },
+    );
+  }
+
   try {
     const orders = await listOrdersFromDb({
       activeOnly: !includeCompleted,
-      tableLetter: tableLetter || undefined,
+      tableLetter,
     });
     return NextResponse.json({ orders });
   } catch {
