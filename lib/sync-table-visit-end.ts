@@ -6,10 +6,7 @@ import {
 import { isCompletedOrder } from "@/lib/order-completion";
 import { getActiveOrderId, listAllStoredOrders } from "@/lib/order-history";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
-import {
-  TABLE_SESSION_STORAGE_KEY,
-  normalizeTableLetter,
-} from "@/lib/table-session";
+import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
 async function anyOrderStillActiveOnServer(
@@ -51,9 +48,11 @@ export async function syncTableVisitEndIfNeeded(
 
   const storedOrders = listAllStoredOrders(letter);
   const activeId = getActiveOrderId(letter);
-  const hasTableSession =
-    normalizeTableLetter(sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY)) ===
-    letter;
+
+  // QR scan only — guest has not placed an order yet; keep table session.
+  if (!activeId && storedOrders.length === 0) {
+    return false;
+  }
 
   const idsToVerify = new Set<string>();
   if (activeId) idsToVerify.add(activeId);
@@ -79,10 +78,6 @@ export async function syncTableVisitEndIfNeeded(
     }
   }
 
-  if (hasTableSession || storedOrders.length > 0 || activeId) {
-    clearTableCustomerSession(letter);
-    return true;
-  }
-
-  return false;
+  clearTableCustomerSession(letter);
+  return true;
 }

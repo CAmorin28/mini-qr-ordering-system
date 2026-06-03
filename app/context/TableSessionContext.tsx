@@ -61,17 +61,7 @@ function TableSessionSync({
   useEffect(() => {
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
-      if (isTableVisitEnded(fromUrl)) {
-        setTableLetterState("");
-        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-        const onCustomerRoute = CUSTOMER_PATH_PREFIXES.some((p) =>
-          pathname.startsWith(p),
-        );
-        if (onCustomerRoute) {
-          router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
-        }
-        return;
-      }
+      // Fresh QR scan (?table=) always starts a new visit — clear any ended flag.
       clearTableVisitEndedMark(fromUrl);
       setTableLetterState(fromUrl);
       sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);
