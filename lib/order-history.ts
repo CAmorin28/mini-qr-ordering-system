@@ -51,6 +51,11 @@ export function listOrders(tableLetter = ""): PlacedOrder[] {
   return customerVisibleOrders(readAll(normalizeTableLetter(tableLetter)));
 }
 
+/** All orders saved on this device for a table, including completed visits. */
+export function listAllStoredOrders(tableLetter = ""): PlacedOrder[] {
+  return readAll(normalizeTableLetter(tableLetter));
+}
+
 export function setActiveOrderId(orderId: string, tableLetter = ""): void {
   if (typeof window === "undefined") return;
   const key = activeOrderStorageKey(tableLetter);

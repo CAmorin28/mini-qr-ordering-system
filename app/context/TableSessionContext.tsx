@@ -12,6 +12,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
+import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
 import {
   TABLE_SESSION_STORAGE_KEY,
   TABLE_VISIT_ENDED_EVENT,
@@ -68,6 +69,11 @@ function TableSessionSync({
     }
   }, [searchParams, tableLetter, setTableLetterState]);
 
+  return null;
+}
+
+function TableVisitEndSync({ tableLetter }: { tableLetter: string }) {
+  useTableVisitEndSync(tableLetter);
   return null;
 }
 
@@ -132,6 +138,7 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
       <Suspense fallback={null}>
         <TableSessionSync tableLetter={tableLetter} setTableLetterState={setTableLetterState} />
       </Suspense>
+      <TableVisitEndSync tableLetter={tableLetter} />
       {children}
     </TableSessionContext.Provider>
   );
