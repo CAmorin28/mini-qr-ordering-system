@@ -35,11 +35,11 @@ import {
   type AdminBoardSection,
 } from "@/lib/admin-order-board";
 import {
-  canArchiveOrder,
+  canMarkOrderDone,
   dailyCompletedSummary,
   filterAwaitingCompletionOrders,
   filterCompletedOrders,
-  isAwaitingManualCompletion,
+  hasReadyHandoff,
   isCompletedOrder,
   todayDateKey,
 } from "@/lib/order-completion";
@@ -124,8 +124,8 @@ function ReadyToCompleteQueue({
             task_alt
           </span>
           <p className="mt-md text-on-surface-variant">
-            Nothing ready to complete. When an order is served or ready for pick-up with payment
-            confirmed, it appears here until you mark it complete.
+            Nothing here yet. On Active orders, tap Done when payment is confirmed and food is
+            served or ready for pick-up — then complete the visit here.
           </p>
         </div>
       ) : (
@@ -137,8 +137,7 @@ function ReadyToCompleteQueue({
             </span>
           </h2>
           <p className="mt-0.5 text-xs text-on-surface-variant">
-            Served or ready for pick-up with payment confirmed — review, then complete to archive
-            under All orders.
+            Handed off from Active — tap Complete order to archive under All orders.
           </p>
           <ul className="mt-md space-y-sm">
             {queue.map((order) => (
@@ -293,27 +292,57 @@ function OrderDetailPanel({
   order,
   onClose,
   onUpdated,
+  onReadyHandoff,
   onCompleted,
 }: {
   order: PlacedOrder;
   onClose: () => void;
   onUpdated: (order: PlacedOrder) => void;
+  onReadyHandoff?: () => void;
   onCompleted?: () => void;
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.paymentStatus);
   const [saving, setSaving] = useState(false);
+  const [markingDone, setMarkingDone] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const archived = isCompletedOrder(order);
-  const paid = paymentStatus === "paid";
+  const readyHandoff = hasReadyHandoff(order);
+  const preview = { ...order, status, paymentStatus };
+  const showDone = !archived && canMarkOrderDone(preview);
+  const showComplete = !archived && readyHandoff;
   const dirty =
     !archived && (status !== order.status || paymentStatus !== order.paymentStatus);
 
+  async function handleMarkDone() {
+    if (archived || !canMarkOrderDone(preview)) return;
+    setMarkingDone(true);
+    setError(null);
+    try {
+      const synced = syncStatuses(status, paymentStatus);
+      const updated = await updateAdminOrder(order.orderId, {
+        status: synced.status,
+        paymentStatus: synced.paymentStatus,
+        ready: true,
+      });
+      onUpdated(updated);
+      onReadyHandoff?.();
+    } catch (err) {
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        window.location.reload();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Failed to mark order done");
+    } finally {
+      setMarkingDone(false);
+    }
+  }
+
   async function handleComplete() {
-    if (archived) return;
+    if (archived || !readyHandoff) return;
     setCompleting(true);
     setError(null);
     try {
@@ -476,7 +505,7 @@ function OrderDetailPanel({
               </label>
               <select
                 id="order-status"
-                value={status}
+                value={status === "paid" ? "pending_payment" : status}
                 onChange={(e) => setStatus(e.target.value as OrderStatus)}
                 className="checkout-input mt-1 w-full"
               >
@@ -513,10 +542,7 @@ function OrderDetailPanel({
               {order.paymentStatus !== "paid" && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setPaymentStatus("paid");
-                    setStatus("paid");
-                  }}
+                  onClick={() => setPaymentStatus("paid")}
                   className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
                 >
                   Mark as paid
@@ -531,8 +557,7 @@ function OrderDetailPanel({
                     if (
                       next === "preparing" &&
                       order.customer.orderType === "dine_in" &&
-                      paymentStatus !== "paid" &&
-                      status !== "paid"
+                      paymentStatus !== "paid"
                     ) {
                       setError("Mark payment as paid before starting preparation.");
                       return;
@@ -569,36 +594,50 @@ function OrderDetailPanel({
           )}
           {!archived ? (
             <>
-              <button
-                type="button"
-                onClick={handleComplete}
-                disabled={completing || saving || !canArchiveOrder({ ...order, paymentStatus })}
-                className="w-full rounded-xl bg-secondary px-lg py-3 text-sm font-bold text-on-primary disabled:opacity-40"
-              >
-                {completing ? "Completing…" : "Complete order"}
-              </button>
-              {!paid ? (
+              {showDone ? (
+                <button
+                  type="button"
+                  onClick={handleMarkDone}
+                  disabled={markingDone || saving || completing}
+                  className="w-full rounded-xl bg-secondary px-lg py-3 text-sm font-bold text-on-primary disabled:opacity-40"
+                >
+                  {markingDone ? "Moving…" : "Done"}
+                </button>
+              ) : null}
+              {showComplete ? (
+                <button
+                  type="button"
+                  onClick={handleComplete}
+                  disabled={completing || saving || markingDone}
+                  className="w-full rounded-xl bg-secondary px-lg py-3 text-sm font-bold text-on-primary disabled:opacity-40"
+                >
+                  {completing ? "Completing…" : "Complete order"}
+                </button>
+              ) : null}
+              {showDone ? (
                 <p className="text-xs text-on-surface-variant">
-                  Mark payment as paid before completing.
+                  Payment confirmed and kitchen finished — tap Done to move this order to Ready to
+                  complete.
                 </p>
-              ) : isAwaitingManualCompletion(order) ? (
+              ) : null}
+              {showComplete ? (
                 <p className="text-xs text-on-surface-variant">
-                  This order is ready to complete. Confirm the visit is finished, then tap Complete
-                  order.
+                  Visit handed off — tap Complete order to archive under All orders.
                 </p>
-              ) : (
+              ) : null}
+              {!showDone && !showComplete ? (
                 <p className="text-xs text-on-surface-variant">
-                  When saved as served or ready for pick-up with paid payment, the order moves to
-                  Ready to complete for you to archive manually.
+                  Update payment and kitchen status above. When food is served or ready for pick-up
+                  with payment confirmed, Done appears here.
                 </p>
-              )}
+              ) : null}
             </>
           ) : null}
           {!archived ? (
             <button
               type="button"
               onClick={handleSave}
-              disabled={!dirty || saving || completing}
+              disabled={!dirty || saving || completing || markingDone}
               className="w-full rounded-xl border border-surface-variant bg-surface-container-lowest px-lg py-3 text-sm font-bold text-on-surface disabled:opacity-40"
             >
               {saving ? "Saving…" : "Save status changes"}
@@ -975,10 +1014,18 @@ export function AdminApp() {
             handleOrderUpdated(updated);
             setSelectedId(updated.orderId);
           }}
-          onCompleted={() => {
+          onReadyHandoff={() => {
             setSelectedId(null);
             setAdminView("paid");
-            setCompletionNotice("Order archived. Complete the rest here, or open All orders for daily totals.");
+            setCompletionNotice(
+              "Moved to Ready to complete. Open an order there and tap Complete order when finished.",
+            );
+            window.setTimeout(() => setCompletionNotice(null), 5000);
+          }}
+          onCompleted={() => {
+            setSelectedId(null);
+            setAdminView("archive");
+            setCompletionNotice("Order archived under All orders.");
             window.setTimeout(() => setCompletionNotice(null), 4000);
           }}
         />

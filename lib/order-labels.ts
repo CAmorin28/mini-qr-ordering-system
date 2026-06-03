@@ -80,6 +80,7 @@ export function customerOrderStatusLabel(order: PlacedOrder): string {
   return ORDER_STATUS_LABELS[status];
 }
 
+/** Kitchen workflow only — payment is managed via payment status. */
 export function adminStatusOptions(order: PlacedOrder): OrderStatus[] {
-  return getAllowedStatuses(order);
+  return getAllowedStatuses(order).filter((s) => s !== "paid");
 }

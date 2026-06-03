@@ -51,11 +51,13 @@ export async function PATCH(
   const payload = body as {
     status?: unknown;
     paymentStatus?: unknown;
+    ready?: unknown;
     completed?: unknown;
   };
   const status = payload.status !== undefined ? payload.status : undefined;
   const paymentStatus =
     payload.paymentStatus !== undefined ? payload.paymentStatus : undefined;
+  const ready = payload.ready === true ? true : undefined;
   const completed = payload.completed === true ? true : undefined;
 
   if (status !== undefined && !isOrderStatus(status)) {
@@ -68,6 +70,7 @@ export async function PATCH(
   const result = await updateOrderInDb(orderId, {
     status: status as OrderStatus | undefined,
     paymentStatus: paymentStatus as PaymentStatus | undefined,
+    ready,
     completed,
   });
 

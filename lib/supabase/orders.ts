@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { normalizeOrderStatus } from "@/lib/order-labels";
 import {
   canArchiveOrder,
+  canMarkOrderDone,
+  hasReadyHandoff,
   resolveOrderAfterAdminUpdate,
 } from "@/lib/order-completion";
 import type {
@@ -31,6 +33,7 @@ interface OrderRow {
   contact_number: string;
   notes: string;
   lines: CartLine[];
+  ready_at?: string | null;
   completed_at?: string | null;
   /** Legacy columns — may exist on older databases. */
   delivery_fee?: number;
@@ -65,6 +68,7 @@ function rowToPlacedOrder(row: OrderRow): PlacedOrder {
     orderId: row.order_id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
+    readyAt: row.ready_at ?? null,
     completedAt: row.completed_at ?? null,
     status: normalizeOrderStatus(row.status, customer.orderType),
     paymentStatus: row.payment_status,
@@ -82,6 +86,7 @@ function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "servic
     order_id: order.orderId,
     order_number: order.orderNumber,
     created_at: order.createdAt,
+    ready_at: order.readyAt,
     completed_at: order.completedAt,
     status: order.status,
     payment_status: order.paymentStatus,
@@ -177,6 +182,8 @@ export async function getOrderFromDb(orderId: string): Promise<PlacedOrder | nul
 export interface OrderAdminUpdates {
   status?: OrderStatus;
   paymentStatus?: PaymentStatus;
+  /** When true, sets ready_at (moves order to Ready to complete). */
+  ready?: boolean;
   /** When true, sets completed_at to now (archives the order in admin). */
   completed?: boolean;
 }
@@ -192,6 +199,7 @@ export async function updateOrderInDb(
   if (
     updates.status === undefined &&
     updates.paymentStatus === undefined &&
+    updates.ready !== true &&
     updates.completed !== true
   ) {
     return { ok: false, status: 400, error: "No updates provided" };
@@ -203,8 +211,26 @@ export async function updateOrderInDb(
   }
 
   const resolved = resolveOrderAfterAdminUpdate(existing, updates);
+  const merged = { ...existing, ...resolved };
 
-  if (updates.completed === true && !canArchiveOrder({ ...existing, ...resolved })) {
+  if (updates.ready === true && !canMarkOrderDone(merged)) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Order must be paid and at served or ready for pick-up before marking done.",
+    };
+  }
+
+  if (updates.completed === true && !hasReadyHandoff(merged)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Tap Done on Active orders first to move this order to Ready to complete.",
+    };
+  }
+
+  if (updates.completed === true && !canArchiveOrder(merged)) {
     return {
       ok: false,
       status: 400,
@@ -212,10 +238,15 @@ export async function updateOrderInDb(
     };
   }
 
-  const patch: Partial<Pick<OrderRow, "status" | "payment_status" | "completed_at">> = {};
+  const patch: Partial<
+    Pick<OrderRow, "status" | "payment_status" | "ready_at" | "completed_at">
+  > = {};
   if (updates.status !== undefined || updates.paymentStatus !== undefined) {
     patch.status = resolved.status;
     patch.payment_status = resolved.paymentStatus;
+  }
+  if (updates.ready === true) {
+    patch.ready_at = new Date().toISOString();
   }
   if (updates.completed === true) {
     patch.completed_at = new Date().toISOString();
@@ -235,14 +266,14 @@ export async function updateOrderInDb(
         return { ok: false, status: 404, error: "Order not found" };
       }
       if (
-        error.message.includes("completed_at") &&
+        (error.message.includes("completed_at") || error.message.includes("ready_at")) &&
         (error.message.includes("column") || error.code === "42703")
       ) {
         return {
           ok: false,
           status: 503,
           error:
-            "Database missing completed_at column. Run supabase/migrate-order-completion.sql in Supabase SQL Editor.",
+            "Database missing ready_at or completed_at. Run supabase/migrate-order-ready.sql and migrate-order-completion.sql in Supabase SQL Editor.",
         };
       }
       return { ok: false, status: 500, error: error.message };

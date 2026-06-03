@@ -22,24 +22,40 @@ export async function GET() {
       );
     }
 
-    const { error: ordersError } = await supabase.from("orders").select("completed_at").limit(1);
+    const { error: ordersError } = await supabase
+      .from("orders")
+      .select("completed_at, ready_at")
+      .limit(1);
     if (ordersError) {
-      const needsMigration =
-        ordersError.message.includes("completed_at") &&
-        (ordersError.message.includes("column") || ordersError.code === "42703");
+      const missingColumn =
+        ordersError.message.includes("column") || ordersError.code === "42703";
+      const needsCompletion =
+        missingColumn && ordersError.message.includes("completed_at");
+      const needsReady =
+        missingColumn && ordersError.message.includes("ready_at");
+      let message = ordersError.message;
+      if (needsCompletion && needsReady) {
+        message =
+          "Run supabase/migrate-order-completion.sql and migrate-order-ready.sql in Supabase SQL Editor.";
+      } else if (needsCompletion) {
+        message =
+          "Run supabase/migrate-order-completion.sql in Supabase SQL Editor (adds completed_at).";
+      } else if (needsReady) {
+        message =
+          "Run supabase/migrate-order-ready.sql in Supabase SQL Editor (adds ready_at).";
+      }
       return NextResponse.json(
-        {
-          ok: false,
-          database: "error",
-          message: needsMigration
-            ? "Run supabase/migrate-order-completion.sql in Supabase SQL Editor (adds completed_at)."
-            : ordersError.message,
-        },
+        { ok: false, database: "error", message },
         { status: 503 },
       );
     }
 
-    return NextResponse.json({ ok: true, database: "connected", orderCompletion: true });
+    return NextResponse.json({
+      ok: true,
+      database: "connected",
+      orderCompletion: true,
+      orderReadyHandoff: true,
+    });
   } catch (err) {
     return NextResponse.json(
       {

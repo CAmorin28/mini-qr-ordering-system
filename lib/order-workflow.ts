@@ -23,9 +23,17 @@ export function getAllowedStatuses(order: PlacedOrder): OrderStatus[] {
   return statusFlowForOrderType(order.customer.orderType);
 }
 
+function kitchenStatusFlow(orderType: OrderType): OrderStatus[] {
+  return statusFlowForOrderType(orderType).filter((s) => s !== "paid");
+}
+
+function statusForKitchenFlow(status: OrderStatus): OrderStatus {
+  return status === "paid" ? "pending_payment" : status;
+}
+
 export function getNextStatus(order: PlacedOrder): OrderStatus | null {
-  const flow = getAllowedStatuses(order);
-  const index = flow.indexOf(order.status);
+  const flow = kitchenStatusFlow(order.customer.orderType);
+  const index = flow.indexOf(statusForKitchenFlow(order.status));
   if (index < 0 || index >= flow.length - 1) return null;
   return flow[index + 1] ?? null;
 }
@@ -45,11 +53,8 @@ export function syncStatuses(
   status: OrderStatus,
   paymentStatus: PlacedOrder["paymentStatus"],
 ): { status: OrderStatus; paymentStatus: PlacedOrder["paymentStatus"] } {
-  if (status === "pending_payment") {
-    return { status, paymentStatus: paymentStatus === "failed" ? "failed" : "pending" };
-  }
-  if (paymentStatus === "pending") {
-    return { status, paymentStatus: "paid" };
+  if (paymentStatus === "failed") {
+    return { status: "pending_payment", paymentStatus: "failed" };
   }
   return { status, paymentStatus };
 }

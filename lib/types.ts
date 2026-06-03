@@ -56,6 +56,8 @@ export interface PlacedOrder {
   orderId: string;
   orderNumber: string;
   createdAt: string;
+  /** Set when admin taps Done — order moves to Ready to complete. */
+  readyAt: string | null;
   /** Set when admin marks the order complete — moves it to the daily archive. */
   completedAt: string | null;
   status: OrderStatus;

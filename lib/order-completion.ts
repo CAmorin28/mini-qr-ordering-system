@@ -30,11 +30,24 @@ export function isTerminalWorkflowStatus(order: PlacedOrder): boolean {
   return order.status === terminalStatusForOrderType(order.customer.orderType);
 }
 
-/** Paid and at served / ready for pick-up — waiting for admin to mark complete. */
-export function isAwaitingManualCompletion(order: PlacedOrder): boolean {
+/** Admin tapped Done — waiting for final Complete order in Ready to complete. */
+export function hasReadyHandoff(order: PlacedOrder): boolean {
+  return isActiveOrder(order) && order.readyAt != null && order.readyAt !== "";
+}
+
+/** Paid, kitchen finished, still on Active until admin taps Done. */
+export function canMarkOrderDone(order: PlacedOrder): boolean {
   return (
-    isActiveOrder(order) && canArchiveOrder(order) && isTerminalWorkflowStatus(order)
+    isActiveOrder(order) &&
+    !hasReadyHandoff(order) &&
+    canArchiveOrder(order) &&
+    isTerminalWorkflowStatus(order)
   );
+}
+
+/** In the Ready to complete queue (between Done and Complete order). */
+export function isAwaitingManualCompletion(order: PlacedOrder): boolean {
+  return hasReadyHandoff(order);
 }
 
 export function isActiveOrder(order: PlacedOrder): boolean {
@@ -53,9 +66,9 @@ function byNewestCreated(a: PlacedOrder, b: PlacedOrder): number {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 }
 
-/** Active orders still moving through the kitchen workflow (excludes paid queue). */
+/** Active orders on the kitchen board (excludes Ready to complete hand-off). */
 export function filterInProgressActiveOrders(orders: PlacedOrder[]): PlacedOrder[] {
-  return orders.filter((o) => isActiveOrder(o) && !isAwaitingManualCompletion(o));
+  return orders.filter((o) => isActiveOrder(o) && !hasReadyHandoff(o));
 }
 
 export function filterAwaitingCompletionOrders(orders: PlacedOrder[]): PlacedOrder[] {

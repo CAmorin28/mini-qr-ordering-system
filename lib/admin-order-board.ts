@@ -105,7 +105,7 @@ function dineInSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "served",
       title: "Served",
-      subtitle: "Food served — confirm payment, then complete from Ready to complete",
+      subtitle: "Food served — confirm payment, then tap Done to hand off",
       icon: "done_all",
       accentClass: "border-surface-variant bg-surface-container-low/60",
       orders: withStatus(typed, "served"),
@@ -143,7 +143,7 @@ function pickupSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "ready_for_pickup",
       title: "Ready for pick-up",
-      subtitle: "Waiting for customer — confirm payment, then complete from Ready to complete",
+      subtitle: "Ready for customer — confirm payment, then tap Done to hand off",
       icon: "takeout_dining",
       accentClass: "border-teal-200/70 bg-teal-50/40",
       orders: withStatus(typed, "ready_for_pickup"),

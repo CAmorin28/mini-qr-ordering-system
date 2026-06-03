@@ -86,6 +86,7 @@ export async function updateAdminOrder(
   updates: {
     status?: OrderStatus;
     paymentStatus?: PaymentStatus;
+    ready?: boolean;
     completed?: boolean;
   },
 ): Promise<PlacedOrder> {
@@ -101,6 +102,10 @@ export async function updateAdminOrder(
     throw new Error(data.error ?? "Failed to update order");
   }
   return (data as { order: PlacedOrder }).order;
+}
+
+export async function markOrderReadyForCompletion(orderId: string): Promise<PlacedOrder> {
+  return updateAdminOrder(orderId, { ready: true });
 }
 
 export async function completeAdminOrder(orderId: string): Promise<PlacedOrder> {
