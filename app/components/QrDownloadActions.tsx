@@ -16,29 +16,7 @@ interface QrDownloadActionsProps {
   tableLetter?: string | null;
 }
 
-type DownloadFormat = "png" | "svg";
-
 type SaveResult = "downloaded" | "shared" | "opened" | "cancelled";
-
-const downloadOptions: {
-  format: DownloadFormat;
-  label: string;
-  icon: string;
-  variant: "primary" | "secondary";
-}[] = [
-  {
-    format: "png",
-    label: "PNG",
-    icon: "download",
-    variant: "primary",
-  },
-  {
-    format: "svg",
-    label: "SVG",
-    icon: "print",
-    variant: "secondary",
-  },
-];
 
 const qrRenderOptions = {
   margin: MENU_QR_MARGIN,
@@ -105,9 +83,7 @@ function openBlobInNewTab(blob: Blob): boolean {
 }
 
 async function saveQrFile(file: File): Promise<SaveResult> {
-  const mobile = isTouchMobileDevice();
-
-  if (mobile) {
+  if (isTouchMobileDevice()) {
     const shareResult = await tryShareFile(file);
     if (shareResult === "shared") return "shared";
     if (shareResult === "cancelled") return "cancelled";
@@ -136,110 +112,82 @@ async function createPngFile(menuUrl: string, filename: string): Promise<File> {
   return new File([blob], filename, { type: "image/png" });
 }
 
-async function createSvgFile(menuUrl: string, filename: string): Promise<File> {
-  const svg = await QRCode.toString(menuUrl, {
-    ...qrRenderOptions,
-    type: "svg",
-  });
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  return new File([blob], filename, { type: "image/svg+xml" });
-}
-
 export function QrDownloadActions({
   menuUrl,
   tableLetter,
 }: QrDownloadActionsProps) {
-  const [busyFormat, setBusyFormat] = useState<DownloadFormat | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successHint, setSuccessHint] = useState<string | null>(null);
 
-  const download = useCallback(
-    async (format: DownloadFormat) => {
-      setBusyFormat(format);
-      setError(null);
-      setSuccessHint(null);
+  const downloadPng = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    setSuccessHint(null);
 
-      try {
-        const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl)
-          ? (menuUrlFromWindow() ?? menuUrl)
-          : menuUrl;
-        const filename = getQrDownloadFilename(format, tableLetter);
-        const file =
-          format === "png"
-            ? await createPngFile(targetMenuUrl, filename)
-            : await createSvgFile(targetMenuUrl, filename);
+    try {
+      const letter = tableLetter ?? undefined;
+      const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl)
+        ? (menuUrlFromWindow(letter) ?? menuUrl)
+        : menuUrl;
+      const filename = getQrDownloadFilename(letter);
+      const file = await createPngFile(targetMenuUrl, filename);
+      const result = await saveQrFile(file);
 
-        const result = await saveQrFile(file);
-
-        if (result === "cancelled") {
-          return;
-        }
-
-        if (result === "opened") {
-          setSuccessHint(
-            format === "png"
-              ? "QR opened in a new tab — tap and hold the image, then save to Photos or Files."
-              : "QR opened in a new tab — use your browser’s share or save option.",
-          );
-          return;
-        }
-
-        if (result === "shared") {
-          setSuccessHint("Use Save image or Save to Files in the share menu.");
-        }
-      } catch {
-        setError(
-          isTouchMobileDevice()
-            ? "Could not save the QR code. Allow pop-ups and try again, or use a different browser."
-            : "Could not download the QR code. Please try again.",
-        );
-      } finally {
-        setBusyFormat(null);
+      if (result === "cancelled") {
+        return;
       }
-    },
-    [menuUrl, tableLetter],
-  );
+
+      if (result === "opened") {
+        setSuccessHint(
+          "QR opened in a new tab — tap and hold the image, then save to Photos or Files.",
+        );
+        return;
+      }
+
+      if (result === "shared") {
+        setSuccessHint("Use Save image or Save to Files in the share menu.");
+        return;
+      }
+
+      if (result === "downloaded" && isTouchMobileDevice()) {
+        setSuccessHint("If the file did not save, try again and allow downloads.");
+      }
+    } catch {
+      setError(
+        isTouchMobileDevice()
+          ? "Could not save the QR code. Allow pop-ups and try again, or use a different browser."
+          : "Could not download the QR code. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [menuUrl, tableLetter]);
 
   return (
     <section
       className="qr-download-section"
       aria-labelledby="qr-download-heading"
     >
-      <h2
-        id="qr-download-heading"
-        className="qr-download-title"
-      >
+      <h2 id="qr-download-heading" className="qr-download-title">
         Download this QR code
       </h2>
 
       <div className="qr-download-actions">
-        {downloadOptions.map((option) => {
-          const isBusy = busyFormat === option.format;
-          const isDisabled = busyFormat !== null;
-          const isPrimary = option.variant === "primary";
-
-          return (
-            <button
-              key={option.format}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => download(option.format)}
-              className={
-                isPrimary
-                  ? "qr-download-btn qr-download-btn-primary"
-                  : "qr-download-btn"
-              }
-            >
-              <span
-                className={`material-symbols-outlined text-[18px] ${isBusy ? "animate-spin" : ""}`}
-                aria-hidden
-              >
-                {isBusy ? "progress_activity" : option.icon}
-              </span>
-              {isBusy ? "…" : `Download ${option.label}`}
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => downloadPng()}
+          className="qr-download-btn qr-download-btn-primary"
+        >
+          <span
+            className={`material-symbols-outlined text-[18px] ${busy ? "animate-spin" : ""}`}
+            aria-hidden
+          >
+            {busy ? "progress_activity" : "download"}
+          </span>
+          {busy ? "Preparing…" : "Download PNG"}
+        </button>
       </div>
 
       {error ? (
@@ -255,7 +203,7 @@ export function QrDownloadActions({
       ) : null}
 
       <p className="qr-download-hint">
-        Works on phone and computer · PNG for screens · SVG for print
+        Works on phone and computer · High-resolution PNG for print and screens
       </p>
     </section>
   );

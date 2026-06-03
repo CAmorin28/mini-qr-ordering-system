@@ -102,7 +102,7 @@ export default async function QrPage({ searchParams }: QrPageProps) {
         <section className="qr-panel-right" aria-label="Table QR code">
           <div className="qr-panel-right-glow" aria-hidden />
           <div className="qr-panel-right-inner">
-            <div className="qr-card">
+            <div className={isStaff ? "qr-card qr-card--staff" : "qr-card"}>
               {isStaff ? (
                 <Suspense fallback={<p className="p-md text-center text-sm">Loading QR generator…</p>}>
                   <StaffTableQrPanel

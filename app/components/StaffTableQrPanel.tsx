@@ -96,8 +96,8 @@ export function StaffTableQrPanel({
   }
 
   return (
-    <>
-      <section className="mb-md w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
+    <div className="qr-card-staff">
+      <section className="qr-card-staff-form mb-md w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
         <h2 className="text-sm font-bold text-on-surface">Table letter</h2>
         <p className="mt-1 text-xs text-on-surface-variant">
           Type any table letter or code (up to {TABLE_ID_MAX_LENGTH} characters). Each value
@@ -150,13 +150,6 @@ export function StaffTableQrPanel({
       <div className="qr-card-footer">
         <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
         <p className="qr-card-footer-sub">Scans open the menu page directly</p>
-        {menuUrl.includes("localhost") || menuUrl.includes("127.0.0.1") ? (
-          <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-xs text-amber-900 dark:text-amber-100">
-            This QR points to <strong>localhost</strong>, which phones cannot open. On Wi‑Fi testing,
-            open this page at <strong>http://YOUR_PC_LAN_IP:3000</strong> (same Wi‑Fi), click Update QR,
-            then scan again.
-          </p>
-        ) : null}
       </div>
 
       <QrDownloadActions menuUrl={menuUrl} tableLetter={tableLetter} />
@@ -165,6 +158,6 @@ export function StaffTableQrPanel({
         <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
         Back to admin dashboard
       </Link>
-    </>
+    </div>
   );
 }

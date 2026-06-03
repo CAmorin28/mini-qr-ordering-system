@@ -464,6 +464,44 @@ body:has(.qr-page-root) {
     max-height: 100%;
   }
 
+  .qr-card--staff {
+    overflow-x: hidden;
+    overflow-y: auto;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .qr-card-staff {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qr-card-staff-form,
+  .qr-card-staff .qr-scan-pill,
+  .qr-card-staff .qr-card-footer,
+  .qr-card-staff .qr-download-section,
+  .qr-card-staff .qr-back-admin-btn {
+    flex-shrink: 0;
+  }
+
+  .qr-card--staff .qr-scan-pill {
+    display: none;
+  }
+
+  .qr-card--staff .qr-code-frame {
+    flex: 0 0 auto;
+    width: min(100%, 14rem);
+    max-width: 14rem;
+    max-height: min(30vh, 14rem);
+    aspect-ratio: 1;
+    margin-inline: auto;
+    overflow: hidden;
+  }
+
   .qr-panel-left-inner {
     width: 100%;
   }
@@ -505,7 +543,7 @@ body:has(.qr-page-root) {
   align-items: center;
   justify-content: center;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -534,6 +572,8 @@ body:has(.qr-page-root) {
 .qr-code-display {
   display: flex;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   max-height: 100%;
   align-items: center;
   justify-content: center;
@@ -544,18 +584,16 @@ body:has(.qr-page-root) {
 .qr-code-display svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   max-width: 100%;
-  max-height: min(52vh, 100%);
+  max-height: 100%;
+  object-fit: contain;
 }
 
 @media (min-width: 768px) {
   .qr-code-frame {
     max-width: min(100%, 38vh, 360px);
-  }
-
-  .qr-code-display svg {
-    max-height: 100%;
+    aspect-ratio: 1;
   }
 }
 
@@ -577,16 +615,13 @@ body:has(.qr-page-root) {
 
 .qr-download-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   justify-content: center;
 }
 
 .qr-download-btn {
   display: inline-flex;
   min-height: 2.5rem;
-  flex: 1 1 auto;
-  min-width: 7.5rem;
+  width: 100%;
   max-width: 100%;
   align-items: center;
   justify-content: center;

@@ -11,12 +11,9 @@ export const MENU_QR_DISPLAY_WIDTH = 600;
 /** Higher resolution for downloaded files */
 export const MENU_QR_DOWNLOAD_WIDTH = 1200;
 
-export function getQrDownloadFilename(
-  extension: "png" | "svg",
-  tableLetter?: string | null,
-): string {
+export function getQrDownloadFilename(tableLetter?: string | null): string {
   const base = tableLetter
     ? `tablebite-table-${tableLetter.toUpperCase()}-qr`
     : "tablebite-menu-qr";
-  return `${base}.${extension}`;
+  return `${base}.png`;
 }
