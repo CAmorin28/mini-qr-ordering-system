@@ -1,4 +1,4 @@
-import { filterActiveOrders } from "@/lib/order-completion";
+import { filterInProgressActiveOrders } from "@/lib/order-completion";
 import type { OrderStatus, OrderType, PlacedOrder } from "@/lib/types";
 
 export interface AdminBoardSection {
@@ -15,7 +15,7 @@ function byNewestFirst(a: PlacedOrder, b: PlacedOrder): number {
 }
 
 function activeOnly(orders: PlacedOrder[]): PlacedOrder[] {
-  return filterActiveOrders(orders);
+  return filterInProgressActiveOrders(orders);
 }
 
 function forType(orders: PlacedOrder[], orderType: OrderType): PlacedOrder[] {
@@ -105,7 +105,7 @@ function dineInSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "served",
       title: "Served",
-      subtitle: "Food served — mark complete to archive and clear from active list",
+      subtitle: "Food served — confirm payment, then complete from Ready to complete",
       icon: "done_all",
       accentClass: "border-surface-variant bg-surface-container-low/60",
       orders: withStatus(typed, "served"),
@@ -143,7 +143,7 @@ function pickupSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "ready_for_pickup",
       title: "Ready for pick-up",
-      subtitle: "Waiting for customer — mark complete after hand-off",
+      subtitle: "Waiting for customer — confirm payment, then complete from Ready to complete",
       icon: "takeout_dining",
       accentClass: "border-teal-200/70 bg-teal-50/40",
       orders: withStatus(typed, "ready_for_pickup"),

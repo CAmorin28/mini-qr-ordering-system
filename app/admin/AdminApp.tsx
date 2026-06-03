@@ -37,7 +37,9 @@ import {
 import {
   canArchiveOrder,
   dailyCompletedSummary,
+  filterAwaitingCompletionOrders,
   filterCompletedOrders,
+  isAwaitingManualCompletion,
   isCompletedOrder,
   todayDateKey,
 } from "@/lib/order-completion";
@@ -45,10 +47,11 @@ import { canStartPreparing, getNextStatus, syncStatuses } from "@/lib/order-work
 import { formatTableLabel } from "@/lib/table-session";
 import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/types";
 
-type AdminView = "active" | "archive";
+type AdminView = "active" | "paid" | "archive";
 
 const ADMIN_VIEW_TABS: { key: AdminView; label: string; icon: string }[] = [
   { key: "active", label: "Active orders", icon: "pending_actions" },
+  { key: "paid", label: "Ready to complete", icon: "task_alt" },
   { key: "archive", label: "All orders", icon: "inventory_2" },
 ];
 
@@ -101,6 +104,50 @@ function OrderListCard({
         </div>
       </button>
     </li>
+  );
+}
+
+function ReadyToCompleteQueue({
+  orders,
+  onSelectOrder,
+}: {
+  orders: PlacedOrder[];
+  onSelectOrder: (orderId: string) => void;
+}) {
+  const queue = useMemo(() => filterAwaitingCompletionOrders(orders), [orders]);
+
+  return (
+    <div className="mt-lg space-y-lg">
+      {queue.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-surface-variant bg-surface-container-lowest p-xl text-center">
+          <span className="material-symbols-outlined text-[48px] text-surface-variant">
+            task_alt
+          </span>
+          <p className="mt-md text-on-surface-variant">
+            Nothing ready to complete. When an order is served or ready for pick-up with payment
+            confirmed, it appears here until you mark it complete.
+          </p>
+        </div>
+      ) : (
+        <section className="rounded-2xl border border-emerald-200/70 bg-emerald-50/30 p-md">
+          <h2 className="text-base font-bold text-on-surface">
+            Ready to complete
+            <span className="ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
+              {queue.length}
+            </span>
+          </h2>
+          <p className="mt-0.5 text-xs text-on-surface-variant">
+            Served or ready for pick-up with payment confirmed — review, then complete to archive
+            under All orders.
+          </p>
+          <ul className="mt-md space-y-sm">
+            {queue.map((order) => (
+              <OrderListCard key={order.orderId} order={order} onSelect={onSelectOrder} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -532,10 +579,19 @@ function OrderDetailPanel({
               </button>
               {!paid ? (
                 <p className="text-xs text-on-surface-variant">
-                  Mark payment as paid before completing. Served / ready for pick-up orders
-                  auto-complete when saved with paid status.
+                  Mark payment as paid before completing.
                 </p>
-              ) : null}
+              ) : isAwaitingManualCompletion(order) ? (
+                <p className="text-xs text-on-surface-variant">
+                  This order is ready to complete. Confirm the visit is finished, then tap Complete
+                  order.
+                </p>
+              ) : (
+                <p className="text-xs text-on-surface-variant">
+                  When saved as served or ready for pick-up with paid payment, the order moves to
+                  Ready to complete for you to archive manually.
+                </p>
+              )}
             </>
           ) : null}
           {!archived ? (
@@ -575,6 +631,7 @@ export function AdminApp() {
   const [orderTypeTab, setOrderTypeTab] = useState<OrderType>("dine_in");
   const [archiveDay, setArchiveDay] = useState(todayDateKey);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [completionNotice, setCompletionNotice] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -657,6 +714,10 @@ export function AdminApp() {
     [orders, todaySummary.totalAmount],
   );
 
+  const paidQueueCount = useMemo(
+    () => filterAwaitingCompletionOrders(orders).length,
+    [orders],
+  );
   const archivedCount = useMemo(() => filterCompletedOrders(orders).length, [orders]);
 
   const boardHasOrders = hasVisibleBoardOrders(orders, orderTypeTab);
@@ -764,29 +825,38 @@ export function AdminApp() {
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             View
           </p>
-          <div className="mt-2 grid w-full max-w-full grid-cols-2 gap-2 sm:max-w-[28rem]">
+          <div className="mt-2 grid w-full max-w-full grid-cols-3 gap-2 sm:max-w-[48rem]">
             {ADMIN_VIEW_TABS.map((tab) => {
               const count =
-                tab.key === "active" ? stats.active : archivedCount;
+                tab.key === "active"
+                  ? stats.active
+                  : tab.key === "paid"
+                    ? paidQueueCount
+                    : archivedCount;
               const active = adminView === tab.key;
+              const queueNeedsAttention = tab.key === "paid" && paidQueueCount > 0;
               return (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setAdminView(tab.key)}
-                  className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:px-4 ${
+                  className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-xs font-semibold leading-tight transition-colors sm:flex-row sm:gap-2 sm:px-3 sm:text-sm ${
                     active
                       ? "bg-primary text-on-primary shadow-sm"
-                      : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
+                      : queueNeedsAttention
+                        ? "border-2 border-amber-400 bg-amber-50 text-amber-950 shadow-sm ring-2 ring-amber-200/80 hover:border-amber-500"
+                        : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
-                  {tab.label}
+                  <span className="text-center sm:text-left">{tab.label}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                       active
                         ? "bg-on-primary/20 text-on-primary"
-                        : "bg-surface-container text-on-surface-variant"
+                        : queueNeedsAttention
+                          ? "bg-amber-600 text-white"
+                          : "bg-surface-container text-on-surface-variant"
                     }`}
                   >
                     {count}
@@ -832,18 +902,26 @@ export function AdminApp() {
                 );
               })}
             </div>
-            <p className="mt-3 text-sm text-on-surface-variant">
-              {orderTypeTab === "dine_in"
-                ? "Workflow: awaiting payment → paid → preparing → serving → served → complete"
-                : "Workflow: awaiting payment → paid → preparing → ready for pick-up → complete"}
-            </p>
           </div>
+        ) : adminView === "paid" ? (
+          <p className="mt-lg text-sm text-on-surface-variant">
+            Orders at served or ready for pick-up with payment confirmed appear here. Mark each
+            complete when the visit is finished — they then move to All orders for daily totals.
+          </p>
         ) : (
           <p className="mt-lg text-sm text-on-surface-variant">
-            Completed orders are grouped by day. Orders auto-complete when saved as served or
-            ready for pick-up with paid payment. Daily totals count paid completed orders only.
+            Completed orders are grouped by day. Daily totals count paid completed orders only.
           </p>
         )}
+
+        {completionNotice ? (
+          <p
+            className="mt-md rounded-xl border border-secondary-container/50 bg-secondary-container/20 px-md py-3 text-sm font-semibold text-on-secondary-container"
+            role="status"
+          >
+            {completionNotice}
+          </p>
+        ) : null}
 
         {ordersError && databaseStatus !== "connected" ? (
           <AdminDatabaseSetup
@@ -858,6 +936,8 @@ export function AdminApp() {
 
         {loadingOrders && orders.length === 0 && databaseStatus === "connected" ? (
           <p className="mt-xl text-on-surface-variant">Loading orders…</p>
+        ) : adminView === "paid" && databaseStatus === "connected" ? (
+          <ReadyToCompleteQueue orders={orders} onSelectOrder={setSelectedId} />
         ) : adminView === "archive" && databaseStatus === "connected" ? (
           <CompletedOrdersArchive
             orders={orders}
@@ -865,7 +945,7 @@ export function AdminApp() {
             onDayChange={setArchiveDay}
             onSelectOrder={setSelectedId}
           />
-        ) : databaseStatus === "connected" && !boardHasOrders ? (
+        ) : adminView === "active" && databaseStatus === "connected" && !boardHasOrders ? (
           <div className="mt-xl rounded-2xl border border-dashed border-surface-variant bg-surface-container-lowest p-xl text-center">
             <span className="material-symbols-outlined text-[48px] text-surface-variant">
               inbox
@@ -874,7 +954,7 @@ export function AdminApp() {
               No active {orderTypeTab === "dine_in" ? "dine-in" : "pick-up"} orders.
             </p>
           </div>
-        ) : databaseStatus === "connected" ? (
+        ) : adminView === "active" && databaseStatus === "connected" ? (
           <div className="mt-lg space-y-lg">
             {boardSections.map((section) => (
               <OrderBoardSection
@@ -897,8 +977,9 @@ export function AdminApp() {
           }}
           onCompleted={() => {
             setSelectedId(null);
-            setAdminView("archive");
-            setArchiveDay(todayDateKey());
+            setAdminView("paid");
+            setCompletionNotice("Order archived. Complete the rest here, or open All orders for daily totals.");
+            window.setTimeout(() => setCompletionNotice(null), 4000);
           }}
         />
       )}

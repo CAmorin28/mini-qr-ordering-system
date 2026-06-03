@@ -26,16 +26,17 @@ export function resolveOrderAfterAdminUpdate(
   );
 }
 
-/** Auto-archive when workflow reaches served / ready for pick-up and payment is paid. */
-export function shouldAutoArchiveOrder(
-  existing: PlacedOrder,
-  resolved: { status: OrderStatus; paymentStatus: PaymentStatus },
-): boolean {
-  if (!isActiveOrder(existing)) return false;
-  if (resolved.paymentStatus !== "paid") return false;
-  const terminal = terminalStatusForOrderType(existing.customer.orderType);
-  return resolved.status === terminal;
+export function isTerminalWorkflowStatus(order: PlacedOrder): boolean {
+  return order.status === terminalStatusForOrderType(order.customer.orderType);
 }
+
+/** Paid and at served / ready for pick-up — waiting for admin to mark complete. */
+export function isAwaitingManualCompletion(order: PlacedOrder): boolean {
+  return (
+    isActiveOrder(order) && canArchiveOrder(order) && isTerminalWorkflowStatus(order)
+  );
+}
+
 export function isActiveOrder(order: PlacedOrder): boolean {
   return order.completedAt == null || order.completedAt === "";
 }
@@ -46,6 +47,19 @@ export function isCompletedOrder(order: PlacedOrder): boolean {
 
 export function filterActiveOrders(orders: PlacedOrder[]): PlacedOrder[] {
   return orders.filter(isActiveOrder);
+}
+
+function byNewestCreated(a: PlacedOrder, b: PlacedOrder): number {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+/** Active orders still moving through the kitchen workflow (excludes paid queue). */
+export function filterInProgressActiveOrders(orders: PlacedOrder[]): PlacedOrder[] {
+  return orders.filter((o) => isActiveOrder(o) && !isAwaitingManualCompletion(o));
+}
+
+export function filterAwaitingCompletionOrders(orders: PlacedOrder[]): PlacedOrder[] {
+  return orders.filter(isAwaitingManualCompletion).sort(byNewestCreated);
 }
 
 export function filterCompletedOrders(orders: PlacedOrder[]): PlacedOrder[] {

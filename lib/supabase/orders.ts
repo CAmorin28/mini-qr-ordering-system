@@ -4,7 +4,6 @@ import { normalizeOrderStatus } from "@/lib/order-labels";
 import {
   canArchiveOrder,
   resolveOrderAfterAdminUpdate,
-  shouldAutoArchiveOrder,
 } from "@/lib/order-completion";
 import type {
   CartLine,
@@ -219,8 +218,6 @@ export async function updateOrderInDb(
     patch.payment_status = resolved.paymentStatus;
   }
   if (updates.completed === true) {
-    patch.completed_at = new Date().toISOString();
-  } else if (shouldAutoArchiveOrder(existing, resolved)) {
     patch.completed_at = new Date().toISOString();
   }
 
