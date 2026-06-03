@@ -56,6 +56,8 @@ export interface PlacedOrder {
   orderId: string;
   orderNumber: string;
   createdAt: string;
+  /** Set when admin marks the order complete — moves it to the daily archive. */
+  completedAt: string | null;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   lines: CartLine[];

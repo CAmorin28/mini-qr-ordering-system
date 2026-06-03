@@ -28,10 +28,12 @@ create table if not exists public.orders (
   customer_name text not null default '',
   contact_number text not null default '',
   notes text not null default '',
-  lines jsonb not null
+  lines jsonb not null,
+  completed_at timestamptz
 );
 
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
+create index if not exists orders_completed_at_idx on public.orders (completed_at desc nulls last);
 
 alter table public.products enable row level security;
 alter table public.orders enable row level security;

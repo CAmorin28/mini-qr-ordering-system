@@ -83,7 +83,11 @@ export async function fetchAdminOrders(): Promise<PlacedOrder[]> {
 
 export async function updateAdminOrder(
   orderId: string,
-  updates: { status?: OrderStatus; paymentStatus?: PaymentStatus },
+  updates: {
+    status?: OrderStatus;
+    paymentStatus?: PaymentStatus;
+    completed?: boolean;
+  },
 ): Promise<PlacedOrder> {
   const res = await adminFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
     method: "PATCH",
@@ -97,4 +101,8 @@ export async function updateAdminOrder(
     throw new Error(data.error ?? "Failed to update order");
   }
   return (data as { order: PlacedOrder }).order;
+}
+
+export async function completeAdminOrder(orderId: string): Promise<PlacedOrder> {
+  return updateAdminOrder(orderId, { completed: true });
 }

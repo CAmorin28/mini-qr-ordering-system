@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/app/components/Header";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderHistory } from "@/lib/api";
+import { customerVisibleOrders } from "@/lib/customer-table-session";
 import { formatPrice } from "@/lib/format";
 import { listOrders } from "@/lib/order-history";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
@@ -15,44 +16,50 @@ import {
 import { isPlacedOrder } from "@/lib/place-order";
 import type { PlacedOrder } from "@/lib/types";
 
+const POLL_MS = 8000;
+
 export default function OrdersHistoryPage() {
   const { tableLetter, pathWithSession } = useTableSession();
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"database" | "local">("database");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const fromApi = await fetchOrderHistory();
-        const placed = fromApi.filter(isPlacedOrder);
-        const filtered = tableLetter
-          ? placed.filter((o) => o.customer.tableLetter === tableLetter)
-          : placed;
-        setOrders(filtered);
-        setSource("database");
-      } catch {
-        const local = listOrders(tableLetter).filter(isPlacedOrder);
-        setOrders(local);
-        setSource("local");
-      }
+  const loadOrders = useCallback(async () => {
+    try {
+      const fromApi = await fetchOrderHistory(tableLetter);
+      const placed = customerVisibleOrders(fromApi.filter(isPlacedOrder));
+      setOrders(placed);
+      setSource("database");
+    } catch {
+      const local = listOrders(tableLetter).filter(isPlacedOrder);
+      setOrders(local);
+      setSource("local");
     }
-
-    load().finally(() => setLoading(false));
   }, [tableLetter]);
+
+  useEffect(() => {
+    loadOrders().finally(() => setLoading(false));
+  }, [loadOrders]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      loadOrders();
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [loadOrders]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <Header showCart showBackToMenu />
       <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop">
-        <h1 className="text-2xl font-bold text-on-surface">Order history</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Your orders</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
           {tableLetter
-            ? `Orders for Table ${tableLetter} · `
+            ? `Table ${tableLetter} · `
             : ""}
-          {source === "database"
-            ? "Recent orders from the database."
-            : "Orders saved on this device (database empty or unavailable)."}
+          Live status for your current visit. When staff completes your order, it
+          disappears here so the table is ready for the next guest.
+          {source === "local" ? " (Showing saved orders on this device.)" : ""}
         </p>
 
         {loading ? (
@@ -62,7 +69,11 @@ export default function OrdersHistoryPage() {
             <span className="material-symbols-outlined text-[48px] text-surface-variant">
               receipt_long
             </span>
-            <p className="mt-md text-on-surface-variant">No orders yet.</p>
+            <p className="mt-md text-on-surface-variant">
+              {tableLetter
+                ? "No active orders for this table. Scan the QR or browse the menu to start a new order."
+                : "No active orders yet."}
+            </p>
             <Link
               href={pathWithSession(MENU_PAGE_PATH)}
               className="mt-md inline-flex rounded-xl bg-primary px-lg py-3 text-sm font-bold text-on-primary"

@@ -8,6 +8,7 @@ import { AdminDatabaseSetup } from "@/app/components/admin/AdminDatabaseSetup";
 import { AdminStatusBadge } from "@/app/components/admin/AdminStatusBadge";
 import {
   adminSignOut,
+  completeAdminOrder,
   type DatabaseHealth,
   fetchAdminOrders,
   fetchAdminSession,
@@ -24,42 +25,264 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
 } from "@/lib/order-labels";
+import {
+  activeOrderCount,
+  buildAdminBoardSections,
+  countByOrderType,
+  hasVisibleBoardOrders,
+  inProgressCount,
+  paymentFailedCount,
+  type AdminBoardSection,
+} from "@/lib/admin-order-board";
+import {
+  canArchiveOrder,
+  dailyCompletedSummary,
+  filterCompletedOrders,
+  isCompletedOrder,
+  todayDateKey,
+} from "@/lib/order-completion";
 import { canStartPreparing, getNextStatus, syncStatuses } from "@/lib/order-workflow";
 import { formatTableLabel } from "@/lib/table-session";
-import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
+import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/types";
 
-type FilterKey = "all" | "pending_payment" | "paid" | "failed";
+type AdminView = "active" | "archive";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "pending_payment", label: "Pending payment" },
-  { key: "paid", label: "Paid" },
-  { key: "failed", label: "Failed" },
+const ADMIN_VIEW_TABS: { key: AdminView; label: string; icon: string }[] = [
+  { key: "active", label: "Active orders", icon: "pending_actions" },
+  { key: "archive", label: "All orders", icon: "inventory_2" },
 ];
 
-function matchesFilter(order: PlacedOrder, filter: FilterKey): boolean {
-  if (filter === "all") return true;
-  if (filter === "pending_payment") return order.paymentStatus === "pending";
-  if (filter === "paid") return order.paymentStatus === "paid";
-  return order.paymentStatus === "failed";
+const ORDER_TYPE_TABS: { key: OrderType; label: string; icon: string }[] = [
+  { key: "dine_in", label: "Dine-in", icon: "restaurant" },
+  { key: "pickup", label: "Pick-up", icon: "takeout_dining" },
+];
+
+function OrderListCard({
+  order,
+  onSelect,
+}: {
+  order: PlacedOrder;
+  onSelect: (orderId: string) => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(order.orderId)}
+        className="w-full rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-bold text-on-surface">{order.orderNumber}</p>
+            <p className="text-xs text-on-surface-variant">
+              {new Date(order.createdAt).toLocaleString("en-PH")} · {order.customer.fullName}
+              {order.customer.tableLetter
+                ? ` · ${formatTableLabel(order.customer.tableLetter)}`
+                : ""}
+            </p>
+          </div>
+          <p className="text-lg font-bold text-secondary">{formatPrice(order.grandTotal)}</p>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <AdminStatusBadge
+            kind="order"
+            value={order.status}
+            label={customerOrderStatusLabel(order)}
+          />
+          <AdminStatusBadge
+            kind="payment"
+            value={order.paymentStatus}
+            label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
+          />
+          <span className="text-xs text-on-surface-variant">
+            {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
+            {PAYMENT_METHOD_LABELS[order.paymentMethod]}
+          </span>
+        </div>
+      </button>
+    </li>
+  );
+}
+
+function CompletedOrdersArchive({
+  orders,
+  selectedDay,
+  onDayChange,
+  onSelectOrder,
+}: {
+  orders: PlacedOrder[];
+  selectedDay: string;
+  onDayChange: (day: string) => void;
+  onSelectOrder: (orderId: string) => void;
+}) {
+  const summary = useMemo(
+    () => dailyCompletedSummary(orders, selectedDay),
+    [orders, selectedDay],
+  );
+
+  return (
+    <div className="mt-lg space-y-lg">
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label
+            htmlFor="archive-day"
+            className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant"
+          >
+            Day (Philippines time)
+          </label>
+          <input
+            id="archive-day"
+            type="date"
+            value={selectedDay}
+            max={todayDateKey()}
+            onChange={(e) => onDayChange(e.target.value)}
+            className="checkout-input mt-1 block"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => onDayChange(todayDateKey())}
+          className="rounded-xl border border-surface-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface hover:border-secondary-container"
+        >
+          Today
+        </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-md shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+            Completed orders
+          </p>
+          <p className="mt-2 text-3xl font-bold text-on-surface">{summary.count}</p>
+        </div>
+        <div className="rounded-2xl border border-secondary-container/40 bg-secondary-container/10 p-md shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+            Total sales (paid & completed)
+          </p>
+          <p className="mt-2 text-3xl font-bold text-secondary">
+            {formatPrice(summary.totalAmount)}
+          </p>
+        </div>
+      </div>
+
+      <p className="text-xs text-on-surface-variant">
+        Count and total include only completed orders with payment marked as paid.
+      </p>
+
+      {summary.orders.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-surface-variant bg-surface-container-lowest p-xl text-center">
+          <span className="material-symbols-outlined text-[48px] text-surface-variant">
+            event_busy
+          </span>
+          <p className="mt-md text-on-surface-variant">No completed orders for this day.</p>
+        </div>
+      ) : (
+        <section className="rounded-2xl border border-surface-variant bg-surface-container-low/60 p-md">
+          <h2 className="text-base font-bold text-on-surface">
+            Completed on{" "}
+            {new Date(`${selectedDay}T12:00:00`).toLocaleDateString("en-PH", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </h2>
+          <ul className="mt-md space-y-sm">
+            {summary.orders.map((order) => (
+              <OrderListCard key={order.orderId} order={order} onSelect={onSelectOrder} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function OrderBoardSection({
+  section,
+  onSelectOrder,
+}: {
+  section: AdminBoardSection;
+  onSelectOrder: (orderId: string) => void;
+}) {
+  return (
+    <section
+      className={`rounded-2xl border p-md ${section.accentClass}`}
+      aria-labelledby={`admin-section-${section.id}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span
+            className="material-symbols-outlined mt-0.5 text-[26px] text-secondary-container"
+            aria-hidden
+          >
+            {section.icon}
+          </span>
+          <div>
+            <h2
+              id={`admin-section-${section.id}`}
+              className="text-base font-bold text-on-surface"
+            >
+              {section.title}
+              <span className="ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
+                {section.orders.length}
+              </span>
+            </h2>
+            <p className="mt-0.5 text-xs text-on-surface-variant">{section.subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      <ul className="mt-md space-y-sm">
+        {section.orders.map((order) => (
+          <OrderListCard key={order.orderId} order={order} onSelect={onSelectOrder} />
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function OrderDetailPanel({
   order,
   onClose,
   onUpdated,
+  onCompleted,
 }: {
   order: PlacedOrder;
   onClose: () => void;
   onUpdated: (order: PlacedOrder) => void;
+  onCompleted?: () => void;
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.paymentStatus);
   const [saving, setSaving] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const dirty = status !== order.status || paymentStatus !== order.paymentStatus;
+  const archived = isCompletedOrder(order);
+  const paid = paymentStatus === "paid";
+  const dirty =
+    !archived && (status !== order.status || paymentStatus !== order.paymentStatus);
+
+  async function handleComplete() {
+    if (archived) return;
+    setCompleting(true);
+    setError(null);
+    try {
+      const updated = await completeAdminOrder(order.orderId);
+      onUpdated(updated);
+      onCompleted?.();
+    } catch (err) {
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        window.location.reload();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Failed to complete order");
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -82,6 +305,9 @@ function OrderDetailPanel({
       setPaymentStatus(updated.paymentStatus);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      if (isCompletedOrder(updated)) {
+        onCompleted?.();
+      }
     } catch (err) {
       if (err instanceof Error && err.message === "UNAUTHORIZED") {
         window.location.reload();
@@ -111,6 +337,9 @@ function OrderDetailPanel({
             </h2>
             <p className="text-xs text-on-surface-variant">
               {new Date(order.createdAt).toLocaleString("en-PH")}
+              {order.completedAt
+                ? ` · Completed ${new Date(order.completedAt).toLocaleString("en-PH")}`
+                : ""}
             </p>
           </div>
           <button
@@ -182,7 +411,16 @@ function OrderDetailPanel({
             </ul>
           </section>
 
-          <section className="mt-lg space-y-md rounded-xl border border-surface-variant bg-surface-container-low p-md">
+          {archived ? (
+            <p className="mt-lg rounded-xl border border-secondary-container/40 bg-secondary-container/15 px-md py-3 text-sm font-semibold text-on-secondary-container">
+              This order is completed and archived. It appears under All orders for daily
+              totals.
+            </p>
+          ) : null}
+
+          <section
+            className={`mt-lg space-y-md rounded-xl border border-surface-variant bg-surface-container-low p-md ${archived ? "pointer-events-none opacity-50" : ""}`}
+          >
             <h3 className="text-sm font-bold text-on-surface">Update status</h3>
 
             <div>
@@ -273,23 +511,51 @@ function OrderDetailPanel({
           </section>
         </div>
 
-        <div className="border-t border-surface-variant bg-surface-container-lowest p-md">
+        <div className="border-t border-surface-variant bg-surface-container-lowest p-md space-y-2">
           {error && (
-            <p className="mb-2 text-sm text-error" role="alert">
+            <p className="text-sm text-error" role="alert">
               {error}
             </p>
           )}
           {saved && (
-            <p className="mb-2 text-sm font-semibold text-secondary">Changes saved.</p>
+            <p className="text-sm font-semibold text-secondary">Changes saved.</p>
           )}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="w-full rounded-xl bg-primary px-lg py-3 text-sm font-bold text-on-primary disabled:opacity-40"
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          {!archived ? (
+            <>
+              <button
+                type="button"
+                onClick={handleComplete}
+                disabled={completing || saving || !canArchiveOrder({ ...order, paymentStatus })}
+                className="w-full rounded-xl bg-secondary px-lg py-3 text-sm font-bold text-on-primary disabled:opacity-40"
+              >
+                {completing ? "Completing…" : "Complete order"}
+              </button>
+              {!paid ? (
+                <p className="text-xs text-on-surface-variant">
+                  Mark payment as paid before completing. Served / ready for pick-up orders
+                  auto-complete when saved with paid status.
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          {!archived ? (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty || saving || completing}
+              className="w-full rounded-xl border border-surface-variant bg-surface-container-lowest px-lg py-3 text-sm font-bold text-on-surface disabled:opacity-40"
+            >
+              {saving ? "Saving…" : "Save status changes"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full rounded-xl bg-primary px-lg py-3 text-sm font-bold text-on-primary"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>,
@@ -305,7 +571,9 @@ export function AdminApp() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [databaseStatus, setDatabaseStatus] = useState<DatabaseHealth | null>(null);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [adminView, setAdminView] = useState<AdminView>("active");
+  const [orderTypeTab, setOrderTypeTab] = useState<OrderType>("dine_in");
+  const [archiveDay, setArchiveDay] = useState(todayDateKey);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
@@ -367,17 +635,31 @@ export function AdminApp() {
     }
   }, [authenticated, loadOrders]);
 
-  const filtered = useMemo(
-    () => orders.filter((o) => matchesFilter(o, filter)),
-    [orders, filter],
+  const typeCounts = useMemo(() => countByOrderType(orders), [orders]);
+
+  const boardSections = useMemo(
+    () => buildAdminBoardSections(orders, orderTypeTab),
+    [orders, orderTypeTab],
   );
 
-  const stats = useMemo(() => {
-    const pending = orders.filter((o) => o.paymentStatus === "pending").length;
-    const paid = orders.filter((o) => o.paymentStatus === "paid").length;
-    const failed = orders.filter((o) => o.paymentStatus === "failed").length;
-    return { total: orders.length, pending, paid, failed };
-  }, [orders]);
+  const todaySummary = useMemo(
+    () => dailyCompletedSummary(orders, todayDateKey()),
+    [orders],
+  );
+
+  const stats = useMemo(
+    () => ({
+      active: activeOrderCount(orders),
+      dineInActive: inProgressCount(orders, "dine_in"),
+      pickupActive: inProgressCount(orders, "pickup"),
+      todaySales: todaySummary.totalAmount,
+    }),
+    [orders, todaySummary.totalAmount],
+  );
+
+  const archivedCount = useMemo(() => filterCompletedOrders(orders).length, [orders]);
+
+  const boardHasOrders = hasVisibleBoardOrders(orders, orderTypeTab);
 
   const selected = orders.find((o) => o.orderId === selectedId) ?? null;
 
@@ -452,10 +734,14 @@ export function AdminApp() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-margin-mobile pb-xl pt-lg md:px-margin-desktop">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Total orders", value: stats.total, icon: "receipt_long" },
-            { label: "Pending payment", value: stats.pending, icon: "schedule" },
-            { label: "Paid", value: stats.paid, icon: "paid" },
-            { label: "Failed", value: stats.failed, icon: "error" },
+            { label: "Active orders", value: stats.active, icon: "pending_actions" },
+            { label: "Dine-in active", value: stats.dineInActive, icon: "restaurant" },
+            { label: "Pick-up active", value: stats.pickupActive, icon: "takeout_dining" },
+            {
+              label: "Today's sales",
+              value: formatPrice(stats.todaySales),
+              icon: "payments",
+            },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -474,22 +760,90 @@ export function AdminApp() {
           ))}
         </div>
 
-        <div className="mt-lg flex flex-wrap gap-2">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                filter === f.key
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="mt-lg">
+          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+            View
+          </p>
+          <div className="mt-2 grid w-full max-w-full grid-cols-2 gap-2 sm:max-w-[28rem]">
+            {ADMIN_VIEW_TABS.map((tab) => {
+              const count =
+                tab.key === "active" ? stats.active : archivedCount;
+              const active = adminView === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setAdminView(tab.key)}
+                  className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:px-4 ${
+                    active
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
+                  {tab.label}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                      active
+                        ? "bg-on-primary/20 text-on-primary"
+                        : "bg-surface-container text-on-surface-variant"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {adminView === "active" ? (
+          <div className="mt-lg">
+            <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+              Order type
+            </p>
+            <div className="mt-2 grid w-full max-w-full grid-cols-2 gap-2 sm:max-w-[28rem]">
+              {ORDER_TYPE_TABS.map((tab) => {
+                const count = typeCounts[tab.key];
+                const active = orderTypeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setOrderTypeTab(tab.key)}
+                    className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:px-4 ${
+                      active
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
+                    {tab.label}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        active
+                          ? "bg-on-primary/20 text-on-primary"
+                          : "bg-surface-container text-on-surface-variant"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-sm text-on-surface-variant">
+              {orderTypeTab === "dine_in"
+                ? "Workflow: awaiting payment → paid → preparing → serving → served → complete"
+                : "Workflow: awaiting payment → paid → preparing → ready for pick-up → complete"}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-lg text-sm text-on-surface-variant">
+            Completed orders are grouped by day. Orders auto-complete when saved as served or
+            ready for pick-up with paid payment. Daily totals count paid completed orders only.
+          </p>
+        )}
 
         {ordersError && databaseStatus !== "connected" ? (
           <AdminDatabaseSetup
@@ -504,58 +858,33 @@ export function AdminApp() {
 
         {loadingOrders && orders.length === 0 && databaseStatus === "connected" ? (
           <p className="mt-xl text-on-surface-variant">Loading orders…</p>
-        ) : databaseStatus === "connected" && filtered.length === 0 ? (
+        ) : adminView === "archive" && databaseStatus === "connected" ? (
+          <CompletedOrdersArchive
+            orders={orders}
+            selectedDay={archiveDay}
+            onDayChange={setArchiveDay}
+            onSelectOrder={setSelectedId}
+          />
+        ) : databaseStatus === "connected" && !boardHasOrders ? (
           <div className="mt-xl rounded-2xl border border-dashed border-surface-variant bg-surface-container-lowest p-xl text-center">
             <span className="material-symbols-outlined text-[48px] text-surface-variant">
               inbox
             </span>
-            <p className="mt-md text-on-surface-variant">No orders in this view.</p>
+            <p className="mt-md text-on-surface-variant">
+              No active {orderTypeTab === "dine_in" ? "dine-in" : "pick-up"} orders.
+            </p>
           </div>
-        ) : (
-          <ul className="mt-lg space-y-md">
-            {filtered.map((order) => (
-              <li key={order.orderId}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(order.orderId)}
-                  className="w-full rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-bold text-on-surface">{order.orderNumber}</p>
-                      <p className="text-xs text-on-surface-variant">
-                        {new Date(order.createdAt).toLocaleString("en-PH")} ·{" "}
-                        {order.customer.fullName}
-                        {order.customer.tableLetter
-                          ? ` · ${formatTableLabel(order.customer.tableLetter)}`
-                          : ""}
-                      </p>
-                    </div>
-                    <p className="text-lg font-bold text-secondary">
-                      {formatPrice(order.grandTotal)}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <AdminStatusBadge
-                      kind="order"
-                      value={order.status}
-                      label={customerOrderStatusLabel(order)}
-                    />
-                    <AdminStatusBadge
-                      kind="payment"
-                      value={order.paymentStatus}
-                      label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
-                    />
-                    <span className="text-xs text-on-surface-variant">
-                      {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
-                      {PAYMENT_METHOD_LABELS[order.paymentMethod]}
-                    </span>
-                  </div>
-                </button>
-              </li>
+        ) : databaseStatus === "connected" ? (
+          <div className="mt-lg space-y-lg">
+            {boardSections.map((section) => (
+              <OrderBoardSection
+                key={section.id}
+                section={section}
+                onSelectOrder={setSelectedId}
+              />
             ))}
-          </ul>
-        )}
+          </div>
+        ) : null}
       </main>
 
       {selected && (
@@ -565,6 +894,11 @@ export function AdminApp() {
           onUpdated={(updated) => {
             handleOrderUpdated(updated);
             setSelectedId(updated.orderId);
+          }}
+          onCompleted={() => {
+            setSelectedId(null);
+            setAdminView("archive");
+            setArchiveDay(todayDateKey());
           }}
         />
       )}

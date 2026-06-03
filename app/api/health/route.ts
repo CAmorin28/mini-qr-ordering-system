@@ -14,14 +14,32 @@ export async function GET() {
 
   try {
     const supabase = getSupabaseAdmin();
-    const { error } = await supabase.from("products").select("id").limit(1);
-    if (error) {
+    const { error: productsError } = await supabase.from("products").select("id").limit(1);
+    if (productsError) {
       return NextResponse.json(
-        { ok: false, database: "error", message: error.message },
+        { ok: false, database: "error", message: productsError.message },
         { status: 503 },
       );
     }
-    return NextResponse.json({ ok: true, database: "connected" });
+
+    const { error: ordersError } = await supabase.from("orders").select("completed_at").limit(1);
+    if (ordersError) {
+      const needsMigration =
+        ordersError.message.includes("completed_at") &&
+        (ordersError.message.includes("column") || ordersError.code === "42703");
+      return NextResponse.json(
+        {
+          ok: false,
+          database: "error",
+          message: needsMigration
+            ? "Run supabase/migrate-order-completion.sql in Supabase SQL Editor (adds completed_at)."
+            : ordersError.message,
+        },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, database: "connected", orderCompletion: true });
   } catch (err) {
     return NextResponse.json(
       {

@@ -1,3 +1,4 @@
+import { customerVisibleOrders } from "@/lib/customer-table-session";
 import type { PlacedOrder } from "@/lib/types";
 import {
   activeOrderStorageKey,
@@ -47,7 +48,7 @@ export function getOrder(orderId: string, tableLetter = ""): PlacedOrder | null 
 }
 
 export function listOrders(tableLetter = ""): PlacedOrder[] {
-  return readAll(normalizeTableLetter(tableLetter));
+  return customerVisibleOrders(readAll(normalizeTableLetter(tableLetter)));
 }
 
 export function setActiveOrderId(orderId: string, tableLetter = ""): void {

@@ -1,6 +1,11 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { normalizeOrderStatus } from "@/lib/order-labels";
+import {
+  canArchiveOrder,
+  resolveOrderAfterAdminUpdate,
+  shouldAutoArchiveOrder,
+} from "@/lib/order-completion";
 import type {
   CartLine,
   CustomerDetails,
@@ -27,6 +32,7 @@ interface OrderRow {
   contact_number: string;
   notes: string;
   lines: CartLine[];
+  completed_at?: string | null;
   /** Legacy columns — may exist on older databases. */
   delivery_fee?: number;
   service_fee?: number;
@@ -60,6 +66,7 @@ function rowToPlacedOrder(row: OrderRow): PlacedOrder {
     orderId: row.order_id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
+    completedAt: row.completed_at ?? null,
     status: normalizeOrderStatus(row.status, customer.orderType),
     paymentStatus: row.payment_status,
     lines: row.lines,
@@ -76,6 +83,7 @@ function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "servic
     order_id: order.orderId,
     order_number: order.orderNumber,
     created_at: order.createdAt,
+    completed_at: order.completedAt,
     status: order.status,
     payment_status: order.paymentStatus,
     payment_method: order.paymentMethod,
@@ -122,15 +130,32 @@ export async function saveOrderToDb(order: PlacedOrder): Promise<SaveOrderResult
   }
 }
 
-export async function listOrdersFromDb(): Promise<PlacedOrder[]> {
+export interface ListOrdersOptions {
+  /** When true, only orders without completed_at (current table visits). */
+  activeOnly?: boolean;
+  tableLetter?: string;
+}
+
+export async function listOrdersFromDb(
+  options: ListOrdersOptions = {},
+): Promise<PlacedOrder[]> {
   if (!isSupabaseConfigured()) return [];
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
+  let query = supabase.from("orders").select("*");
+
+  if (options.activeOnly) {
+    query = query.is("completed_at", null);
+  }
+
+  const table = options.tableLetter?.trim().toUpperCase();
+  if (table) {
+    query = query.eq("table_number", table);
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(300);
 
   if (error || !data) return [];
   return data.map((row) => rowToPlacedOrder(row as OrderRow));
@@ -153,6 +178,8 @@ export async function getOrderFromDb(orderId: string): Promise<PlacedOrder | nul
 export interface OrderAdminUpdates {
   status?: OrderStatus;
   paymentStatus?: PaymentStatus;
+  /** When true, sets completed_at to now (archives the order in admin). */
+  completed?: boolean;
 }
 
 export async function updateOrderInDb(
@@ -163,13 +190,39 @@ export async function updateOrderInDb(
     return { ok: false, status: 503, error: "Database not configured" };
   }
 
-  if (updates.status === undefined && updates.paymentStatus === undefined) {
+  if (
+    updates.status === undefined &&
+    updates.paymentStatus === undefined &&
+    updates.completed !== true
+  ) {
     return { ok: false, status: 400, error: "No updates provided" };
   }
 
-  const patch: Partial<Pick<OrderRow, "status" | "payment_status">> = {};
-  if (updates.status !== undefined) patch.status = updates.status;
-  if (updates.paymentStatus !== undefined) patch.payment_status = updates.paymentStatus;
+  const existing = await getOrderFromDb(orderId);
+  if (!existing) {
+    return { ok: false, status: 404, error: "Order not found" };
+  }
+
+  const resolved = resolveOrderAfterAdminUpdate(existing, updates);
+
+  if (updates.completed === true && !canArchiveOrder({ ...existing, ...resolved })) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Order must be paid before it can be completed.",
+    };
+  }
+
+  const patch: Partial<Pick<OrderRow, "status" | "payment_status" | "completed_at">> = {};
+  if (updates.status !== undefined || updates.paymentStatus !== undefined) {
+    patch.status = resolved.status;
+    patch.payment_status = resolved.paymentStatus;
+  }
+  if (updates.completed === true) {
+    patch.completed_at = new Date().toISOString();
+  } else if (shouldAutoArchiveOrder(existing, resolved)) {
+    patch.completed_at = new Date().toISOString();
+  }
 
   try {
     const supabase = getSupabaseAdmin();
@@ -183,6 +236,17 @@ export async function updateOrderInDb(
     if (error) {
       if (error.code === "PGRST116") {
         return { ok: false, status: 404, error: "Order not found" };
+      }
+      if (
+        error.message.includes("completed_at") &&
+        (error.message.includes("column") || error.code === "42703")
+      ) {
+        return {
+          ok: false,
+          status: 503,
+          error:
+            "Database missing completed_at column. Run supabase/migrate-order-completion.sql in Supabase SQL Editor.",
+        };
       }
       return { ok: false, status: 500, error: error.message };
     }

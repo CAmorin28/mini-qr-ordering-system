@@ -48,10 +48,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const payload = body as { status?: unknown; paymentStatus?: unknown };
+  const payload = body as {
+    status?: unknown;
+    paymentStatus?: unknown;
+    completed?: unknown;
+  };
   const status = payload.status !== undefined ? payload.status : undefined;
   const paymentStatus =
     payload.paymentStatus !== undefined ? payload.paymentStatus : undefined;
+  const completed = payload.completed === true ? true : undefined;
 
   if (status !== undefined && !isOrderStatus(status)) {
     return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
@@ -63,6 +68,7 @@ export async function PATCH(
   const result = await updateOrderInDb(orderId, {
     status: status as OrderStatus | undefined,
     paymentStatus: paymentStatus as PaymentStatus | undefined,
+    completed,
   });
 
   if (!result.ok) {

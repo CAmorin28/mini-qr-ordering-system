@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchOrderById } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import {
+  afterCustomerOrderCompleted,
+  clearTableCustomerSession,
+} from "@/lib/customer-table-session";
+import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
 import type { PlacedOrder } from "@/lib/types";
 
@@ -20,6 +25,7 @@ export function OrderStatusTracker({
 }: OrderStatusTrackerProps) {
   const [order, setOrder] = useState(initialOrder);
   const [refreshing, setRefreshing] = useState(false);
+  const sessionCleared = useRef(false);
 
   useEffect(() => {
     setOrder(initialOrder);
@@ -28,6 +34,18 @@ export function OrderStatusTracker({
   useEffect(() => {
     let cancelled = false;
 
+    async function handleCompletedVisit(latest: PlacedOrder) {
+      if (sessionCleared.current) return;
+      sessionCleared.current = true;
+      const table = latest.customer.tableLetter;
+      try {
+        const remaining = await fetchOrderHistory(table);
+        afterCustomerOrderCompleted(latest, remaining);
+      } catch {
+        clearTableCustomerSession(table);
+      }
+    }
+
     async function poll() {
       setRefreshing(true);
       try {
@@ -35,6 +53,9 @@ export function OrderStatusTracker({
         if (!cancelled && latest) {
           setOrder(latest);
           onUpdate?.(latest);
+          if (isCompletedOrder(latest)) {
+            await handleCompletedVisit(latest);
+          }
         }
       } catch {
         /* keep last known */
@@ -43,17 +64,26 @@ export function OrderStatusTracker({
       }
     }
 
+    if (isCompletedOrder(initialOrder)) {
+      void handleCompletedVisit(initialOrder);
+    }
+
     poll();
     const timer = window.setInterval(poll, POLL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [orderId, onUpdate]);
+  }, [orderId, onUpdate, initialOrder]);
 
-  const label = customerOrderStatusLabel(order);
+  const visitComplete = isCompletedOrder(order);
+  const label = visitComplete
+    ? "Visit complete — thank you!"
+    : customerOrderStatusLabel(order);
   const isTerminal =
-    order.status === "served" || order.status === "ready_for_pickup";
+    visitComplete ||
+    order.status === "served" ||
+    order.status === "ready_for_pickup";
 
   return (
     <section
@@ -64,7 +94,7 @@ export function OrderStatusTracker({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            Live order status
+            {visitComplete ? "Table visit ended" : "Live order status"}
           </p>
           <p className="mt-1 text-xl font-bold text-on-surface">{label}</p>
           <p className="mt-1 text-sm text-on-surface-variant">
@@ -81,11 +111,16 @@ export function OrderStatusTracker({
           </span>
         )}
       </div>
-      {!isTerminal && (
+      {visitComplete ? (
+        <p className="mt-3 text-xs text-on-surface-variant">
+          Staff marked this order complete. Your order list on this phone has been cleared
+          for this table so the next guest can order fresh.
+        </p>
+      ) : !isTerminal ? (
         <p className="mt-3 text-xs text-on-surface-variant">
           Status updates automatically every few seconds.
         </p>
-      )}
+      ) : null}
     </section>
   );
 }

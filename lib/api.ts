@@ -80,8 +80,14 @@ export async function fetchOrderById(orderId: string): Promise<PlacedOrder | nul
   return data.order;
 }
 
-export async function fetchOrderHistory(): Promise<PlacedOrder[]> {
-  const res = await fetch(`${API_BASE}/api/orders`, { cache: "no-store" });
+export async function fetchOrderHistory(tableLetter = ""): Promise<PlacedOrder[]> {
+  const params = new URLSearchParams();
+  const table = tableLetter.trim().toUpperCase();
+  if (table) params.set("table", table);
+  const qs = params.toString();
+  const res = await fetch(`${API_BASE}/api/orders${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
   if (!res.ok) {
     throw new Error("Failed to load order history");
   }

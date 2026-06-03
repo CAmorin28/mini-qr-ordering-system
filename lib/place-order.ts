@@ -43,6 +43,7 @@ export function buildPlacedOrder({
     orderId,
     orderNumber: formatOrderNumber(orderId),
     createdAt: new Date().toISOString(),
+    completedAt: null,
     status: status ?? defaults.status,
     paymentStatus: paymentStatus ?? defaults.paymentStatus,
     lines: lines.map((line) => ({

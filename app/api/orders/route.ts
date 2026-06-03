@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { listOrdersFromDb, saveOrderToDb } from "@/lib/supabase/orders";
+import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
 function isPlacedOrder(body: unknown): body is PlacedOrder {
@@ -15,8 +16,8 @@ function isPlacedOrder(body: unknown): body is PlacedOrder {
   );
 }
 
-/** GET /api/orders — list recent orders */
-export async function GET() {
+/** GET /api/orders — active orders for customers (?table=A, active-only by default) */
+export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
       { error: "Database not configured", orders: [] },
@@ -24,8 +25,15 @@ export async function GET() {
     );
   }
 
+  const { searchParams } = new URL(request.url);
+  const tableLetter = normalizeTableLetter(searchParams.get("table"));
+  const includeCompleted = searchParams.get("includeCompleted") === "true";
+
   try {
-    const orders = await listOrdersFromDb();
+    const orders = await listOrdersFromDb({
+      activeOnly: !includeCompleted,
+      tableLetter: tableLetter || undefined,
+    });
     return NextResponse.json({ orders });
   } catch {
     return NextResponse.json(
