@@ -16,7 +16,7 @@ interface CheckoutShellProps {
 export function CheckoutShell({ step, title, subtitle, children }: CheckoutShellProps) {
   return (
     <div className="checkout-page flex min-h-dvh flex-col bg-background">
-      <Header showCart showBackToMenu />
+      <Header showCart showBackToMenu showOrderStatus />
       <main className="mx-auto w-full max-w-3xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+16px)] md:px-margin-desktop">
         <Link
           href={MENU_PAGE_PATH}

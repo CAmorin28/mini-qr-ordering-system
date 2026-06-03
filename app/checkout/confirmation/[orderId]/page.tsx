@@ -15,7 +15,7 @@ import {
   customerOrderStatusLabel,
   paymentStatusLabel,
 } from "@/lib/order-labels";
-import { consumePendingOrder, getOrder } from "@/lib/order-history";
+import { consumePendingOrder, getOrder, saveOrder } from "@/lib/order-history";
 import { isPlacedOrder } from "@/lib/place-order";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import {
@@ -53,6 +53,7 @@ export default function OrderConfirmationPage() {
       try {
         const fromApi = await fetchOrderById(orderId);
         if (fromApi && isPlacedOrder(fromApi)) {
+          saveOrder(fromApi);
           if (!cancelled) {
             setOrder(fromApi);
             clearCart();
@@ -165,7 +166,7 @@ export default function OrderConfirmationPage() {
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary sm:col-span-2"
         >
           <span className="material-symbols-outlined text-[20px]">history</span>
-          View order history
+          All active orders
         </Link>
       </div>
     </CheckoutShell>

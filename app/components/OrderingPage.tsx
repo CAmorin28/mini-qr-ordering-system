@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Header } from "@/app/components/Header";
 import { CategoryFilters } from "@/app/components/CategoryFilters";
 import { FoodCard } from "@/app/components/FoodCard";
+import { ActiveOrderBanner } from "@/app/components/ActiveOrderBanner";
 import { TableSessionBanner } from "@/app/components/TableSessionBanner";
 import { fetchMenu } from "@/lib/api";
 import type { MenuCategory, MenuItem } from "@/lib/types";
@@ -34,11 +35,12 @@ export function OrderingPage() {
 
   return (
     <div className="flex min-h-dvh w-full flex-col bg-background">
-      <Header showTableBadge />
+      <Header showTableBadge showOrderStatus />
 
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop lg:px-8">
         <section className="flex min-h-[calc(100dvh-var(--header-height)-36px)] flex-col">
           <TableSessionBanner />
+          <ActiveOrderBanner />
           <CategoryFilters active={category} onChange={setCategory} />
 
           {loadError && (

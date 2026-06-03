@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CartDropdown } from "@/app/components/CartDropdown";
+import { OrderStatusNavButton } from "@/app/components/OrderStatusNavButton";
 import { useCart } from "@/app/context/CartContext";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { ADMIN_DASHBOARD_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
 
 interface HeaderProps {
   showCart?: boolean;
+  showOrderStatus?: boolean;
   showBackToMenu?: boolean;
   showTableBadge?: boolean;
   backHref?: string;
@@ -19,6 +21,7 @@ interface HeaderProps {
 
 export function Header({
   showCart = true,
+  showOrderStatus = false,
   showBackToMenu = false,
   showTableBadge = false,
   backHref,
@@ -86,6 +89,8 @@ export function Header({
               <span className={isQr ? "qr-header-back-label" : undefined}>{navBackLabel}</span>
             </Link>
           )}
+
+          {showOrderStatus && !isQr && <OrderStatusNavButton />}
 
           {showCart && !isQr && (
             <button

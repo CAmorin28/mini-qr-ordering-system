@@ -19,7 +19,9 @@ export function clearTableCustomerSession(tableLetter: string): void {
   if (!letter) return;
   localStorage.removeItem(ordersStorageKey(letter));
   localStorage.removeItem(cartStorageKey(letter));
-  sessionStorage.removeItem(activeOrderStorageKey(letter));
+  const activeKey = activeOrderStorageKey(letter);
+  localStorage.removeItem(activeKey);
+  sessionStorage.removeItem(activeKey);
 }
 
 /**
@@ -47,7 +49,9 @@ export function afterCustomerOrderCompleted(
     const next = parsed.filter((o) => o.orderId !== order.orderId);
     if (next.length === 0) {
       localStorage.removeItem(key);
-      sessionStorage.removeItem(activeOrderStorageKey(letter));
+      const activeKey = activeOrderStorageKey(letter);
+      localStorage.removeItem(activeKey);
+      sessionStorage.removeItem(activeKey);
     } else {
       localStorage.setItem(key, JSON.stringify(next));
     }

@@ -53,12 +53,15 @@ export function listOrders(tableLetter = ""): PlacedOrder[] {
 
 export function setActiveOrderId(orderId: string, tableLetter = ""): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(activeOrderStorageKey(tableLetter), orderId);
+  const key = activeOrderStorageKey(tableLetter);
+  localStorage.setItem(key, orderId);
+  sessionStorage.setItem(key, orderId);
 }
 
 export function getActiveOrderId(tableLetter = ""): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(activeOrderStorageKey(tableLetter));
+  const key = activeOrderStorageKey(tableLetter);
+  return localStorage.getItem(key) ?? sessionStorage.getItem(key);
 }
 
 /** Stash order before navigation so confirmation loads immediately (avoids cart-clear race). */

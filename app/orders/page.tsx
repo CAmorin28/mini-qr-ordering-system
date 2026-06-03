@@ -50,15 +50,16 @@ export default function OrdersHistoryPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <Header showCart showBackToMenu />
+      <Header showCart showBackToMenu showOrderStatus />
       <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop">
-        <h1 className="text-2xl font-bold text-on-surface">Your orders</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Order status</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
           {tableLetter
             ? `Table ${tableLetter} · `
             : ""}
-          Live status for your current visit. When staff completes your order, it
-          disappears here so the table is ready for the next guest.
+          Open an order to see your receipt and live kitchen updates (same as step 3
+          after checkout). When staff completes your visit, orders clear for the next
+          guest.
           {source === "local" ? " (Showing saved orders on this device.)" : ""}
         </p>
 
