@@ -1342,6 +1342,15 @@ body {
   box-shadow: none !important;
   max-width: 100% !important;
   width: 100% !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding-bottom: 28px !important;
+}
+
+.receipt-card--capturing .receipt-brand-bar {
+  margin: 0 0 12px 0 !important;
+  border-radius: 12px !important;
 }
 
 .receipt-card--capturing .receipt-line-items {
@@ -1358,8 +1367,17 @@ body {
   table-layout: fixed;
 }
 
+.receipt-brand-bar {
+  background-color: #05051b !important;
+}
+
+.receipt-card--capturing .receipt-brand-bar {
+  background-color: #05051b !important;
+}
+
 .receipt-card--capturing .receipt-logo {
   display: block;
+  max-height: 44px;
 }
 
 /* Admin dashboard — mobile-first staff UI */

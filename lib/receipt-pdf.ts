@@ -10,6 +10,14 @@ const RECEIPT_CAPTURE_OVERRIDES = `
   border-color: #e2e3de !important;
   box-shadow: none !important;
   overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding-bottom: 28px !important;
+}
+.receipt-card.receipt-card--capturing .receipt-brand-bar {
+  margin: 0 0 12px 0 !important;
+  border-radius: 12px !important;
+  background-color: #05051b !important;
 }
 .receipt-card.receipt-card--capturing [class*="text-on-surface-variant"] {
   color: #47464d !important;
@@ -38,6 +46,13 @@ const RECEIPT_CAPTURE_OVERRIDES = `
   display: block !important;
   overflow: visible !important;
 }
+.receipt-card.receipt-card--capturing .receipt-footer {
+  display: block !important;
+}
+#receipt-pdf-capture-root {
+  overflow: visible !important;
+  height: auto !important;
+}
 `;
 
 function injectCaptureStyles(doc: Document): void {
@@ -47,9 +62,32 @@ function injectCaptureStyles(doc: Document): void {
   doc.head.appendChild(style);
 }
 
+function waitForImages(root: HTMLElement): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  return Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth > 0) {
+            resolve();
+            return;
+          }
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        }),
+    ),
+  ).then(() => undefined);
+}
+
+function measureElementHeight(el: HTMLElement): number {
+  const rect = el.getBoundingClientRect();
+  return Math.ceil(
+    Math.max(el.scrollHeight, el.offsetHeight, rect.height, el.clientHeight),
+  );
+}
+
 /**
- * Clone receipt off-screen at a stable width so html2canvas does not tile the
- * mobile viewport (black seams / duplicated rows at slice boundaries).
+ * Clone receipt off-screen at a stable width so html2canvas captures the full height.
  */
 async function captureReceiptCanvas(source: HTMLElement): Promise<HTMLCanvasElement> {
   const captureId = "order-receipt-pdf-capture";
@@ -60,56 +98,67 @@ async function captureReceiptCanvas(source: HTMLElement): Promise<HTMLCanvasElem
   wrapper.setAttribute("aria-hidden", "true");
   Object.assign(wrapper.style, {
     position: "fixed",
-    left: "0",
+    left: "-12000px",
     top: "0",
     width: `${CAPTURE_WIDTH_PX}px`,
     margin: "0",
     padding: "0",
     background: "#ffffff",
-    zIndex: "-1",
+    zIndex: "2147483646",
     pointerEvents: "none",
-    opacity: "0",
     overflow: "visible",
+    height: "auto",
   });
 
   const clone = source.cloneNode(true) as HTMLElement;
   clone.id = captureId;
   clone.classList.add("receipt-card--capturing");
-  clone.style.width = "100%";
-  clone.style.maxWidth = "100%";
-  clone.style.boxShadow = "none";
+  Object.assign(clone.style, {
+    width: "100%",
+    maxWidth: "100%",
+    boxShadow: "none",
+    overflow: "visible",
+    height: "auto",
+    minHeight: "0",
+  });
 
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  await waitForImages(clone);
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+  await new Promise<void>((resolve) => setTimeout(resolve, 80));
+
+  const captureHeight = measureElementHeight(clone) + 32;
+  wrapper.style.height = `${captureHeight}px`;
 
   try {
     const { default: html2canvas } = await import("html2canvas-pro");
 
-    const width = Math.ceil(clone.scrollWidth) || CAPTURE_WIDTH_PX;
-    const height = Math.ceil(clone.scrollHeight);
-    const scale = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1.5));
+    const scale = Math.min(2, Math.max(1.25, window.devicePixelRatio || 1.5));
 
-    return await html2canvas(clone, {
+    return await html2canvas(wrapper, {
       scale,
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height,
-      x: 0,
-      y: 0,
-      scrollX: 0,
-      scrollY: 0,
+      width: CAPTURE_WIDTH_PX,
+      windowWidth: CAPTURE_WIDTH_PX,
       useCORS: true,
       allowTaint: false,
       backgroundColor: "#ffffff",
       logging: false,
       imageTimeout: 15_000,
+      scrollX: 0,
+      scrollY: 0,
       onclone: (doc) => {
         const cloned = doc.getElementById(captureId);
         if (cloned) {
           cloned.classList.add("receipt-card--capturing");
+        }
+        const clonedWrapper = doc.getElementById("receipt-pdf-capture-root");
+        if (clonedWrapper) {
+          (clonedWrapper as HTMLElement).style.overflow = "visible";
+          (clonedWrapper as HTMLElement).style.height = "auto";
         }
         injectCaptureStyles(doc);
       },
@@ -120,29 +169,37 @@ async function captureReceiptCanvas(source: HTMLElement): Promise<HTMLCanvasElem
   }
 }
 
-/** Fit receipt image on one A4 page (scale down if needed — no slice seams). */
+/** Add full receipt image across one or more A4 pages without cropping the capture. */
 function addReceiptImageToPdf(
   doc: import("jspdf").jsPDF,
-  imgData: string,
   canvas: HTMLCanvasElement,
   margin: number,
 ): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
-  const pageContentHeight = pageHeight - margin * 2;
+  const contentHeight = pageHeight - margin * 2;
 
-  let drawWidth = contentWidth;
-  let drawHeight = (canvas.height * drawWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/jpeg", 0.92);
+  const imgWidth = contentWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  if (drawHeight > pageContentHeight) {
-    const fit = pageContentHeight / drawHeight;
-    drawWidth *= fit;
-    drawHeight = pageContentHeight;
+  if (imgHeight <= contentHeight) {
+    doc.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
+    return;
   }
 
-  const x = margin + (contentWidth - drawWidth) / 2;
-  doc.addImage(imgData, "JPEG", x, margin, drawWidth, drawHeight);
+  let offsetY = 0;
+  let pageIndex = 0;
+
+  while (offsetY < imgHeight - 0.5) {
+    if (pageIndex > 0) {
+      doc.addPage();
+    }
+    doc.addImage(imgData, "JPEG", margin, margin - offsetY, imgWidth, imgHeight);
+    offsetY += contentHeight;
+    pageIndex += 1;
+  }
 }
 
 /**
@@ -161,11 +218,10 @@ export async function downloadReceiptPdf(
 
   try {
     const canvas = await captureReceiptCanvas(element);
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
 
-    addReceiptImageToPdf(doc, imgData, canvas, 40);
+    addReceiptImageToPdf(doc, canvas, 36);
     doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
   } finally {
     element.classList.remove("receipt-card--capturing");

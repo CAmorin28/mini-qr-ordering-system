@@ -16,7 +16,9 @@ import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
 import {
   TABLE_SESSION_STORAGE_KEY,
   TABLE_VISIT_ENDED_EVENT,
+  clearTableVisitEndedMark,
   formatTableLabel,
+  isTableVisitEnded,
   normalizeTableLetter,
   type TableVisitEndedDetail,
 } from "@/lib/table-session";
@@ -52,11 +54,25 @@ function TableSessionSync({
   tableLetter: string;
   setTableLetterState: (letter: string) => void;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
+      if (isTableVisitEnded(fromUrl)) {
+        setTableLetterState("");
+        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        const onCustomerRoute = CUSTOMER_PATH_PREFIXES.some((p) =>
+          pathname.startsWith(p),
+        );
+        if (onCustomerRoute) {
+          router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
+        }
+        return;
+      }
+      clearTableVisitEndedMark(fromUrl);
       setTableLetterState(fromUrl);
       sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);
       return;
@@ -64,11 +80,15 @@ function TableSessionSync({
 
     if (tableLetter) return;
 
-    const stored = normalizeTableLetter(sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY));
-    if (stored) {
+    const stored = normalizeTableLetter(
+      sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY),
+    );
+    if (stored && !isTableVisitEnded(stored)) {
       setTableLetterState(stored);
+    } else if (stored && isTableVisitEnded(stored)) {
+      sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
     }
-  }, [searchParams, tableLetter, setTableLetterState]);
+  }, [searchParams, tableLetter, setTableLetterState, pathname, router]);
 
   return null;
 }
@@ -87,6 +107,7 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
     (letter: string) => {
       const normalized = normalizeTableLetter(letter);
       if (!normalized) return;
+      clearTableVisitEndedMark(normalized);
       setTableLetterState(normalized);
       sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, normalized);
 

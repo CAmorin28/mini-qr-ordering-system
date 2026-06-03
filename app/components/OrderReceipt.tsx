@@ -24,27 +24,24 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
       className="receipt-card rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_8px_32px_rgba(29,29,53,0.08)]"
     >
       <header className="border-b border-surface-variant pb-md">
+        <div className="receipt-brand-bar -mx-lg -mt-lg mb-md overflow-hidden rounded-t-2xl bg-primary px-md py-3 sm:px-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/tablebite-logo-horizontal.png"
+            alt="TableBite"
+            width={220}
+            height={44}
+            className="receipt-logo block h-10 w-auto max-w-full object-contain object-left sm:h-11"
+          />
+        </div>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/tablebite-logo.svg"
-              alt=""
-              width={52}
-              height={52}
-              className="receipt-logo h-[52px] w-[52px] shrink-0 rounded-xl"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-                Digital receipt
-              </p>
-              <h2 className="mt-0.5 text-xl font-bold tracking-tight text-on-surface">
-                TableBite
-              </h2>
-              <p className="mt-0.5 text-xs text-on-surface-variant">
-                {orderStatusLabel(order.status, order.customer.orderType)}
-              </p>
-            </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+              Digital receipt
+            </p>
+            <p className="mt-1 text-sm font-medium text-on-surface">
+              {orderStatusLabel(order.status, order.customer.orderType)}
+            </p>
           </div>
           <span className="shrink-0 rounded-full bg-secondary-container/25 px-3 py-1 text-xs font-bold text-secondary">
             {paymentStatusLabel(order.paymentStatus)}

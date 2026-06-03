@@ -37,6 +37,30 @@ export function activeOrderStorageKey(tableLetter: string): string {
 
 export const TABLE_SESSION_STORAGE_KEY = "tablebite_table_letter";
 
+/** Set when staff completes the visit — blocks re-binding ?table= until a fresh QR scan. */
+export function tableVisitEndedStorageKey(tableLetter: string): string {
+  const letter = normalizeTableLetter(tableLetter);
+  return letter ? `tablebite_visit_ended_${letter}` : "";
+}
+
+export function markTableVisitEnded(tableLetter: string): void {
+  if (typeof window === "undefined") return;
+  const key = tableVisitEndedStorageKey(tableLetter);
+  if (key) sessionStorage.setItem(key, "1");
+}
+
+export function clearTableVisitEndedMark(tableLetter: string): void {
+  if (typeof window === "undefined") return;
+  const key = tableVisitEndedStorageKey(tableLetter);
+  if (key) sessionStorage.removeItem(key);
+}
+
+export function isTableVisitEnded(tableLetter: string): boolean {
+  if (typeof window === "undefined") return false;
+  const key = tableVisitEndedStorageKey(tableLetter);
+  return key ? sessionStorage.getItem(key) === "1" : false;
+}
+
 /** Fired on window when staff completes the table visit and client storage is cleared. */
 export const TABLE_VISIT_ENDED_EVENT = "tablebite:visit-ended";
 

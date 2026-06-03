@@ -4,6 +4,7 @@ import {
   TABLE_VISIT_ENDED_EVENT,
   activeOrderStorageKey,
   cartStorageKey,
+  markTableVisitEnded,
   normalizeTableLetter,
   ordersStorageKey,
   type TableVisitEndedDetail,
@@ -40,6 +41,7 @@ export function clearTableCustomerSession(tableLetter: string): void {
   sessionStorage.removeItem(activeKey);
   sessionStorage.removeItem(PENDING_ORDER_KEY);
   sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+  markTableVisitEnded(letter);
   window.dispatchEvent(
     new CustomEvent<TableVisitEndedDetail>(TABLE_VISIT_ENDED_EVENT, {
       detail: { tableLetter: letter },
