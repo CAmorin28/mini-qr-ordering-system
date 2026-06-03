@@ -62,7 +62,13 @@ function TableSessionSync({
   useEffect(() => {
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
-      // Fresh QR scan (?table=) always starts a new visit — clear any ended flag.
+      // Staff completed this table — do not re-bind session from stale ?table= in the URL.
+      if (isTableVisitEnded(fromUrl)) {
+        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
+        return;
+      }
+      // Fresh QR scan (?table=) starts a new visit — clear any ended flag.
       clearTableVisitEndedMark(fromUrl);
       setTableLetterState(fromUrl);
       sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);

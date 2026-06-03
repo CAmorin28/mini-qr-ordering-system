@@ -9,6 +9,35 @@ import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
+/**
+ * Apply a realtime/API order update for a table QR session (menu page, etc.).
+ * Completed orders clear the session when no active orders remain for that table.
+ */
+export async function applyTableOrderRealtimeUpdate(
+  order: PlacedOrder,
+  tableLetter: string,
+): Promise<void> {
+  const letter = normalizeTableLetter(tableLetter);
+  if (!letter || normalizeTableLetter(order.customer.tableLetter) !== letter) {
+    return;
+  }
+
+  if (isCompletedOrder(order)) {
+    let remaining: PlacedOrder[] = [];
+    try {
+      const fromApi = await fetchOrderHistory(letter);
+      remaining = activePlacedOrdersForTable(fromApi, letter);
+    } catch {
+      await syncTableVisitEndIfNeeded(letter);
+      return;
+    }
+    afterCustomerOrderCompleted(order, remaining);
+    return;
+  }
+
+  await syncTableVisitEndIfNeeded(letter);
+}
+
 async function anyOrderStillActiveOnServer(
   orderIds: Iterable<string>,
 ): Promise<boolean> {

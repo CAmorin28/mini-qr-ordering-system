@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { mapOrderRow, type OrderRow } from "@/lib/supabase/order-mapper";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { normalizeTableLetter } from "@/lib/table-session";
 import {
   canArchiveOrder,
   canMarkOrderDone,
@@ -24,7 +25,7 @@ function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "servic
     payment_status: order.paymentStatus,
     payment_method: order.paymentMethod,
     order_type: order.customer.orderType,
-    table_number: order.customer.tableLetter.trim() || null,
+    table_number: normalizeTableLetter(order.customer.tableLetter) || null,
     cutlery: order.cutlery,
     subtotal: order.subtotal,
     grand_total: order.grandTotal,

@@ -3,8 +3,12 @@
 import { useCallback, useEffect } from "react";
 import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
 import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
+import { isCompletedOrder } from "@/lib/order-completion";
 import { saveOrder } from "@/lib/order-history";
-import { syncTableVisitEndIfNeeded } from "@/lib/sync-table-visit-end";
+import {
+  applyTableOrderRealtimeUpdate,
+  syncTableVisitEndIfNeeded,
+} from "@/lib/sync-table-visit-end";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
@@ -29,10 +33,13 @@ export function useTableVisitEndSync(tableLetter: string) {
     { mode: "table", tableLetter: table },
     {
       onUpsert: (order: PlacedOrder) => {
-        if (normalizeTableLetter(order.customer.tableLetter) === table) {
-          saveOrder(order);
+        if (normalizeTableLetter(order.customer.tableLetter) !== table) return;
+        if (isCompletedOrder(order)) {
+          void applyTableOrderRealtimeUpdate(order, table);
+          return;
         }
-        void run();
+        saveOrder(order);
+        void applyTableOrderRealtimeUpdate(order, table);
       },
     },
     { enabled: !!table, fallbackPoll: run },

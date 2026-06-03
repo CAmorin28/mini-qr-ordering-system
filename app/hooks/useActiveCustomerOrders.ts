@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
 import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import { isCompletedOrder } from "@/lib/order-completion";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { listOrders, saveOrder } from "@/lib/order-history";
+import { applyTableOrderRealtimeUpdate } from "@/lib/sync-table-visit-end";
 import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
 import { mergeOrderIntoList } from "@/lib/supabase/orders-realtime";
 import { normalizeTableLetter } from "@/lib/table-session";
@@ -88,13 +90,28 @@ export function useActiveCustomerOrders(tableLetter: string) {
     realtimeFilter,
     {
       onUpsert: (order) => {
-        saveOrder(order);
         if (table) {
+          if (isCompletedOrder(order)) {
+            void applyTableOrderRealtimeUpdate(order, table);
+            setOrders((prev) =>
+              activePlacedOrdersForTable(
+                prev.filter((o) => o.orderId !== order.orderId),
+                table,
+              ),
+            );
+            return;
+          }
+          saveOrder(order);
           setOrders((prev) =>
             activePlacedOrdersForTable(mergeOrderIntoList(prev, order), table),
           );
           return;
         }
+        if (isCompletedOrder(order)) {
+          setOrders((prev) => prev.filter((o) => o.orderId !== order.orderId));
+          return;
+        }
+        saveOrder(order);
         const tracked = trackedGuestOrderIds(ordersRef.current);
         if (!tracked.has(order.orderId)) return;
         setOrders((prev) =>

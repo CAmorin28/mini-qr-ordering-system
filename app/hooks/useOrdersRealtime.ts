@@ -36,7 +36,7 @@ export function useOrdersRealtime(
       onUpsert: (order) => callbacksRef.current.onUpsert(order),
       onDelete: (orderId) => callbacksRef.current.onDelete?.(orderId),
     });
-  }, [enabled, realtimeReady, filter.mode, tableLetter, orderId, orderIdsKey, filter]);
+  }, [enabled, realtimeReady, filter.mode, tableLetter, orderId, orderIdsKey]);
 
   useEffect(() => {
     if (!enabled || realtimeReady || !options?.fallbackPoll) return;
