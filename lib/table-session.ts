@@ -36,3 +36,10 @@ export function activeOrderStorageKey(tableLetter: string): string {
 }
 
 export const TABLE_SESSION_STORAGE_KEY = "tablebite_table_letter";
+
+/** Fired on window when staff completes the table visit and client storage is cleared. */
+export const TABLE_VISIT_ENDED_EVENT = "tablebite:visit-ended";
+
+export interface TableVisitEndedDetail {
+  tableLetter: string;
+}

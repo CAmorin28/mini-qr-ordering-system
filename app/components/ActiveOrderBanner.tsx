@@ -14,6 +14,7 @@ export function ActiveOrderBanner() {
   if (!hasTableSession || !href || loading || orders.length === 0) return null;
 
   const primary = orders[0];
+  const multiple = orders.length > 1;
 
   return (
     <Link
@@ -25,13 +26,16 @@ export function ActiveOrderBanner() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-on-surface">
-          Your order is in progress · {tableLabel}
+          {multiple
+            ? `${orders.length} orders in progress · ${tableLabel}`
+            : `Your order is in progress · ${tableLabel}`}
         </p>
         <p className="mt-0.5 truncate text-xs text-on-surface-variant">
           {primary.orderNumber} · {customerOrderStatusLabel(primary)}
+          {multiple ? ` · +${orders.length - 1} more` : ""}
         </p>
         <p className="mt-1 text-xs font-semibold text-secondary">
-          Tap for live status &amp; receipt
+          {multiple ? "Tap to see all orders" : "Tap for live status & receipt"}
         </p>
       </div>
       <span className="material-symbols-outlined shrink-0 text-on-surface-variant">

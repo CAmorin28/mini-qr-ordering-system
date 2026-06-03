@@ -1,10 +1,15 @@
 import { filterActiveOrders } from "@/lib/order-completion";
 import {
+  TABLE_SESSION_STORAGE_KEY,
+  TABLE_VISIT_ENDED_EVENT,
   activeOrderStorageKey,
   cartStorageKey,
   normalizeTableLetter,
   ordersStorageKey,
+  type TableVisitEndedDetail,
 } from "@/lib/table-session";
+
+const PENDING_ORDER_KEY = "tablebite_pending_order";
 import type { PlacedOrder } from "@/lib/types";
 
 /** Active orders only — completed visits are hidden from the customer. */
@@ -12,7 +17,7 @@ export function customerVisibleOrders(orders: PlacedOrder[]): PlacedOrder[] {
   return filterActiveOrders(orders);
 }
 
-/** Clear cart and order history on this device for a table (next party gets a fresh session). */
+/** Clear cart, order history, and table QR session for this table (next party must scan again). */
 export function clearTableCustomerSession(tableLetter: string): void {
   if (typeof window === "undefined") return;
   const letter = normalizeTableLetter(tableLetter);
@@ -22,6 +27,13 @@ export function clearTableCustomerSession(tableLetter: string): void {
   const activeKey = activeOrderStorageKey(letter);
   localStorage.removeItem(activeKey);
   sessionStorage.removeItem(activeKey);
+  sessionStorage.removeItem(PENDING_ORDER_KEY);
+  sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+  window.dispatchEvent(
+    new CustomEvent<TableVisitEndedDetail>(TABLE_VISIT_ENDED_EVENT, {
+      detail: { tableLetter: letter },
+    }),
+  );
 }
 
 /**

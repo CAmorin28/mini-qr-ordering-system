@@ -8,6 +8,8 @@ import {
 } from "@/lib/customer-table-session";
 import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
+import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
+import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
 const POLL_MS = 4000;
@@ -16,12 +18,15 @@ interface OrderStatusTrackerProps {
   orderId: string;
   initialOrder: PlacedOrder;
   onUpdate?: (order: PlacedOrder) => void;
+  /** Called when staff completes this table visit and the QR session is cleared. */
+  onVisitEnded?: () => void;
 }
 
 export function OrderStatusTracker({
   orderId,
   initialOrder,
   onUpdate,
+  onVisitEnded,
 }: OrderStatusTrackerProps) {
   const [order, setOrder] = useState(initialOrder);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,12 +42,19 @@ export function OrderStatusTracker({
     async function handleCompletedVisit(latest: PlacedOrder) {
       if (sessionCleared.current) return;
       sessionCleared.current = true;
-      const table = latest.customer.tableLetter;
+      const table = normalizeTableLetter(latest.customer.tableLetter);
       try {
-        const remaining = await fetchOrderHistory(table);
+        const fromApi = table ? await fetchOrderHistory(table) : [];
+        const remaining = table
+          ? activePlacedOrdersForTable(fromApi, table)
+          : [];
         afterCustomerOrderCompleted(latest, remaining);
+        if (remaining.length === 0) {
+          onVisitEnded?.();
+        }
       } catch {
-        clearTableCustomerSession(table);
+        if (table) clearTableCustomerSession(table);
+        onVisitEnded?.();
       }
     }
 
@@ -74,7 +86,7 @@ export function OrderStatusTracker({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [orderId, onUpdate, initialOrder]);
+  }, [orderId, onUpdate, onVisitEnded, initialOrder]);
 
   const visitComplete = isCompletedOrder(order);
   const label = visitComplete
@@ -113,8 +125,8 @@ export function OrderStatusTracker({
       </div>
       {visitComplete ? (
         <p className="mt-3 text-xs text-on-surface-variant">
-          Staff marked this order complete. Your order list on this phone has been cleared
-          for this table so the next guest can order fresh.
+          Staff marked this visit complete. Your table QR session on this phone has ended —
+          scan the code again when you return or when the next party is seated.
         </p>
       ) : !isTerminal ? (
         <p className="mt-3 text-xs text-on-surface-variant">

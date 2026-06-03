@@ -66,6 +66,15 @@ export function tableLetterFromSearch(search: string): string {
   return normalizeTableLetter(value);
 }
 
+/** Remove ?table= from a path (e.g. after visit ends). */
+export function pathWithoutTable(path: string): string {
+  const [pathname, existingQuery = ""] = path.split("?");
+  const params = new URLSearchParams(existingQuery);
+  params.delete("table");
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 /** Append ?table=X to an app path when a table session is active. */
 export function pathWithTable(path: string, tableLetter: string): string {
   const table = normalizeTableLetter(tableLetter);
