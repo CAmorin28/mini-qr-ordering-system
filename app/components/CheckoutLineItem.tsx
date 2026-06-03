@@ -40,7 +40,7 @@ export function CheckoutLineItem({ line }: CheckoutLineItemProps) {
           <button
             type="button"
             onClick={() => removeItem(item.id)}
-            className="shrink-0 rounded-lg p-1.5 text-error hover:bg-error-container"
+            className="touch-target shrink-0 rounded-lg p-1.5 text-error hover:bg-error-container"
             aria-label={`Remove ${item.name}`}
           >
             <span className="material-symbols-outlined text-[20px]">delete</span>

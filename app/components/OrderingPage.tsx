@@ -37,7 +37,7 @@ export function OrderingPage() {
     <div className="flex min-h-dvh w-full flex-col bg-background">
       <Header showTableBadge showOrderStatus />
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop lg:px-8">
+      <main className="page-main mx-auto w-full max-w-[1400px] flex-1 px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop lg:px-8">
         <section className="flex min-h-[calc(100dvh-var(--header-height)-36px)] flex-col">
           <TableSessionBanner />
           <ActiveOrderBanner />
@@ -52,7 +52,7 @@ export function OrderingPage() {
           {loading ? (
             <p className="mt-lg text-on-surface-variant">Loading menu…</p>
           ) : (
-            <div className="mt-lg grid grid-cols-2 gap-gutter content-start sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-lg grid min-w-0 grid-cols-2 gap-2 content-start sm:gap-gutter sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {items.map((item) => (
                 <FoodCard key={item.id} item={item} />
               ))}

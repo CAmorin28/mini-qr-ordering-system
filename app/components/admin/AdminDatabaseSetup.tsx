@@ -12,8 +12,8 @@ export function AdminDatabaseSetup({
   const isConnectionError = databaseStatus === "error";
 
   return (
-    <div className="mt-lg rounded-2xl border border-secondary-container/40 bg-surface-container-low p-lg sm:p-xl">
-      <div className="flex items-start gap-4">
+    <div className="mt-lg rounded-2xl border border-secondary-container/40 bg-surface-container-low p-md sm:p-xl">
+      <div className="flex flex-col items-start gap-4 sm:flex-row">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary-container/25">
           <span className="material-symbols-outlined text-[28px] text-secondary">
             database
@@ -73,11 +73,11 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...`}
             On Vercel, add the same variables under Project Settings → Environment Variables, then redeploy.
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary"
+              className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary sm:w-auto"
             >
               <span className="material-symbols-outlined text-[18px]">refresh</span>
               Retry
@@ -85,7 +85,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...`}
             <Link
               href="/api/health"
               target="_blank"
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-surface-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
+              className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-surface-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:border-secondary-container hover:text-on-surface sm:w-auto"
             >
               Check /api/health
             </Link>

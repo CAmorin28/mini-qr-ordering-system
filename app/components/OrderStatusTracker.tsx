@@ -104,11 +104,11 @@ export function OrderStatusTracker({
       aria-atomic="true"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             {visitComplete ? "Table visit ended" : "Live order status"}
           </p>
-          <p className="mt-1 text-xl font-bold text-on-surface">{label}</p>
+          <p className="mt-1 text-lg font-bold leading-snug text-on-surface sm:text-xl">{label}</p>
           <p className="mt-1 text-sm text-on-surface-variant">
             Order {order.orderNumber}
             {order.customer.tableLetter ? ` · Table ${order.customer.tableLetter}` : ""}

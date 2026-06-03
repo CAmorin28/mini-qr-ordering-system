@@ -17,7 +17,7 @@ export function CheckoutShell({ step, title, subtitle, children }: CheckoutShell
   return (
     <div className="checkout-page flex min-h-dvh flex-col bg-background">
       <Header showCart showBackToMenu showOrderStatus />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+16px)] md:px-margin-desktop">
+      <main className="page-main page-main--checkout mx-auto w-full min-w-0 max-w-3xl flex-1 px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop">
         <Link
           href={MENU_PAGE_PATH}
           className="mb-md inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-secondary"

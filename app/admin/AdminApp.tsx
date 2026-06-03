@@ -49,10 +49,15 @@ import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/t
 
 type AdminView = "active" | "paid" | "archive";
 
-const ADMIN_VIEW_TABS: { key: AdminView; label: string; icon: string }[] = [
-  { key: "active", label: "Active orders", icon: "pending_actions" },
-  { key: "paid", label: "Ready to complete", icon: "task_alt" },
-  { key: "archive", label: "All orders", icon: "inventory_2" },
+const ADMIN_VIEW_TABS: {
+  key: AdminView;
+  label: string;
+  shortLabel: string;
+  icon: string;
+}[] = [
+  { key: "active", label: "Active orders", shortLabel: "Active", icon: "pending_actions" },
+  { key: "paid", label: "Ready to complete", shortLabel: "Ready", icon: "task_alt" },
+  { key: "archive", label: "All orders", shortLabel: "All", icon: "inventory_2" },
 ];
 
 const ORDER_TYPE_TABS: { key: OrderType; label: string; icon: string }[] = [
@@ -72,19 +77,21 @@ function OrderListCard({
       <button
         type="button"
         onClick={() => onSelect(order.orderId)}
-        className="w-full rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md"
+        className="w-full touch-manipulation rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md active:scale-[0.99]"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1">
             <p className="font-bold text-on-surface">{order.orderNumber}</p>
-            <p className="text-xs text-on-surface-variant">
+            <p className="break-words text-xs text-on-surface-variant">
               {new Date(order.createdAt).toLocaleString("en-PH")} · {order.customer.fullName}
               {order.customer.tableLetter
                 ? ` · ${formatTableLabel(order.customer.tableLetter)}`
                 : ""}
             </p>
           </div>
-          <p className="text-lg font-bold text-secondary">{formatPrice(order.grandTotal)}</p>
+          <p className="shrink-0 text-base font-bold tabular-nums text-secondary sm:text-lg">
+            {formatPrice(order.grandTotal)}
+          </p>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <AdminStatusBadge
@@ -182,13 +189,13 @@ function CompletedOrdersArchive({
             value={selectedDay}
             max={todayDateKey()}
             onChange={(e) => onDayChange(e.target.value)}
-            className="checkout-input mt-1 block"
+            className="checkout-input mt-1 block w-full max-w-full min-w-0"
           />
         </div>
         <button
           type="button"
           onClick={() => onDayChange(todayDateKey())}
-          className="rounded-xl border border-surface-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface hover:border-secondary-container"
+          className="min-h-11 w-full touch-manipulation rounded-xl border border-surface-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface hover:border-secondary-container sm:w-auto"
         >
           Today
         </button>
@@ -199,13 +206,13 @@ function CompletedOrdersArchive({
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             Completed orders
           </p>
-          <p className="mt-2 text-3xl font-bold text-on-surface">{summary.count}</p>
+          <p className="admin-stat-value mt-2 font-bold text-on-surface">{summary.count}</p>
         </div>
         <div className="rounded-2xl border border-secondary-container/40 bg-secondary-container/10 p-md shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             Total sales (paid & completed)
           </p>
-          <p className="mt-2 text-3xl font-bold text-secondary">
+          <p className="admin-stat-value mt-2 font-bold text-secondary">
             {formatPrice(summary.totalAmount)}
           </p>
         </div>
@@ -264,10 +271,10 @@ function OrderBoardSection({
           >
             {section.icon}
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <h2
               id={`admin-section-${section.id}`}
-              className="text-base font-bold text-on-surface"
+              className="text-base font-bold leading-snug text-on-surface"
             >
               {section.title}
               <span className="ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
@@ -396,15 +403,15 @@ function OrderDetailPanel({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-primary/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="admin-order-modal-backdrop fixed inset-0 z-[60] flex justify-center bg-primary/40 backdrop-blur-sm">
       <div
-        className="flex max-h-[92dvh] w-full max-w-[min(100%,32rem)] flex-col overflow-hidden rounded-t-2xl border border-surface-variant bg-surface-container-lowest shadow-2xl sm:rounded-2xl"
+        className="admin-order-modal-panel flex flex-col overflow-hidden border border-surface-variant bg-surface-container-lowest shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-order-title"
       >
         <div className="flex items-start justify-between gap-3 border-b border-surface-variant px-md py-md">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
               Order details
             </p>
@@ -422,7 +429,7 @@ function OrderDetailPanel({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container"
+            className="touch-target flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -442,7 +449,9 @@ function OrderDetailPanel({
             />
           </div>
 
-          <p className="mt-md text-2xl font-bold text-secondary">{formatPrice(order.grandTotal)}</p>
+          <p className="admin-stat-value mt-md font-bold text-secondary">
+            {formatPrice(order.grandTotal)}
+          </p>
           <p className="text-sm text-on-surface-variant">
             {PAYMENT_METHOD_LABELS[order.paymentMethod]}
             {order.cutlery ? " · Cutlery requested" : ""}
@@ -538,12 +547,12 @@ function OrderDetailPanel({
               </select>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="admin-quick-actions">
               {order.paymentStatus !== "paid" && (
                 <button
                   type="button"
                   onClick={() => setPaymentStatus("paid")}
-                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
+                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 sm:py-1.5"
                 >
                   Mark as paid
                 </button>
@@ -567,7 +576,7 @@ function OrderDetailPanel({
                       setPaymentStatus("paid");
                     }
                   }}
-                  className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                  className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left text-xs font-semibold text-sky-900 hover:bg-sky-100 sm:py-1.5"
                 >
                   Advance to {ORDER_STATUS_LABELS[getNextStatus({ ...order, status, paymentStatus })!]}
                 </button>
@@ -575,7 +584,7 @@ function OrderDetailPanel({
               <button
                 type="button"
                 onClick={() => setPaymentStatus("failed")}
-                className="rounded-lg border border-error/30 bg-error-container/40 px-3 py-1.5 text-xs font-semibold text-error hover:opacity-90"
+                className="rounded-lg border border-error/30 bg-error-container/40 px-3 py-2 text-xs font-semibold text-error hover:opacity-90 sm:py-1.5"
               >
                 Mark payment failed
               </button>
@@ -583,7 +592,7 @@ function OrderDetailPanel({
           </section>
         </div>
 
-        <div className="border-t border-surface-variant bg-surface-container-lowest p-md space-y-2">
+        <div className="admin-modal-footer border-t border-surface-variant bg-surface-container-lowest p-md pb-[calc(var(--spacing-md)+env(safe-area-inset-bottom,0px))] space-y-2 sm:pb-md">
           {error && (
             <p className="text-sm text-error" role="alert">
               {error}
@@ -776,7 +785,7 @@ export function AdminApp() {
 
   if (booting) {
     return (
-      <div className="flex min-h-dvh w-full flex-1 items-center justify-center bg-background text-on-surface-variant">
+      <div className="admin-shell flex min-h-dvh w-full flex-1 items-center justify-center bg-background px-margin-mobile text-on-surface-variant">
         <div className="payment-spinner" aria-hidden />
         <span className="sr-only">Loading admin…</span>
       </div>
@@ -788,41 +797,46 @@ export function AdminApp() {
   }
 
   return (
-    <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
-      <header className="sticky top-0 z-50 border-b border-primary-container/20 bg-primary shadow-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-margin-mobile py-4 md:px-margin-desktop">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[28px] text-secondary-container">
+    <div className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
+      <header className="sticky top-0 z-50 border-b border-primary-container/20 bg-primary pt-[env(safe-area-inset-top,0px)] shadow-md">
+        <div className="mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-2 px-margin-mobile py-3 sm:gap-3 sm:py-4 md:px-margin-desktop">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <span className="material-symbols-outlined shrink-0 text-[26px] text-secondary-container sm:text-[28px]">
               admin_panel_settings
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-on-primary/60">
                 TableBite
               </p>
-              <h1 className="text-lg font-bold text-on-primary">Admin dashboard</h1>
+              <h1 className="truncate text-base font-bold text-on-primary sm:text-lg">
+                Admin dashboard
+              </h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="admin-header-toolbar flex shrink-0 items-center gap-1 sm:gap-2">
             <Link
               href={staffQrPath()}
-              className="flex min-h-10 items-center gap-1 rounded-xl border border-on-primary/25 px-3 py-2 text-sm font-semibold text-on-primary hover:bg-on-primary/10"
+              className="admin-header-btn rounded-xl border border-on-primary/25 text-sm font-semibold text-on-primary hover:bg-on-primary/10"
+              aria-label="Table QR codes"
             >
-              <span className="material-symbols-outlined text-[20px]">qr_code_2</span>
-              <span className="hidden sm:inline">Table QR</span>
+              <span className="material-symbols-outlined text-[22px]">qr_code_2</span>
+              <span className="hidden sm:ml-1 sm:inline">Table QR</span>
             </Link>
             <button
               type="button"
               onClick={() => loadOrders()}
               disabled={loadingOrders}
-              className="flex min-h-10 items-center gap-1 rounded-xl border border-on-primary/25 px-3 py-2 text-sm font-semibold text-on-primary hover:bg-on-primary/10 disabled:opacity-50"
+              aria-label="Refresh orders"
+              className="admin-header-btn rounded-xl border border-on-primary/25 text-sm font-semibold text-on-primary hover:bg-on-primary/10 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[20px]">refresh</span>
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="material-symbols-outlined text-[22px]">refresh</span>
+              <span className="hidden sm:ml-1 sm:inline">Refresh</span>
             </button>
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex min-h-10 items-center gap-1 rounded-xl bg-on-primary/10 px-3 py-2 text-sm font-semibold text-on-primary hover:bg-secondary-container hover:text-on-secondary-container"
+              aria-label="Sign out"
+              className="admin-header-btn rounded-xl bg-on-primary/10 text-sm font-semibold text-on-primary hover:bg-secondary-container hover:text-on-secondary-container"
             >
               <span className="material-symbols-outlined text-[20px]">logout</span>
               <span className="hidden sm:inline">Sign out</span>
@@ -831,7 +845,7 @@ export function AdminApp() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-margin-mobile pb-xl pt-lg md:px-margin-desktop">
+      <main className="page-main mx-auto w-full min-w-0 max-w-6xl flex-1 px-margin-mobile pt-lg md:px-margin-desktop">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Active orders", value: stats.active, icon: "pending_actions" },
@@ -855,7 +869,7 @@ export function AdminApp() {
                   {stat.icon}
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-bold text-on-surface">{stat.value}</p>
+              <p className="admin-stat-value mt-2 font-bold text-on-surface">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -879,7 +893,7 @@ export function AdminApp() {
                   key={tab.key}
                   type="button"
                   onClick={() => setAdminView(tab.key)}
-                  className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-3 text-xs font-semibold leading-tight transition-colors sm:flex-row sm:gap-2 sm:px-3 sm:text-sm ${
+                  className={`flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-2xl px-1.5 py-2.5 text-[10px] font-semibold leading-tight transition-colors sm:min-h-12 sm:flex-row sm:gap-2 sm:px-3 sm:py-3 sm:text-sm ${
                     active
                       ? "bg-primary text-on-primary shadow-sm"
                       : queueNeedsAttention
@@ -887,8 +901,9 @@ export function AdminApp() {
                         : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
-                  <span className="text-center sm:text-left">{tab.label}</span>
+                  <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{tab.icon}</span>
+                  <span className="text-center sm:hidden">{tab.shortLabel}</span>
+                  <span className="hidden text-center sm:inline sm:text-left">{tab.label}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                       active
@@ -920,7 +935,7 @@ export function AdminApp() {
                     key={tab.key}
                     type="button"
                     onClick={() => setOrderTypeTab(tab.key)}
-                    className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:px-4 ${
+                    className={`flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:min-h-12 sm:px-4 ${
                       active
                         ? "bg-primary text-on-primary shadow-sm"
                         : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"

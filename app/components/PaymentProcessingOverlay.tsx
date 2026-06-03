@@ -17,7 +17,7 @@ export function PaymentProcessingOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/50 p-margin-mobile backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-primary/50 p-margin-mobile pb-[max(var(--spacing-margin-mobile),env(safe-area-inset-bottom,0px))] pt-[max(var(--spacing-margin-mobile),env(safe-area-inset-top,0px))] backdrop-blur-sm"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="payment-processing-title"

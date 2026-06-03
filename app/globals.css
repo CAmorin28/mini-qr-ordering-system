@@ -772,6 +772,7 @@ body:has(.qr-page-root) {
   flex: 1 1 auto;
   grid-template-columns: 1fr;
   background: var(--color-background);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (min-width: 1024px) {
@@ -909,6 +910,13 @@ body:has(.qr-page-root) {
 
 :root {
   --header-height: 72px;
+  --page-bottom-safe: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 639px) {
+  :root {
+    --header-height: 64px;
+  }
 }
 
 html {
@@ -916,6 +924,8 @@ html {
   width: 100%;
   margin: 0;
   background: var(--color-background);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -926,4 +936,188 @@ body {
   color: var(--color-on-surface);
   font-family: var(--font-sans);
   overflow-x: hidden;
+}
+
+/* Shared page chrome — consistent gutters and notch/home-indicator spacing */
+.page-main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: calc(var(--spacing-xl) + var(--page-bottom-safe));
+}
+
+.page-main--checkout {
+  padding-bottom: calc(var(--spacing-xl) + var(--page-bottom-safe));
+}
+
+/* Primary CTAs: full width on phones, inline on larger screens */
+.checkout-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 640px) {
+  .checkout-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .checkout-actions .checkout-actions-primary,
+  .checkout-actions .checkout-actions-secondary {
+    width: auto;
+  }
+}
+
+.checkout-actions-primary,
+.checkout-actions-secondary {
+  display: inline-flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.touch-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  touch-action: manipulation;
+}
+
+/* Receipt line items — card layout on narrow screens (avoids table horizontal scroll) */
+.receipt-line-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.receipt-line-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--color-surface-variant);
+  padding-bottom: 0.75rem;
+}
+
+.receipt-line-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .receipt-line-items {
+    display: none;
+  }
+
+  .receipt-table-wrap {
+    display: block;
+  }
+}
+
+.receipt-table-wrap {
+  display: none;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .receipt-table-wrap .receipt-table {
+    min-width: 0;
+  }
+}
+
+/* Admin dashboard — mobile-first staff UI */
+.admin-shell {
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.admin-header-toolbar .admin-header-btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+@media (min-width: 640px) {
+  .admin-header-toolbar .admin-header-btn {
+    min-width: 0;
+    padding-inline: 0.75rem;
+  }
+}
+
+.admin-stat-value {
+  font-size: clamp(1.5rem, 6vw, 1.875rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.admin-order-modal-backdrop {
+  align-items: flex-end;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .admin-order-modal-backdrop {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
+.admin-order-modal-panel {
+  width: 100%;
+  max-width: min(100%, 32rem);
+  max-height: min(
+    94dvh,
+    calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+  );
+  border-radius: 1rem 1rem 0 0;
+}
+
+@media (min-width: 640px) {
+  .admin-order-modal-panel {
+    max-height: min(92dvh, calc(100dvh - 2rem));
+    border-radius: 1rem;
+  }
+}
+
+.admin-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .admin-quick-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.admin-quick-actions button {
+  min-height: 2.75rem;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+@media (min-width: 480px) {
+  .admin-quick-actions button {
+    width: auto;
+  }
+}
+
+.admin-modal-footer button {
+  min-height: 2.75rem;
+  width: 100%;
+  touch-action: manipulation;
 }

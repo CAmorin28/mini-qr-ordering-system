@@ -126,7 +126,7 @@ export function StaffTableQrPanel({
           <button
             type="submit"
             disabled={generating}
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary disabled:opacity-60"
+            className="inline-flex min-h-11 w-full shrink-0 touch-manipulation items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary disabled:opacity-60 sm:w-auto"
           >
             {generating ? "Updating…" : "Update QR"}
           </button>

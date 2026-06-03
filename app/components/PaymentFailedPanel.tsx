@@ -24,7 +24,7 @@ export function PaymentFailedPanel({ message, onRetry }: PaymentFailedPanelProps
           <button
             type="button"
             onClick={onRetry}
-            className="mt-md inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-2.5 text-sm font-bold text-on-primary"
+            className="mt-md inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary px-lg py-2.5 text-sm font-bold text-on-primary sm:w-auto"
           >
             <span className="material-symbols-outlined text-[20px]">refresh</span>
             Retry payment

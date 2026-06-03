@@ -207,13 +207,13 @@ export default function CheckoutReviewClient() {
                     type="button"
                     disabled={processingPayment}
                     onClick={() => setForm((f) => ({ ...f, orderType: opt.id }))}
-                    className={`flex items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
+                    className={`flex min-h-11 w-full touch-manipulation items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
                       selected
                         ? "border-secondary-container bg-secondary-container/15 ring-2 ring-secondary-container/40"
                         : "border-surface-variant bg-surface-container-low hover:border-outline-variant"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-secondary">{opt.icon}</span>
+                    <span className="material-symbols-outlined shrink-0 text-secondary">{opt.icon}</span>
                     <div>
                       <span className="font-semibold text-on-surface">{opt.label}</span>
                       <p className="mt-0.5 text-xs text-on-surface-variant">
@@ -299,7 +299,7 @@ export default function CheckoutReviewClient() {
                       setPaymentMethod(opt.id);
                       setPaymentError(null);
                     }}
-                    className={`flex items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
+                    className={`flex min-h-11 w-full touch-manipulation items-start gap-3 rounded-xl border p-md text-left transition-all disabled:opacity-60 ${
                       selected
                         ? "border-secondary-container bg-secondary-container/15 ring-2 ring-secondary-container/40"
                         : "border-surface-variant bg-surface-container-low hover:border-outline-variant"
@@ -355,10 +355,10 @@ export default function CheckoutReviewClient() {
             </p>
           )}
 
-          <div className="flex flex-col gap-sm sm:flex-row sm:justify-between">
+          <div className="checkout-actions">
             <Link
               href={pathWithSession(CHECKOUT_PAGE_PATH)}
-              className={`inline-flex items-center justify-center rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant ${
+              className={`checkout-actions-secondary rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant ${
                 processingPayment ? "pointer-events-none opacity-50" : ""
               }`}
             >
@@ -367,7 +367,7 @@ export default function CheckoutReviewClient() {
             <button
               type="submit"
               disabled={processingPayment}
-              className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
+              className="checkout-cta checkout-actions-primary gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
             >
               {processingPayment
                 ? isPayNow

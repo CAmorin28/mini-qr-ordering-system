@@ -1,9 +1,9 @@
 "use client";
 
 const STEPS = [
-  { id: 1, label: "Order summary" },
-  { id: 2, label: "Review & pay" },
-  { id: 3, label: "Confirmation" },
+  { id: 1, label: "Order summary", shortLabel: "Summary" },
+  { id: 2, label: "Review & pay", shortLabel: "Pay" },
+  { id: 3, label: "Confirmation", shortLabel: "Done" },
 ] as const;
 
 interface CheckoutStepperProps {
@@ -34,6 +34,13 @@ export function CheckoutStepper({ current }: CheckoutStepperProps) {
                   ) : (
                     step.id
                   )}
+                </span>
+                <span
+                  className={`block max-w-[4.25rem] truncate text-center text-[10px] font-semibold leading-tight sm:hidden ${
+                    active ? "text-on-surface" : "text-on-surface-variant"
+                  }`}
+                >
+                  {step.shortLabel}
                 </span>
                 <span
                   className={`hidden max-w-[7rem] truncate text-center text-xs font-semibold sm:block ${

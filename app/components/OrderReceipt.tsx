@@ -119,8 +119,23 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
         <h3 className="mb-sm text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
           Itemized order details
         </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[320px] text-left text-sm">
+        <ul className="receipt-line-items">
+          {order.lines.map((line) => (
+            <li key={line.item.id} className="receipt-line-item">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-on-surface">{line.item.name}</p>
+                <p className="text-xs text-on-surface-variant">
+                  {line.quantity} × {formatPrice(line.item.price)}
+                </p>
+              </div>
+              <p className="shrink-0 font-bold tabular-nums text-secondary">
+                {formatPrice(lineSubtotal(line))}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="receipt-table-wrap">
+          <table className="receipt-table w-full text-left text-sm">
             <thead>
               <tr className="border-b border-surface-variant text-on-surface-variant">
                 <th className="pb-2 pr-2 font-semibold">Product</th>

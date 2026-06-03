@@ -28,7 +28,7 @@ export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
             key={filter.id}
             type="button"
             onClick={() => onChange(filter.id)}
-            className={`flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:px-6 sm:text-[17px] ${
+            className={`flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:px-6 sm:text-base md:text-[17px] ${
               isActive
                 ? "bg-primary text-on-primary"
                 : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:bg-surface-container"

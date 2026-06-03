@@ -39,22 +39,22 @@ export function Header({
   return (
     <>
       <header
-        className={`fixed top-0 z-50 flex w-full items-center justify-between gap-2 sm:gap-3 ${
+        className={`fixed top-0 z-50 flex w-full max-w-[100vw] items-center justify-between gap-1.5 pt-[env(safe-area-inset-top,0px)] sm:gap-3 ${
           isQr
             ? "qr-header"
             : "h-[var(--header-height)] bg-primary px-margin-mobile text-on-primary shadow-md md:px-margin-desktop lg:px-8 xl:px-12"
         }`}
       >
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-3">
           <span
-            className={`material-symbols-outlined shrink-0 text-[28px] sm:text-[36px] ${
+            className={`material-symbols-outlined shrink-0 text-[26px] sm:text-[36px] ${
               isQr ? "qr-header-icon" : "text-secondary-container"
             }`}
           >
             restaurant
           </span>
           <span
-            className={`whitespace-nowrap text-lg font-bold tracking-tight sm:text-2xl ${
+            className={`truncate text-base font-bold tracking-tight sm:text-2xl ${
               isQr ? "qr-header-title" : "text-on-primary"
             }`}
           >
@@ -67,7 +67,7 @@ export function Header({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           {showTableBadge && hasTableSession && !isQr && (
             <span className="inline rounded-full bg-on-primary/15 px-2 py-1 text-[11px] font-bold text-on-primary sm:hidden">
               {tableLabel}

@@ -57,7 +57,7 @@ export default function CheckoutPage() {
             type="checkbox"
             checked={cutlery}
             onChange={(e) => setCutlery(e.target.checked)}
-            className="h-5 w-5 rounded border-outline-variant accent-secondary"
+            className="h-5 min-h-5 w-5 min-w-5 shrink-0 rounded border-outline-variant accent-secondary"
           />
           <div>
             <span className="font-semibold text-on-surface">Add cutlery</span>
@@ -68,24 +68,24 @@ export default function CheckoutPage() {
         <PriceBreakdown subtotal={subtotal} showCutleryNote cutlery={cutlery} />
       </section>
 
-      <div className="mt-lg flex flex-col gap-sm sm:flex-row sm:justify-between">
+      <div className="checkout-actions mt-lg">
         <Link
           href={menuPath}
-          className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"
+          className="checkout-actions-secondary rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"
         >
           Add more items
         </Link>
         {hasTableSession ? (
           <Link
             href={pathWithSession(CHECKOUT_REVIEW_PATH)}
-            className="checkout-cta inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
+            className="checkout-cta checkout-actions-primary gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
           >
             Continue to payment
             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
           </Link>
         ) : (
           <span
-            className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-surface-variant px-lg py-3.5 text-headline-sm font-bold text-on-surface-variant opacity-60"
+            className="checkout-actions-primary cursor-not-allowed gap-2 rounded-xl bg-surface-variant px-lg py-3.5 text-headline-sm font-bold text-on-surface-variant opacity-60"
             title="Scan your table QR code first"
           >
             Scan table QR to continue

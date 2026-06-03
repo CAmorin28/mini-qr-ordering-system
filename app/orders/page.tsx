@@ -54,7 +54,7 @@ export default function OrdersHistoryPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <Header showCart showBackToMenu showOrderStatus />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-xl pt-[calc(var(--header-height)+20px)] md:px-margin-desktop">
+      <main className="page-main mx-auto w-full min-w-0 max-w-2xl flex-1 px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop">
         <h1 className="text-2xl font-bold text-on-surface">Order status</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
           {tableLetter

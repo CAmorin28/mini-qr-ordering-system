@@ -53,7 +53,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
         ref={panelRef}
         role="dialog"
         aria-label="Your cart"
-        className="cart-dropdown-panel fixed z-[60] flex max-h-[min(85dvh,640px)] w-[min(calc(100vw-2rem),420px)] flex-col overflow-hidden rounded-2xl border border-surface-variant bg-surface-container-lowest shadow-[0_20px_50px_rgba(5,5,27,0.18)] max-md:inset-x-4 max-md:bottom-4 max-md:top-auto md:right-6 md:top-[calc(var(--header-height)+8px)] xl:right-12"
+        className="cart-dropdown-panel fixed z-[60] flex max-h-[min(85dvh,640px)] w-[min(calc(100vw-2rem),420px)] flex-col overflow-hidden rounded-2xl border border-surface-variant bg-surface-container-lowest shadow-[0_20px_50px_rgba(5,5,27,0.18)] max-md:inset-x-4 max-md:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-md:top-auto md:right-6 md:top-[calc(var(--header-height)+env(safe-area-inset-top,0px)+8px)] xl:right-12"
       >
         <div className="flex items-center justify-between border-b border-surface-variant px-lg py-md">
           <div>
@@ -65,7 +65,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container"
+            className="touch-target rounded-lg p-2 text-on-surface-variant hover:bg-surface-container"
             aria-label="Close cart panel"
           >
             <span className="material-symbols-outlined">close</span>
@@ -100,7 +100,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
               onClick={() => {
                 if (itemCount > 0) onClose();
               }}
-              className={`checkout-cta flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
+              className={`checkout-cta flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
                 itemCount === 0
                   ? "pointer-events-none cursor-not-allowed bg-surface-variant text-on-surface-variant opacity-60"
                   : "bg-primary text-on-primary shadow-md hover:bg-primary-container active:scale-[0.99]"

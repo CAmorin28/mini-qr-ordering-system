@@ -55,7 +55,7 @@ export function CartItemRow({ line, variant = "default" }: CartItemRowProps) {
         <button
           type="button"
           onClick={() => removeItem(item.id)}
-          className="rounded-md p-1 text-error transition-colors hover:bg-error-container"
+          className="touch-target rounded-md p-1 text-error transition-colors hover:bg-error-container"
           title="Remove item"
           aria-label={`Remove ${item.name}`}
         >

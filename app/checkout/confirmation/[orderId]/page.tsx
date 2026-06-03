@@ -170,11 +170,11 @@ export default function OrderConfirmationPage() {
         </div>
       )}
 
-      <div className="confirmation-actions mt-lg grid gap-sm sm:grid-cols-2 print:hidden">
+      <div className="confirmation-actions mt-lg grid grid-cols-1 gap-sm print:hidden sm:grid-cols-2">
         <button
           type="button"
           onClick={handlePrint}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest py-3 text-sm font-semibold text-on-surface hover:bg-surface-container"
+          className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest py-3 text-sm font-semibold text-on-surface hover:bg-surface-container"
         >
           <span className="material-symbols-outlined text-[20px]">print</span>
           Print receipt
@@ -182,7 +182,7 @@ export default function OrderConfirmationPage() {
         <button
           type="button"
           onClick={() => downloadReceiptPdf(order)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-secondary-container bg-secondary-container/15 py-3 text-sm font-semibold text-secondary hover:bg-secondary-container/25"
+          className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-secondary-container bg-secondary-container/15 py-3 text-sm font-semibold text-secondary hover:bg-secondary-container/25"
         >
           <span className="material-symbols-outlined text-[20px]">download</span>
           Download receipt as PDF
@@ -191,7 +191,7 @@ export default function OrderConfirmationPage() {
           <Link
             href={MENU_PAGE_PATH}
             onClick={() => clearTableSession()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
           >
             <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
             Done — scan QR for your next visit
@@ -199,7 +199,7 @@ export default function OrderConfirmationPage() {
         ) : (
           <Link
             href={pathWithSession(MENU_PAGE_PATH)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
           >
             <span className="material-symbols-outlined text-[20px]">restaurant_menu</span>
             Back to menu
@@ -208,7 +208,7 @@ export default function OrderConfirmationPage() {
         {showAllOrdersLink && (
           <Link
             href={pathWithSession(ORDERS_HISTORY_PATH)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary sm:col-span-2"
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary sm:col-span-2"
           >
             <span className="material-symbols-outlined text-[20px]">receipt_long</span>
             All active orders ({activeTableOrders.length})

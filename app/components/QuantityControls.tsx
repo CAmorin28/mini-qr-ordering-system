@@ -15,8 +15,8 @@ export function QuantityControls({
 }: QuantityControlsProps) {
   const btn =
     size === "sm"
-      ? "flex h-7 w-7 items-center justify-center rounded-md"
-      : "flex h-8 w-8 items-center justify-center rounded-lg";
+      ? "touch-target flex h-9 w-9 items-center justify-center rounded-md"
+      : "touch-target flex h-11 w-11 items-center justify-center rounded-lg";
   const icon = size === "sm" ? "text-[16px]" : "text-[18px]";
 
   return (
