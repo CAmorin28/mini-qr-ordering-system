@@ -21,29 +21,31 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
   return (
     <article
       id={id}
-      className="receipt-card rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_8px_32px_rgba(29,29,53,0.08)]"
+      className="receipt-card overflow-hidden rounded-2xl border border-surface-variant bg-surface-container-lowest shadow-[0_8px_32px_rgba(29,29,53,0.08)]"
     >
+      <div className="receipt-brand-bar overflow-hidden bg-primary px-md py-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/tablebite-logo-horizontal.png"
+          alt="TableBite"
+          width={220}
+          height={44}
+          className="receipt-logo block h-10 w-auto max-w-full object-contain object-left sm:h-11"
+        />
+      </div>
+
+      <div className="receipt-card__body p-md sm:p-lg">
       <header className="border-b border-surface-variant pb-md">
-        <div className="receipt-brand-bar -mx-lg -mt-lg mb-md overflow-hidden rounded-t-2xl bg-primary px-md py-3 sm:px-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/tablebite-logo-horizontal.png"
-            alt="TableBite"
-            width={220}
-            height={44}
-            className="receipt-logo block h-10 w-auto max-w-full object-contain object-left sm:h-11"
-          />
-        </div>
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Digital receipt
             </p>
-            <p className="mt-1 text-sm font-medium text-on-surface">
+            <p className="mt-1 text-sm font-medium leading-snug text-on-surface">
               {orderStatusLabel(order.status, order.customer.orderType)}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-secondary-container/25 px-3 py-1 text-xs font-bold text-secondary">
+          <span className="shrink-0 rounded-full bg-secondary-container/25 px-2.5 py-1 text-xs font-bold text-secondary">
             {paymentStatusLabel(order.paymentStatus)}
           </span>
         </div>
@@ -202,6 +204,7 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
         <p>Thank you for ordering with TableBite.</p>
         <p className="mt-1 font-medium text-on-surface">{order.orderNumber}</p>
       </footer>
+      </div>
     </article>
   );
 }

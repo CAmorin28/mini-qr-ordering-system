@@ -10,7 +10,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <TableSessionProvider>
       <CartProvider>
         <CheckoutProvider>
-          <div className="customer-viewport flex min-h-dvh w-full max-w-full flex-col">
+          <div className="customer-viewport flex min-h-dvh w-full min-w-0 max-w-full flex-col overflow-x-clip">
             {children}
           </div>
         </CheckoutProvider>

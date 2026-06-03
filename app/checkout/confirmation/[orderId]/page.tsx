@@ -138,12 +138,12 @@ export default function OrderConfirmationPage() {
         onVisitEnded={() => setVisitEnded(true)}
       />
 
-      <div className="confirmation-success mb-lg mt-lg rounded-2xl border border-secondary-container/30 bg-gradient-to-br from-secondary-container/20 to-surface-container-lowest p-lg">
-        <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:gap-md sm:text-left">
-          <span className="material-symbols-outlined text-[56px] text-secondary">
+      <div className="confirmation-success mb-lg mt-lg min-w-0 max-w-full overflow-hidden rounded-2xl border border-secondary-container/30 bg-gradient-to-br from-secondary-container/20 to-surface-container-lowest p-md sm:p-lg">
+        <div className="flex min-w-0 flex-col items-center text-center sm:flex-row sm:items-start sm:gap-md sm:text-left">
+          <span className="material-symbols-outlined shrink-0 text-[48px] text-secondary sm:text-[56px]">
             check_circle
           </span>
-          <div className="mt-3 sm:mt-0">
+          <div className="mt-3 min-w-0 flex-1 sm:mt-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
               {paidViaGcash ? "Payment successful" : "Order received"}
             </p>
@@ -171,7 +171,9 @@ export default function OrderConfirmationPage() {
         </p>
       ) : null}
 
-      <OrderReceipt order={order} />
+      <div className="min-w-0 max-w-full overflow-hidden">
+        <OrderReceipt order={order} />
+      </div>
 
       {!visitComplete && (
         <div className="mt-lg rounded-2xl border border-primary-container/30 bg-primary-container/10 p-md print:hidden">
@@ -206,8 +208,13 @@ export default function OrderConfirmationPage() {
         {visitComplete ? (
           <Link
             href={MENU_PAGE_PATH}
-            onClick={() => {
-              if (hasTableSession) clearTableSession();
+            onClick={(e) => {
+              e.preventDefault();
+              if (hasTableSession) {
+                clearTableSession();
+                clearCart();
+              }
+              router.push(MENU_PAGE_PATH);
             }}
             className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary"
           >

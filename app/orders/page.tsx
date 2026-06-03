@@ -112,7 +112,7 @@ export default function OrdersHistoryPage() {
   }, [loadOrders, realtimeOn]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="orders-page flex min-h-dvh w-full min-w-0 max-w-full flex-col overflow-x-clip bg-background">
       <Header showCart showBackToMenu showOrderStatus />
       <main className="page-main mx-auto w-full min-w-0 max-w-2xl flex-1 px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop">
         <h1 className="text-2xl font-bold text-on-surface">Order status</h1>

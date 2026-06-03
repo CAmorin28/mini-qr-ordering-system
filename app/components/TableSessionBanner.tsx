@@ -9,10 +9,10 @@ export function TableSessionBanner() {
   if (!hasTableSession) return null;
 
   return (
-    <div className="mb-md flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-secondary-container/40 bg-secondary-container/15 px-md py-3 sm:gap-3">
-      <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-secondary">table_restaurant</span>
-        <div>
+    <div className="mb-md flex min-w-0 max-w-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-secondary-container/40 bg-secondary-container/15 px-md py-3 sm:gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="material-symbols-outlined shrink-0 text-secondary">table_restaurant</span>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             Your session
           </p>

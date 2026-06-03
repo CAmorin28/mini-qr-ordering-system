@@ -74,8 +74,8 @@ export function CheckoutStepper({ current }: CheckoutStepperProps) {
                 }`}
                 aria-hidden={false}
               >
-                <span className="md:hidden">{step.shortLabel}</span>
-                <span className="hidden md:inline">{step.label}</span>
+                <span className="sm:hidden">{step.shortLabel}</span>
+                <span className="hidden sm:inline">{step.label}</span>
               </span>
             </li>
           );

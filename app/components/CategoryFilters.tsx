@@ -17,10 +17,10 @@ interface CategoryFiltersProps {
 
 export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
   return (
-    <div className="category-filters-bleed min-w-0">
+    <div className="category-filters-bleed min-w-0 max-w-full">
       <nav
         aria-label="Menu categories"
-        className="scrollbar-hide flex w-max min-w-full gap-3 px-margin-mobile py-4 md:w-full md:gap-4 md:px-0"
+        className="category-filters-track scrollbar-hide"
       >
       {filters.map((filter) => {
         const isActive = active === filter.id;
@@ -29,7 +29,7 @@ export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
             key={filter.id}
             type="button"
             onClick={() => onChange(filter.id)}
-            className={`flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:px-6 sm:text-base md:text-[17px] ${
+            className={`flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-full px-3.5 py-2.5 text-sm font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:gap-2 sm:px-6 sm:text-base ${
               isActive
                 ? "bg-primary text-on-primary"
                 : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:bg-surface-container"

@@ -40,7 +40,7 @@ export function OrderingPage() {
   }, [category, loadMenu]);
 
   return (
-    <div className="flex min-h-dvh w-full max-w-full flex-col overflow-x-clip bg-background">
+    <div className="menu-page flex min-h-dvh w-full max-w-full flex-col overflow-x-clip bg-background">
       <Header showTableBadge showOrderStatus />
 
       <main

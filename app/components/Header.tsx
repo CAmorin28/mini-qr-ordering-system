@@ -42,7 +42,7 @@ export function Header({
         className={`fixed inset-x-0 top-0 z-50 flex w-full max-w-full items-center justify-between gap-1.5 pt-[env(safe-area-inset-top,0px)] sm:gap-3 ${
           isQr
             ? "qr-header"
-            : "h-[var(--header-height)] bg-primary px-margin-mobile text-on-primary shadow-md md:px-margin-desktop lg:px-8 xl:px-12"
+            : "app-header h-[var(--header-height)] bg-primary px-3 text-on-primary shadow-md sm:px-margin-mobile md:px-margin-desktop lg:px-8 xl:px-12"
         }`}
       >
         <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-3">

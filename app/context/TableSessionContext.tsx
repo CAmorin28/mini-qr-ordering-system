@@ -13,6 +13,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
 import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
+import { clearTableCustomerSession } from "@/lib/customer-table-session";
 import {
   TABLE_SESSION_STORAGE_KEY,
   TABLE_VISIT_ENDED_EVENT,
@@ -29,7 +30,7 @@ interface TableSessionContextValue {
   /** True only after scanning a table QR (?table=). Walk-in orders use no table session. */
   hasTableSession: boolean;
   setTableLetter: (letter: string) => void;
-  /** End optional table QR session: clear storage and strip ?table= from customer routes. */
+  /** End table QR visit: clear storage, mark visit ended, hide session UI. */
   clearTableSession: () => void;
   pathWithSession: (path: string) => string;
 }
@@ -113,7 +114,7 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
     [tableLetter],
   );
 
-  const clearTableSession = useCallback(() => {
+  const applySessionCleared = useCallback(() => {
     setTableLetterState("");
     sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
     const onCustomerRoute = CUSTOMER_PATH_PREFIXES.some((p) => pathname.startsWith(p));
@@ -122,16 +123,25 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, router]);
 
+  const clearTableSession = useCallback(() => {
+    const letter = normalizeTableLetter(tableLetter);
+    if (letter) {
+      clearTableCustomerSession(letter);
+      return;
+    }
+    applySessionCleared();
+  }, [tableLetter, applySessionCleared]);
+
   useEffect(() => {
     function onVisitEnded(event: Event) {
       const { tableLetter: endedTable } = (event as CustomEvent<TableVisitEndedDetail>)
         .detail;
       if (!endedTable || normalizeTableLetter(tableLetter) !== endedTable) return;
-      clearTableSession();
+      applySessionCleared();
     }
     window.addEventListener(TABLE_VISIT_ENDED_EVENT, onVisitEnded);
     return () => window.removeEventListener(TABLE_VISIT_ENDED_EVENT, onVisitEnded);
-  }, [tableLetter, clearTableSession]);
+  }, [tableLetter, applySessionCleared]);
 
   const value = useMemo(
     () => ({
