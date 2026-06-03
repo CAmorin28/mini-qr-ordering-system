@@ -34,7 +34,7 @@ export function FoodCard({ item }: FoodCardProps) {
         <button
           type="button"
           onClick={() => addItem(item)}
-          className="flex w-full items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container-lowest py-[12px] text-label-lg font-semibold text-on-surface-variant transition-colors hover:border-secondary-container hover:text-secondary-container"
+          className="flex w-full touch-manipulation select-none items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container-lowest py-[12px] text-label-lg font-semibold text-on-surface-variant transition-all duration-150 hover:border-secondary-container hover:bg-secondary-container/8 hover:text-secondary-container active:scale-[0.97] active:border-secondary-container active:bg-secondary-container/20 active:text-secondary-container"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           Add
