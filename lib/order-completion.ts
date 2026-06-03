@@ -35,12 +35,11 @@ export function hasReadyHandoff(order: PlacedOrder): boolean {
   return isActiveOrder(order) && order.readyAt != null && order.readyAt !== "";
 }
 
-/** Paid, kitchen finished, still on Active until admin taps Done. */
+/** Kitchen finished, still on Active until admin taps Done (payment may be collected later). */
 export function canMarkOrderDone(order: PlacedOrder): boolean {
   return (
     isActiveOrder(order) &&
     !hasReadyHandoff(order) &&
-    canArchiveOrder(order) &&
     isTerminalWorkflowStatus(order)
   );
 }

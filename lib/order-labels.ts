@@ -71,8 +71,10 @@ export function customerOrderStatusLabel(order: PlacedOrder): string {
   if (status === "preparing") return "Preparing food";
   if (status === "paid") return "Paid — waiting for kitchen";
   if (status === "pending_payment") {
-    if (order.customer.orderType === "pickup" && order.paymentMethod === "cash") {
-      return "Pending payment — pay on pick-up";
+    if (order.paymentMethod === "cash") {
+      return order.customer.orderType === "pickup"
+        ? "Pending payment — pay on pick-up"
+        : "Pending payment — pay at table";
     }
     return "Pending payment";
   }
@@ -80,7 +82,18 @@ export function customerOrderStatusLabel(order: PlacedOrder): string {
   return ORDER_STATUS_LABELS[status];
 }
 
-/** Kitchen workflow only — payment is managed via payment status. */
+/** Kitchen workflow only — excludes payment queue states (use payment status instead). */
 export function adminStatusOptions(order: PlacedOrder): OrderStatus[] {
-  return getAllowedStatuses(order).filter((s) => s !== "paid");
+  return getAllowedStatuses(order).filter(
+    (s) => s !== "paid" && s !== "pending_payment",
+  );
+}
+
+/** Admin order badge — never shows "Pending payment" (see payment badge). */
+export function adminOrderStatusLabel(order: PlacedOrder): string {
+  const status = normalizeOrderStatus(order.status, order.customer.orderType);
+  if (status === "pending_payment" || status === "paid") {
+    return "Awaiting kitchen";
+  }
+  return ORDER_STATUS_LABELS[status];
 }

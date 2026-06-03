@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="TableBite">
+  <rect width="64" height="64" rx="14" fill="#05051b"/>
+  <circle cx="32" cy="28" r="14" fill="#fc8a40"/>
+  <path
+    fill="#05051b"
+    d="M32 18c-4.5 0-8 3.2-8 7.2 0 2.2 1 4.1 2.6 5.3L24 44h16l-2.6-13.5c1.6-1.2 2.6-3.1 2.6-5.3 0-4-3.5-7.2-8-7.2zm-3.2 7.2a3.2 3.2 0 1 1 6.4 0 3.2 3.2 0 0 1-6.4 0z"
+  />
+  <rect x="22" y="46" width="20" height="4" rx="2" fill="#fc8a40"/>
+</svg>

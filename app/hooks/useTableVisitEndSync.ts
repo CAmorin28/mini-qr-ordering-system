@@ -1,33 +1,43 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
+import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
 import { syncTableVisitEndIfNeeded } from "@/lib/sync-table-visit-end";
 import { normalizeTableLetter } from "@/lib/table-session";
 
-const POLL_MS = 8000;
+const FALLBACK_POLL_MS = 30_000;
 
-/** Polls the server and clears the table QR session after staff completes the visit. */
+/** Clears the table QR session when staff completes the visit (realtime or slow poll). */
 export function useTableVisitEndSync(tableLetter: string) {
   const table = normalizeTableLetter(tableLetter);
+  const realtimeOn = isSupabaseRealtimeConfigured();
+
+  const run = useCallback(async () => {
+    if (!table) return;
+    await syncTableVisitEndIfNeeded(table);
+  }, [table]);
 
   useEffect(() => {
     if (!table) return;
-
-    let cancelled = false;
-
-    async function run() {
-      if (cancelled) return;
-      await syncTableVisitEndIfNeeded(table);
-    }
-
     void run();
+  }, [table, run]);
+
+  useOrdersRealtime(
+    { mode: "table", tableLetter: table },
+    {
+      onUpsert: () => {
+        void run();
+      },
+    },
+    { enabled: !!table, fallbackPoll: run },
+  );
+
+  useEffect(() => {
+    if (!table || realtimeOn) return;
     const timer = window.setInterval(() => {
       void run();
-    }, POLL_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [table]);
+    }, FALLBACK_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [table, realtimeOn, run]);
 }

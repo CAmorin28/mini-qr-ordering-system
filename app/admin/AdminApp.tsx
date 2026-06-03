@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
 import { createPortal } from "react-dom";
 import { AdminDatabaseSetup } from "@/app/components/admin/AdminDatabaseSetup";
+import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
+import { PageEnter } from "@/app/components/ui/PageEnter";
 import { AdminStatusBadge } from "@/app/components/admin/AdminStatusBadge";
 import {
   adminSignOut,
@@ -16,10 +19,11 @@ import {
   updateAdminOrder,
 } from "@/lib/api-admin";
 import { formatPrice } from "@/lib/format";
+import { mergeOrderIntoList } from "@/lib/supabase/orders-realtime";
 import { ADMIN_LOGIN_PATH, staffQrPath } from "@/lib/menu-url";
 import {
+  adminOrderStatusLabel,
   adminStatusOptions,
-  customerOrderStatusLabel,
   ORDER_STATUS_LABELS,
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -43,7 +47,7 @@ import {
   isCompletedOrder,
   todayDateKey,
 } from "@/lib/order-completion";
-import { canStartPreparing, getNextStatus, syncStatuses } from "@/lib/order-workflow";
+import { getNextStatus, syncStatuses } from "@/lib/order-workflow";
 import { formatTableLabel } from "@/lib/table-session";
 import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/types";
 
@@ -97,7 +101,7 @@ function OrderListCard({
           <AdminStatusBadge
             kind="order"
             value={order.status}
-            label={customerOrderStatusLabel(order)}
+            label={adminOrderStatusLabel(order)}
           />
           <AdminStatusBadge
             kind="payment"
@@ -310,6 +314,10 @@ function OrderDetailPanel({
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.paymentStatus);
+  useEffect(() => {
+    setStatus(order.status);
+    setPaymentStatus(order.paymentStatus);
+  }, [order.orderId, order.status, order.paymentStatus]);
   const [saving, setSaving] = useState(false);
   const [markingDone, setMarkingDone] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -321,6 +329,7 @@ function OrderDetailPanel({
   const preview = { ...order, status, paymentStatus };
   const showDone = !archived && canMarkOrderDone(preview);
   const showComplete = !archived && readyHandoff;
+  const preKitchen = status === "pending_payment" || status === "paid";
   const dirty =
     !archived && (status !== order.status || paymentStatus !== order.paymentStatus);
 
@@ -373,15 +382,6 @@ function OrderDetailPanel({
     setSaved(false);
     try {
       const synced = syncStatuses(status, paymentStatus);
-      if (
-        synced.status === "preparing" &&
-        order.customer.orderType === "dine_in" &&
-        !canStartPreparing({ ...order, ...synced })
-      ) {
-        setError("Dine-in orders must be paid before preparation begins.");
-        setSaving(false);
-        return;
-      }
       const updated = await updateAdminOrder(order.orderId, synced);
       onUpdated(updated);
       setStatus(updated.status);
@@ -440,7 +440,7 @@ function OrderDetailPanel({
             <AdminStatusBadge
               kind="order"
               value={order.status}
-              label={customerOrderStatusLabel(order)}
+              label={adminOrderStatusLabel(order)}
             />
             <AdminStatusBadge
               kind="payment"
@@ -510,20 +510,28 @@ function OrderDetailPanel({
 
             <div>
               <label htmlFor="order-status" className="text-xs font-semibold text-on-surface-variant">
-                Order status
+                Kitchen status
               </label>
-              <select
-                id="order-status"
-                value={status === "paid" ? "pending_payment" : status}
-                onChange={(e) => setStatus(e.target.value as OrderStatus)}
-                className="checkout-input mt-1 w-full"
-              >
-                {(adminStatusOptions(order) as OrderStatus[]).map((key) => (
-                  <option key={key} value={key}>
-                    {ORDER_STATUS_LABELS[key]}
-                  </option>
-                ))}
-              </select>
+              {preKitchen ? (
+                <p className="mt-1 rounded-lg border border-surface-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
+                  {adminOrderStatusLabel({ ...order, status, paymentStatus })} — use{" "}
+                  <span className="font-semibold text-on-surface">Payment status</span> below, then
+                  Advance or Mark as paid before starting preparation.
+                </p>
+              ) : (
+                <select
+                  id="order-status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as OrderStatus)}
+                  className="checkout-input mt-1 w-full"
+                >
+                  {(adminStatusOptions(order) as OrderStatus[]).map((key) => (
+                    <option key={key} value={key}>
+                      {ORDER_STATUS_LABELS[key]}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -563,18 +571,7 @@ function OrderDetailPanel({
                   onClick={() => {
                     const next = getNextStatus({ ...order, status, paymentStatus });
                     if (!next) return;
-                    if (
-                      next === "preparing" &&
-                      order.customer.orderType === "dine_in" &&
-                      paymentStatus !== "paid"
-                    ) {
-                      setError("Mark payment as paid before starting preparation.");
-                      return;
-                    }
                     setStatus(next);
-                    if (next !== "pending_payment") {
-                      setPaymentStatus("paid");
-                    }
                   }}
                   className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left text-xs font-semibold text-sky-900 hover:bg-sky-100 sm:py-1.5"
                 >
@@ -740,6 +737,22 @@ export function AdminApp() {
     }
   }, [authenticated, loadOrders]);
 
+  useOrdersRealtime(
+    { mode: "all" },
+    {
+      onUpsert: (order) => {
+        setOrders((prev) => mergeOrderIntoList(prev, order));
+      },
+      onDelete: (orderId) => {
+        setOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+      },
+    },
+    {
+      enabled: authenticated && databaseStatus === "connected",
+      fallbackPoll: loadOrders,
+    },
+  );
+
   const typeCounts = useMemo(() => countByOrderType(orders), [orders]);
 
   const boardSections = useMemo(
@@ -785,9 +798,8 @@ export function AdminApp() {
 
   if (booting) {
     return (
-      <div className="admin-shell flex min-h-dvh w-full flex-1 items-center justify-center bg-background px-margin-mobile text-on-surface-variant">
-        <div className="payment-spinner" aria-hidden />
-        <span className="sr-only">Loading admin…</span>
+      <div className="admin-shell min-h-dvh w-full bg-background">
+        <LoadingBlock fullPage message="Loading admin…" />
       </div>
     );
   }
@@ -797,7 +809,7 @@ export function AdminApp() {
   }
 
   return (
-    <div className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
+    <PageEnter className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
       <header className="sticky top-0 z-50 border-b border-primary-container/20 bg-primary pt-[env(safe-area-inset-top,0px)] shadow-md">
         <div className="mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-2 px-margin-mobile py-3 sm:gap-3 sm:py-4 md:px-margin-desktop">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -893,7 +905,7 @@ export function AdminApp() {
                   key={tab.key}
                   type="button"
                   onClick={() => setAdminView(tab.key)}
-                  className={`flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-2xl px-1.5 py-2.5 text-[10px] font-semibold leading-tight transition-colors sm:min-h-12 sm:flex-row sm:gap-2 sm:px-3 sm:py-3 sm:text-sm ${
+                  className={`admin-view-tab flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-2xl px-1.5 py-2.5 text-[10px] font-semibold leading-tight transition-colors sm:min-h-12 sm:flex-row sm:gap-2 sm:px-3 sm:py-3 sm:text-sm ${
                     active
                       ? "bg-primary text-on-primary shadow-sm"
                       : queueNeedsAttention
@@ -902,8 +914,8 @@ export function AdminApp() {
                   }`}
                 >
                   <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{tab.icon}</span>
-                  <span className="text-center sm:hidden">{tab.shortLabel}</span>
-                  <span className="hidden text-center sm:inline sm:text-left">{tab.label}</span>
+                  <span className="admin-view-tab__label sm:hidden">{tab.shortLabel}</span>
+                  <span className="admin-view-tab__label hidden sm:inline">{tab.label}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                       active
@@ -989,7 +1001,7 @@ export function AdminApp() {
         ) : null}
 
         {loadingOrders && orders.length === 0 && databaseStatus === "connected" ? (
-          <p className="mt-xl text-on-surface-variant">Loading orders…</p>
+          <LoadingBlock className="mt-xl py-xl" message="Loading orders…" />
         ) : adminView === "paid" && databaseStatus === "connected" ? (
           <ReadyToCompleteQueue orders={orders} onSelectOrder={setSelectedId} />
         ) : adminView === "archive" && databaseStatus === "connected" ? (
@@ -1045,6 +1057,6 @@ export function AdminApp() {
           }}
         />
       )}
-    </div>
+    </PageEnter>
   );
 }

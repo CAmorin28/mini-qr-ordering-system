@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Header } from "@/app/components/Header";
 import { CheckoutStepper } from "@/app/components/CheckoutStepper";
-import { MENU_PAGE_PATH } from "@/lib/menu-url";
+import { PageEnter } from "@/app/components/ui/PageEnter";
 import type { ReactNode } from "react";
 
 interface CheckoutShellProps {
@@ -15,26 +14,23 @@ interface CheckoutShellProps {
 
 export function CheckoutShell({ step, title, subtitle, children }: CheckoutShellProps) {
   return (
-    <div className="checkout-page flex min-h-dvh flex-col bg-background">
+    <div className="checkout-page flex min-h-dvh w-full max-w-full flex-col overflow-x-clip bg-background">
       <Header showCart showBackToMenu showOrderStatus />
-      <main className="page-main page-main--checkout mx-auto w-full min-w-0 max-w-3xl flex-1 px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop">
-        <Link
-          href={MENU_PAGE_PATH}
-          className="mb-md inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-secondary"
-        >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Back to menu
-        </Link>
-        <div className="checkout-hero mb-lg rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_8px_32px_rgba(29,29,53,0.06)]">
+      <main className="page-main page-main--checkout mx-auto w-full min-w-0 max-w-3xl flex-1 overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:px-margin-desktop">
+        <div className="checkout-hero mb-lg rounded-2xl border border-surface-variant bg-surface-container-lowest p-md shadow-[0_8px_32px_rgba(29,29,53,0.06)] sm:p-lg">
           <CheckoutStepper current={step} />
-          <h1 className="mt-lg text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="mt-1 text-sm text-on-surface-variant sm:text-base">{subtitle}</p>
-          )}
+          <div className="checkout-hero__heading mt-md border-t border-surface-variant/50 pt-md text-left sm:mt-lg sm:pt-lg">
+            <h1 className="text-balance text-xl font-bold tracking-tight text-on-surface sm:text-3xl">
+              {title}
+            </h1>
+            {subtitle ? (
+              <p className="text-body-readable mt-1.5 text-sm text-on-surface-variant sm:text-base">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
         </div>
-        {children}
+        <PageEnter>{children}</PageEnter>
       </main>
     </div>
   );

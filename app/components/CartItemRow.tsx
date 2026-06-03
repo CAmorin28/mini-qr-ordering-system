@@ -39,7 +39,7 @@ export function CartItemRow({ line, variant = "default" }: CartItemRowProps) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <h4 className="truncate text-label-lg font-semibold text-on-surface">
+        <h4 className="line-clamp-2 text-label-lg font-semibold leading-snug text-on-surface">
           {item.name}
         </h4>
         <p className="mt-0.5 text-xs text-on-surface-variant">

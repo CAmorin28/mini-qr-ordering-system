@@ -24,14 +24,29 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
       className="receipt-card rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_8px_32px_rgba(29,29,53,0.08)]"
     >
       <header className="border-b border-surface-variant pb-md">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-              Digital receipt
-            </p>
-            <h2 className="mt-1 text-lg font-bold text-on-surface">TableBite</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/tablebite-logo.svg"
+              alt=""
+              width={52}
+              height={52}
+              className="receipt-logo h-[52px] w-[52px] shrink-0 rounded-xl"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+                Digital receipt
+              </p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-tight text-on-surface">
+                TableBite
+              </h2>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {orderStatusLabel(order.status, order.customer.orderType)}
+              </p>
+            </div>
           </div>
-          <span className="rounded-full bg-secondary-container/25 px-3 py-1 text-xs font-bold text-secondary">
+          <span className="shrink-0 rounded-full bg-secondary-container/25 px-3 py-1 text-xs font-bold text-secondary">
             {paymentStatusLabel(order.paymentStatus)}
           </span>
         </div>
@@ -169,16 +184,27 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
           Total
         </h3>
         <dl className="space-y-1.5 text-sm">
-          <div className="flex justify-between text-on-surface-variant">
+          <div className="price-row text-on-surface-variant">
             <dt>Subtotal</dt>
             <dd className="font-medium text-on-surface">{formatPrice(order.subtotal)}</dd>
           </div>
-          <div className="flex justify-between border-t border-surface-variant pt-2 text-base font-bold">
+          <div className="price-row text-on-surface-variant">
+            <dt>Cutlery</dt>
+            <dd className="font-medium text-on-surface">
+              {order.cutlery ? "Requested" : "Not requested"}
+            </dd>
+          </div>
+          <div className="price-row border-t border-surface-variant pt-2 text-base font-bold">
             <dt className="text-on-surface">Grand total</dt>
             <dd className="text-secondary">{formatPrice(order.grandTotal)}</dd>
           </div>
         </dl>
       </section>
+
+      <footer className="receipt-footer mt-md border-t border-dashed border-surface-variant pt-md text-center text-xs text-on-surface-variant">
+        <p>Thank you for ordering with TableBite.</p>
+        <p className="mt-1 font-medium text-on-surface">{order.orderNumber}</p>
+      </footer>
     </article>
   );
 }

@@ -17,10 +17,11 @@ interface CategoryFiltersProps {
 
 export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
   return (
-    <nav
-      aria-label="Menu categories"
-      className="scrollbar-hide -mx-margin-mobile flex gap-3 overflow-x-auto px-margin-mobile py-4 md:mx-0 md:gap-4 md:px-0"
-    >
+    <div className="category-filters-bleed min-w-0">
+      <nav
+        aria-label="Menu categories"
+        className="scrollbar-hide flex w-max min-w-full gap-3 px-margin-mobile py-4 md:w-full md:gap-4 md:px-0"
+      >
       {filters.map((filter) => {
         const isActive = active === filter.id;
         return (
@@ -43,6 +44,7 @@ export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
           </button>
         );
       })}
-    </nav>
+      </nav>
+    </div>
   );
 }

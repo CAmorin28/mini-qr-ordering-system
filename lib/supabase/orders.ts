@@ -1,87 +1,19 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { mapOrderRow, type OrderRow } from "@/lib/supabase/order-mapper";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { normalizeOrderStatus } from "@/lib/order-labels";
 import {
   canArchiveOrder,
   canMarkOrderDone,
   hasReadyHandoff,
   resolveOrderAfterAdminUpdate,
 } from "@/lib/order-completion";
-import type {
-  CartLine,
-  CustomerDetails,
-  OrderStatus,
-  OrderType,
-  PaymentMethod,
-  PaymentStatus,
-  PlacedOrder,
-} from "@/lib/types";
-
-interface OrderRow {
-  order_id: string;
-  order_number: string;
-  created_at: string;
-  status: string;
-  payment_status: PaymentStatus;
-  payment_method: string;
-  order_type: OrderType;
-  table_number: string | null;
-  cutlery: boolean;
-  subtotal: number;
-  grand_total: number;
-  customer_name: string;
-  contact_number: string;
-  notes: string;
-  lines: CartLine[];
-  ready_at?: string | null;
-  completed_at?: string | null;
-  /** Legacy columns — may exist on older databases. */
-  delivery_fee?: number;
-  service_fee?: number;
-  address?: string;
-  estimated_delivery?: string;
-}
-
-function normalizePaymentMethod(method: string): PaymentMethod {
-  if (method === "gcash") return "gcash";
-  return "cash";
-}
+import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
 
 function rowToPlacedOrder(row: OrderRow): PlacedOrder {
-  const subtotal = Number(row.subtotal);
-  const legacyFees =
-    Number(row.delivery_fee ?? 0) + Number(row.service_fee ?? 0);
-  const grandTotal =
-    row.grand_total != null
-      ? Number(row.grand_total)
-      : subtotal + legacyFees;
-
-  const customer: CustomerDetails = {
-    fullName: row.customer_name ?? "",
-    contactNumber: row.contact_number ?? "",
-    notes: row.notes ?? "",
-    orderType: row.order_type ?? "dine_in",
-    tableLetter: row.table_number ?? "",
-  };
-
-  return {
-    orderId: row.order_id,
-    orderNumber: row.order_number,
-    createdAt: row.created_at,
-    readyAt: row.ready_at ?? null,
-    completedAt: row.completed_at ?? null,
-    status: normalizeOrderStatus(row.status, customer.orderType),
-    paymentStatus: row.payment_status,
-    lines: row.lines,
-    subtotal,
-    cutlery: row.cutlery,
-    paymentMethod: normalizePaymentMethod(row.payment_method),
-    customer,
-    grandTotal,
-  };
+  return mapOrderRow(row);
 }
 
-function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "service_fee" | "address" | "estimated_delivery"> {
+function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "service_fee"> {
   return {
     order_id: order.orderId,
     order_number: order.orderNumber,
@@ -218,7 +150,7 @@ export async function updateOrderInDb(
       ok: false,
       status: 400,
       error:
-        "Order must be paid and at served or ready for pick-up before marking done.",
+        "Order must be at served or ready for pick-up before marking done.",
     };
   }
 

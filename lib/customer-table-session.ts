@@ -8,13 +8,24 @@ import {
   ordersStorageKey,
   type TableVisitEndedDetail,
 } from "@/lib/table-session";
+import type { PlacedOrder } from "@/lib/types";
 
 const PENDING_ORDER_KEY = "tablebite_pending_order";
-import type { PlacedOrder } from "@/lib/types";
 
 /** Active orders only — completed visits are hidden from the customer. */
 export function customerVisibleOrders(orders: PlacedOrder[]): PlacedOrder[] {
   return filterActiveOrders(orders);
+}
+
+/** Clear guest cart and order history on this device (walk-in / menu without QR). */
+export function clearGuestCustomerSession(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ordersStorageKey(""));
+  localStorage.removeItem(cartStorageKey(""));
+  const activeKey = activeOrderStorageKey("");
+  localStorage.removeItem(activeKey);
+  sessionStorage.removeItem(activeKey);
+  sessionStorage.removeItem(PENDING_ORDER_KEY);
 }
 
 /** Clear cart, order history, and table QR session for this table (next party must scan again). */
@@ -36,24 +47,10 @@ export function clearTableCustomerSession(tableLetter: string): void {
   );
 }
 
-/**
- * After an order is completed by staff, drop it from local storage.
- * If no active orders remain for the table, reset the whole customer session.
- */
-export function afterCustomerOrderCompleted(
-  order: PlacedOrder,
-  remainingActiveForTable: PlacedOrder[],
-): void {
+function removeOrderFromStorage(order: PlacedOrder): void {
   const letter = normalizeTableLetter(order.customer.tableLetter);
-  if (!letter || typeof window === "undefined") return;
-
-  if (remainingActiveForTable.length === 0) {
-    clearTableCustomerSession(letter);
-    return;
-  }
-
+  const key = ordersStorageKey(letter);
   try {
-    const key = ordersStorageKey(letter);
     const raw = localStorage.getItem(key);
     if (!raw) return;
     const parsed = JSON.parse(raw) as PlacedOrder[];
@@ -70,4 +67,35 @@ export function afterCustomerOrderCompleted(
   } catch {
     /* ignore */
   }
+}
+
+/**
+ * After an order is completed by staff, drop it from local storage.
+ * If no active orders remain for the session, reset customer storage.
+ */
+export function afterCustomerOrderCompleted(
+  order: PlacedOrder,
+  remainingActiveForSession: PlacedOrder[],
+): void {
+  if (typeof window === "undefined") return;
+
+  const letter = normalizeTableLetter(order.customer.tableLetter);
+  const remaining = letter
+    ? remainingActiveForSession.filter(
+        (o) => normalizeTableLetter(o.customer.tableLetter) === letter,
+      )
+    : remainingActiveForSession.filter(
+        (o) => !normalizeTableLetter(o.customer.tableLetter),
+      );
+
+  if (remaining.length === 0) {
+    if (letter) {
+      clearTableCustomerSession(letter);
+    } else {
+      clearGuestCustomerSession();
+    }
+    return;
+  }
+
+  removeOrderFromStorage(order);
 }

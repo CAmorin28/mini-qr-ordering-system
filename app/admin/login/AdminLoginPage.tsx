@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TableBiteBrand } from "@/app/components/TableBiteBrand";
+import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
+import { LoadingSpinner } from "@/app/components/ui/LoadingSpinner";
 import { adminSignIn, fetchAdminSession } from "@/lib/api-admin";
 import { ADMIN_DASHBOARD_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
 
@@ -52,8 +54,7 @@ export function AdminLoginPage() {
   if (checkingSession) {
     return (
       <div className="admin-login-page flex items-center justify-center">
-        <div className="payment-spinner" aria-hidden />
-        <span className="sr-only">Loading…</span>
+        <LoadingBlock message="Loading…" />
       </div>
     );
   }
@@ -188,7 +189,7 @@ export function AdminLoginPage() {
               >
                 {submitting ? (
                   <>
-                    <span className="payment-spinner !h-5 !w-5 !border-2" aria-hidden />
+                    <LoadingSpinner size="sm" label="Signing in" />
                     Signing in…
                   </>
                 ) : (

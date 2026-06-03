@@ -12,7 +12,7 @@ export function FoodCard({ item }: FoodCardProps) {
   const { addItem } = useCart();
 
   return (
-    <article className="group flex h-full min-h-0 flex-col rounded-xl border border-surface-variant bg-surface-container-lowest p-3 shadow-[0px_4px_20px_rgba(29,29,53,0.06)] sm:min-h-[240px] sm:p-lg md:min-h-[260px]">
+    <article className="motion-card group flex h-full min-h-0 flex-col rounded-xl border border-surface-variant bg-surface-container-lowest p-3 shadow-[0px_4px_20px_rgba(29,29,53,0.06)] sm:min-h-[240px] sm:p-lg md:min-h-[260px]">
       <div className="mb-md flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-surface-container-low">
         {item.imageUrl ? (
           <img
@@ -24,7 +24,7 @@ export function FoodCard({ item }: FoodCardProps) {
           <span className="text-4xl sm:text-[56px] md:text-[64px]">{item.emoji}</span>
         )}
       </div>
-      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-on-surface sm:truncate sm:text-headline-sm">
+      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-on-surface sm:text-headline-sm">
         {item.name}
       </h3>
       <p className="mt-1 text-base font-bold text-secondary sm:mt-xs sm:text-price-display">
@@ -34,7 +34,7 @@ export function FoodCard({ item }: FoodCardProps) {
         <button
           type="button"
           onClick={() => addItem(item)}
-          className="flex min-h-11 w-full touch-manipulation select-none items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container-lowest py-2.5 text-sm font-semibold text-on-surface-variant transition-all duration-150 hover:border-secondary-container hover:bg-secondary-container/8 hover:text-secondary-container active:scale-[0.97] active:border-secondary-container active:bg-secondary-container/20 active:text-secondary-container sm:py-[12px] sm:text-label-lg"
+          className="motion-press flex min-h-11 w-full touch-manipulation select-none items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container-lowest py-2.5 text-sm font-semibold text-on-surface-variant transition-[color,background-color,border-color,transform] duration-150 hover:border-secondary-container hover:bg-secondary-container/8 hover:text-secondary-container active:scale-[0.97] active:border-secondary-container active:bg-secondary-container/20 active:text-secondary-container sm:py-[12px] sm:text-label-lg"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           Add

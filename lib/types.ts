@@ -33,14 +33,14 @@ export interface CustomerDetails {
   contactNumber: string;
   notes: string;
   orderType: OrderType;
-  /** Table letter from QR session (e.g. A, B, C). */
+  /** Table letter when customer scanned a table QR; empty for walk-in / direct menu orders. */
   tableLetter: string;
 }
 
 /**
  * Admin-controlled workflow status.
- * Dine-in: pending_payment → paid → preparing → serving → served
- * Pick-up: pending_payment → paid → preparing → ready_for_pickup
+ * Dine-in & pick-up: pending_payment → paid → preparing → terminal (served / ready_for_pickup).
+ * Cash orders may stay unpaid until staff confirms payment.
  */
 export type OrderStatus =
   | "pending_payment"

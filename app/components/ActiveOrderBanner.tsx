@@ -11,10 +11,11 @@ export function ActiveOrderBanner() {
   const { orders, loading } = useActiveCustomerOrders(tableLetter);
 
   const href = resolveOrderStatusHref(orders, tableLetter, pathWithSession);
-  if (!hasTableSession || !href || loading || orders.length === 0) return null;
+  if (!href || loading || orders.length === 0) return null;
 
   const primary = orders[0];
   const multiple = orders.length > 1;
+  const contextLabel = hasTableSession ? tableLabel : "Your order";
 
   return (
     <Link
@@ -27,10 +28,10 @@ export function ActiveOrderBanner() {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-on-surface">
           {multiple
-            ? `${orders.length} orders in progress · ${tableLabel}`
-            : `Your order is in progress · ${tableLabel}`}
+            ? `${orders.length} orders in progress${hasTableSession ? ` · ${tableLabel}` : ""}`
+            : `${contextLabel} is in progress`}
         </p>
-        <p className="mt-0.5 truncate text-xs text-on-surface-variant">
+        <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-on-surface-variant">
           {primary.orderNumber} · {customerOrderStatusLabel(primary)}
           {multiple ? ` · +${orders.length - 1} more` : ""}
         </p>

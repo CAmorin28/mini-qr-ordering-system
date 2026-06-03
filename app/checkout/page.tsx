@@ -17,7 +17,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { lines, itemCount } = useCart();
   const { cutlery, setCutlery } = useCheckout();
-  const { pathWithSession, hasTableSession } = useTableSession();
+  const { pathWithSession } = useTableSession();
   const subtotal = computeSubtotal(lines);
   const menuPath = pathWithSession(MENU_PAGE_PATH);
 
@@ -75,23 +75,13 @@ export default function CheckoutPage() {
         >
           Add more items
         </Link>
-        {hasTableSession ? (
-          <Link
-            href={pathWithSession(CHECKOUT_REVIEW_PATH)}
-            className="checkout-cta checkout-actions-primary gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
-          >
-            Continue to payment
-            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-          </Link>
-        ) : (
-          <span
-            className="checkout-actions-primary cursor-not-allowed gap-2 rounded-xl bg-surface-variant px-lg py-3.5 text-headline-sm font-bold text-on-surface-variant opacity-60"
-            title="Scan your table QR code first"
-          >
-            Scan table QR to continue
-            <span className="material-symbols-outlined text-[20px]">qr_code_2</span>
-          </span>
-        )}
+        <Link
+          href={pathWithSession(CHECKOUT_REVIEW_PATH)}
+          className="checkout-cta checkout-actions-primary gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container"
+        >
+          Continue to payment
+          <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+        </Link>
       </div>
     </CheckoutShell>
   );

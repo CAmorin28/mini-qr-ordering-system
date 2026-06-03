@@ -18,3 +18,11 @@ export function isSupabaseConfigured(): boolean {
     isRealEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY)
   );
 }
+
+/** Browser Realtime (requires anon key + migrate-realtime-orders.sql). */
+export function isSupabaseRealtimeConfigured(): boolean {
+  return (
+    isRealEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    isRealEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  );
+}

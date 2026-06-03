@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckoutShell } from "@/app/components/CheckoutShell";
+import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
 import { OrderReceipt } from "@/app/components/OrderReceipt";
 import { OrderStatusTracker } from "@/app/components/OrderStatusTracker";
 import { useCart } from "@/app/context/CartContext";
@@ -39,12 +40,14 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<PlacedOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [visitEnded, setVisitEnded] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const visitComplete = order ? isCompletedOrder(order) || visitEnded : false;
   const otherActiveCount = order
     ? activeTableOrders.filter((o) => o.orderId !== order.orderId).length
     : 0;
-  const showAllOrdersLink = hasTableSession && (activeTableOrders.length > 1 || otherActiveCount > 0);
+  const showAllOrdersLink = activeTableOrders.length > 1 || otherActiveCount > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -97,14 +100,25 @@ export default function OrderConfirmationPage() {
     };
   }, [orderId, router, clearCart, clearCheckout, pathWithSession]);
 
-  function handlePrint() {
-    window.print();
+  async function handleDownloadPdf() {
+    if (!order || pdfDownloading) return;
+    setPdfError(null);
+    setPdfDownloading(true);
+    try {
+      await downloadReceiptPdf("order-receipt", `${order.orderNumber}-receipt`);
+    } catch (err) {
+      setPdfError(
+        err instanceof Error ? err.message : "Could not create PDF. Please try again.",
+      );
+    } finally {
+      setPdfDownloading(false);
+    }
   }
 
   if (loading || !order) {
     return (
-      <div className="checkout-page flex min-h-dvh items-center justify-center bg-background">
-        <p className="text-on-surface-variant">Loading your receipt…</p>
+      <div className="checkout-page flex min-h-dvh bg-background">
+        <LoadingBlock fullPage message="Loading your receipt…" />
       </div>
     );
   }
@@ -151,14 +165,21 @@ export default function OrderConfirmationPage() {
         </div>
       </div>
 
+      {pdfError ? (
+        <p className="mb-md rounded-lg border border-error bg-error-container px-md py-sm text-sm text-error print:hidden">
+          {pdfError}
+        </p>
+      ) : null}
+
       <OrderReceipt order={order} />
 
-      {hasTableSession && !visitComplete && (
+      {!visitComplete && (
         <div className="mt-lg rounded-2xl border border-primary-container/30 bg-primary-container/10 p-md print:hidden">
           <p className="text-sm font-semibold text-on-surface">Want to add more?</p>
           <p className="mt-1 text-xs text-on-surface-variant">
-            You can place another order for the same table while this one is being prepared
-            (dessert, drinks, extras).
+            {hasTableSession
+              ? "You can place another order for the same table while this one is being prepared (dessert, drinks, extras)."
+              : "You can place another order while this one is being prepared (dessert, drinks, extras)."}
           </p>
           <Link
             href={pathWithSession(MENU_PAGE_PATH)}
@@ -170,36 +191,35 @@ export default function OrderConfirmationPage() {
         </div>
       )}
 
-      <div className="confirmation-actions mt-lg grid grid-cols-1 gap-sm print:hidden sm:grid-cols-2">
+      <div className="confirmation-actions mt-lg flex flex-col gap-sm">
         <button
           type="button"
-          onClick={handlePrint}
-          className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest py-3 text-sm font-semibold text-on-surface hover:bg-surface-container"
+          disabled={pdfDownloading}
+          onClick={() => void handleDownloadPdf()}
+          className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-secondary-container bg-secondary-container/15 py-3 text-sm font-semibold text-secondary hover:bg-secondary-container/25 disabled:opacity-60"
         >
-          <span className="material-symbols-outlined text-[20px]">print</span>
-          Print receipt
-        </button>
-        <button
-          type="button"
-          onClick={() => downloadReceiptPdf(order)}
-          className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-secondary-container bg-secondary-container/15 py-3 text-sm font-semibold text-secondary hover:bg-secondary-container/25"
-        >
-          <span className="material-symbols-outlined text-[20px]">download</span>
-          Download receipt as PDF
+          <span className="material-symbols-outlined text-[20px]">
+            {pdfDownloading ? "hourglass_top" : "download"}
+          </span>
+          {pdfDownloading ? "Creating PDF…" : "Download receipt as PDF"}
         </button>
         {visitComplete ? (
           <Link
             href={MENU_PAGE_PATH}
-            onClick={() => clearTableSession()}
-            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
+            onClick={() => {
+              if (hasTableSession) clearTableSession();
+            }}
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary"
           >
-            <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
-            Done — scan QR for your next visit
+            <span className="material-symbols-outlined text-[20px]">
+              {hasTableSession ? "qr_code_scanner" : "restaurant_menu"}
+            </span>
+            {hasTableSession ? "Done — scan QR for your next visit" : "Done — back to menu"}
           </Link>
         ) : (
           <Link
             href={pathWithSession(MENU_PAGE_PATH)}
-            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary sm:col-span-2"
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-on-primary"
           >
             <span className="material-symbols-outlined text-[20px]">restaurant_menu</span>
             Back to menu
@@ -208,7 +228,7 @@ export default function OrderConfirmationPage() {
         {showAllOrdersLink && (
           <Link
             href={pathWithSession(ORDERS_HISTORY_PATH)}
-            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary sm:col-span-2"
+            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-primary py-3 text-sm font-semibold text-primary"
           >
             <span className="material-symbols-outlined text-[20px]">receipt_long</span>
             All active orders ({activeTableOrders.length})

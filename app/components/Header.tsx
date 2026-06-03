@@ -39,7 +39,7 @@ export function Header({
   return (
     <>
       <header
-        className={`fixed top-0 z-50 flex w-full max-w-[100vw] items-center justify-between gap-1.5 pt-[env(safe-area-inset-top,0px)] sm:gap-3 ${
+        className={`fixed inset-x-0 top-0 z-50 flex w-full max-w-full items-center justify-between gap-1.5 pt-[env(safe-area-inset-top,0px)] sm:gap-3 ${
           isQr
             ? "qr-header"
             : "h-[var(--header-height)] bg-primary px-margin-mobile text-on-primary shadow-md md:px-margin-desktop lg:px-8 xl:px-12"
@@ -76,7 +76,7 @@ export function Header({
           {showBackToMenu && (
             <Link
               href={navBackHref}
-              aria-label={isQr ? navBackLabel : undefined}
+              aria-label={navBackLabel}
               className={`flex min-h-11 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 sm:px-3 sm:text-base ${
                 isQr
                   ? "qr-header-back"
@@ -86,11 +86,15 @@ export function Header({
               <span className="material-symbols-outlined text-[22px]">
                 {backHref === ADMIN_DASHBOARD_PATH ? "admin_panel_settings" : "arrow_back"}
               </span>
-              <span className={isQr ? "qr-header-back-label" : undefined}>{navBackLabel}</span>
+              <span className={isQr ? "qr-header-back-label" : "hidden sm:inline"}>
+                {navBackLabel}
+              </span>
             </Link>
           )}
 
-          {showOrderStatus && !isQr && <OrderStatusNavButton />}
+          {showOrderStatus && !isQr && (
+            <OrderStatusNavButton showLabel={!showBackToMenu} />
+          )}
 
           {showCart && !isQr && (
             <button

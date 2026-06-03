@@ -19,12 +19,10 @@ export function PriceBreakdown({
   compact,
 }: PriceBreakdownProps) {
   const grandTotal = computeGrandTotal(subtotal);
-  const rowClass = compact
-    ? "flex justify-between text-sm"
-    : "flex justify-between text-body-lg";
+  const rowClass = compact ? "price-row text-sm" : "price-row text-body-lg";
 
   return (
-    <div className="space-y-2 border-t border-surface-variant pt-md">
+    <div className="space-y-2 border-t border-surface-variant pt-md text-left">
       <div className={`${rowClass} text-on-surface-variant`}>
         <span>Subtotal</span>
         <span className="font-medium text-on-surface">{formatPrice(subtotal)}</span>
@@ -38,7 +36,7 @@ export function PriceBreakdown({
         </div>
       )}
       <div
-        className={`flex items-end justify-between border-t border-dashed border-surface-variant pt-sm ${
+        className={`price-row items-end border-t border-dashed border-surface-variant pt-sm ${
           compact ? "text-base" : "text-lg"
         }`}
       >

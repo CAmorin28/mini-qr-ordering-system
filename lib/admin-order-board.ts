@@ -32,6 +32,13 @@ function withStatus(orders: PlacedOrder[], status: OrderStatus): PlacedOrder[] {
   return healthy(orders).filter((o) => o.status === status).sort(byNewestFirst);
 }
 
+/** Paid or still in payment queue — kitchen has not started yet. */
+function awaitingKitchen(orders: PlacedOrder[]): PlacedOrder[] {
+  return healthy(orders)
+    .filter((o) => o.status === "paid" || o.status === "pending_payment")
+    .sort(byNewestFirst);
+}
+
 export function countByOrderType(orders: PlacedOrder[]): Record<OrderType, number> {
   const active = activeOnly(orders);
   return {
@@ -71,20 +78,12 @@ function dineInSections(typed: PlacedOrder[]): AdminBoardSection[] {
   return [
     paymentFailedSection(typed),
     {
-      id: "pending_payment",
-      title: "Awaiting payment",
-      subtitle: "Unpaid — confirm GCash or collect cash at table",
-      icon: "payments",
-      accentClass: "border-amber-200/70 bg-amber-50/40",
-      orders: withStatus(typed, "pending_payment"),
-    },
-    {
       id: "paid",
-      title: "Paid — waiting for kitchen",
-      subtitle: "Payment confirmed — ready to start preparing",
+      title: "Waiting for kitchen",
+      subtitle: "Confirm payment status, then start preparing",
       icon: "check_circle",
       accentClass: "border-emerald-200/70 bg-emerald-50/40",
-      orders: withStatus(typed, "paid"),
+      orders: awaitingKitchen(typed),
     },
     {
       id: "preparing",
@@ -105,7 +104,7 @@ function dineInSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "served",
       title: "Served",
-      subtitle: "Food served — confirm payment, then tap Done to hand off",
+      subtitle: "Food served — tap Done when handed off (collect payment anytime)",
       icon: "done_all",
       accentClass: "border-surface-variant bg-surface-container-low/60",
       orders: withStatus(typed, "served"),
@@ -117,20 +116,12 @@ function pickupSections(typed: PlacedOrder[]): AdminBoardSection[] {
   return [
     paymentFailedSection(typed),
     {
-      id: "pending_payment",
-      title: "Awaiting payment",
-      subtitle: "Unpaid — GCash online or cash on pick-up",
-      icon: "payments",
-      accentClass: "border-amber-200/70 bg-amber-50/40",
-      orders: withStatus(typed, "pending_payment"),
-    },
-    {
       id: "paid",
-      title: "Paid — waiting for kitchen",
-      subtitle: "Payment confirmed — ready to start preparing",
+      title: "Waiting for kitchen",
+      subtitle: "Confirm payment status, then start preparing",
       icon: "check_circle",
       accentClass: "border-emerald-200/70 bg-emerald-50/40",
-      orders: withStatus(typed, "paid"),
+      orders: awaitingKitchen(typed),
     },
     {
       id: "preparing",
@@ -143,7 +134,7 @@ function pickupSections(typed: PlacedOrder[]): AdminBoardSection[] {
     {
       id: "ready_for_pickup",
       title: "Ready for pick-up",
-      subtitle: "Ready for customer — confirm payment, then tap Done to hand off",
+      subtitle: "Ready for customer — tap Done when handed off (collect payment anytime)",
       icon: "takeout_dining",
       accentClass: "border-teal-200/70 bg-teal-50/40",
       orders: withStatus(typed, "ready_for_pickup"),

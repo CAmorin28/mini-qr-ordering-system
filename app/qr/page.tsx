@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import QRCode from "qrcode";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
+import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
 import { StaffTableQrPanel } from "@/app/components/StaffTableQrPanel";
 import {
   MENU_QR_COLORS,
@@ -104,7 +105,11 @@ export default async function QrPage({ searchParams }: QrPageProps) {
           <div className="qr-panel-right-inner">
             <div className={isStaff ? "qr-card qr-card--staff" : "qr-card"}>
               {isStaff ? (
-                <Suspense fallback={<p className="p-md text-center text-sm">Loading QR generator…</p>}>
+                <Suspense
+                  fallback={
+                    <LoadingBlock className="py-xl" message="Loading QR generator…" />
+                  }
+                >
                   <StaffTableQrPanel
                     initialTableLetter={tableLetter}
                     serverMenuUrl={menuUrl}

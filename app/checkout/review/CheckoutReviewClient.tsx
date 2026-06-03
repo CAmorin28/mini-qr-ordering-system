@@ -73,8 +73,6 @@ export default function CheckoutReviewClient() {
   const subtotal = computeSubtotal(lines);
   const grandTotal = computeGrandTotal(subtotal);
   const isPayNow = paymentMethod === "gcash";
-  const isDineIn = form.orderType === "dine_in";
-  const hasTable = Boolean((form.tableLetter || tableLetter).trim());
   const menuPath = pathWithSession(MENU_PAGE_PATH);
 
   useEffect(() => {
@@ -100,12 +98,6 @@ export default function CheckoutReviewClient() {
 
     if (!form.fullName.trim()) {
       setFormError("Please enter your name for the order.");
-      return;
-    }
-    if (!hasTable) {
-      setFormError(
-        "A table QR session is required. Scan your table QR code from staff before ordering.",
-      );
       return;
     }
     if (!paymentMethod) {
@@ -187,11 +179,7 @@ export default function CheckoutReviewClient() {
               <span className="font-semibold text-on-surface">{formatTableLabel(tableLetter)}</span>
               <span className="text-on-surface-variant"> · QR table session</span>
             </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-error/40 bg-error-container/30 px-md py-sm text-sm text-error">
-              Scan your table QR code before placing an order (dine-in and pick-up).
-            </div>
-          )}
+          ) : null}
 
           <section className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
             <h2 className="mb-md flex items-center gap-2 text-headline-md font-semibold">
@@ -214,12 +202,14 @@ export default function CheckoutReviewClient() {
                     }`}
                   >
                     <span className="material-symbols-outlined shrink-0 text-secondary">{opt.icon}</span>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="font-semibold text-on-surface">{opt.label}</span>
-                      <p className="mt-0.5 text-xs text-on-surface-variant">
+                      <p className="text-body-readable mt-0.5 text-xs text-on-surface-variant">
                         {opt.id === "dine_in"
-                          ? "We will bring your order to your table"
-                          : "Collect at the counter when ready (same table QR session)"}
+                          ? hasTableSession
+                            ? "We will bring your order to your table"
+                            : "Tell staff your name — we will bring your order when ready"
+                          : "Collect at the counter when ready"}
                       </p>
                     </div>
                   </button>
@@ -245,15 +235,17 @@ export default function CheckoutReviewClient() {
                   placeholder="Your name"
                 />
               </label>
-              <div className="block">
-                <span className="mb-1 block text-sm font-medium text-on-surface-variant">
-                  Table session
-                </span>
-                <div className="checkout-input flex items-center bg-surface-container-low font-bold text-on-surface">
-                  {hasTable ? formatTableLabel(form.tableLetter || tableLetter) : "Scan table QR code"}
+              {hasTableSession ? (
+                <div className="block">
+                  <span className="mb-1 block text-sm font-medium text-on-surface-variant">
+                    Table
+                  </span>
+                  <div className="checkout-input flex items-center bg-surface-container-low font-bold text-on-surface">
+                    {formatTableLabel(form.tableLetter || tableLetter)}
+                  </div>
                 </div>
-              </div>
-              <label className="block">
+              ) : null}
+              <label className={`block ${hasTableSession ? "" : "sm:col-span-2"}`}>
                 <span className="mb-1 block text-sm font-medium text-on-surface-variant">
                   Contact number (optional)
                 </span>
@@ -306,9 +298,9 @@ export default function CheckoutReviewClient() {
                     }`}
                   >
                     <PaymentMethodIcon method={opt.id} selected={selected} />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="font-semibold text-on-surface">{opt.label}</span>
-                      <p className="mt-0.5 text-xs text-on-surface-variant">{opt.description}</p>
+                      <p className="text-body-readable mt-0.5 text-xs text-on-surface-variant">{opt.description}</p>
                     </div>
                     {selected && (
                       <span className="material-symbols-outlined ml-auto text-secondary">
@@ -325,21 +317,18 @@ export default function CheckoutReviewClient() {
             <h2 className="mb-md text-headline-md font-semibold">Order review</h2>
             <ul className="mb-md space-y-2 border-b border-surface-variant pb-md">
               {lines.map((line) => (
-                <li
-                  key={line.item.id}
-                  className="flex justify-between gap-2 text-sm text-on-surface-variant"
-                >
-                  <span>
+                <li key={line.item.id} className="price-row text-sm text-on-surface-variant">
+                  <span className="min-w-0">
                     {line.item.name}{" "}
                     <span className="text-on-surface">× {line.quantity}</span>
                   </span>
-                  <span className="shrink-0 font-medium text-on-surface">
+                  <span className="font-medium text-on-surface">
                     {formatPrice(lineSubtotal(line))}
                   </span>
                 </li>
               ))}
             </ul>
-            <div className="mt-md flex justify-between border-t border-dashed border-surface-variant pt-md">
+            <div className="price-row mt-md items-end border-t border-dashed border-surface-variant pt-md">
               <span className="font-semibold text-on-surface">Total</span>
               <span className="text-xl font-bold text-secondary">{formatPrice(grandTotal)}</span>
             </div>

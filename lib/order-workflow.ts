@@ -24,24 +24,24 @@ export function getAllowedStatuses(order: PlacedOrder): OrderStatus[] {
 }
 
 function kitchenStatusFlow(orderType: OrderType): OrderStatus[] {
-  return statusFlowForOrderType(orderType).filter((s) => s !== "paid");
-}
-
-function statusForKitchenFlow(status: OrderStatus): OrderStatus {
-  return status === "paid" ? "pending_payment" : status;
+  return statusFlowForOrderType(orderType).filter(
+    (s) => s !== "paid" && s !== "pending_payment",
+  );
 }
 
 export function getNextStatus(order: PlacedOrder): OrderStatus | null {
+  if (order.status === "pending_payment" || order.status === "paid") {
+    return "preparing";
+  }
   const flow = kitchenStatusFlow(order.customer.orderType);
-  const index = flow.indexOf(statusForKitchenFlow(order.status));
+  const index = flow.indexOf(order.status);
   if (index < 0 || index >= flow.length - 1) return null;
   return flow[index + 1] ?? null;
 }
 
-/** Dine-in kitchen steps require payment first. */
-export function canStartPreparing(order: PlacedOrder): boolean {
-  if (order.customer.orderType === "pickup") return true;
-  return order.paymentStatus === "paid";
+/** Kitchen may start before payment (cash / pay later — dine-in and pick-up). */
+export function canStartPreparing(_order: PlacedOrder): boolean {
+  return true;
 }
 
 export function paymentStatusForOrderStatus(status: OrderStatus): PlacedOrder["paymentStatus"] {

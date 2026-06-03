@@ -79,7 +79,7 @@ Protected API routes (require admin session cookie):
 ## Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In **SQL Editor**, run `supabase/schema.sql` then `supabase/seed.sql`.
+2. In **SQL Editor**, run `supabase/schema.sql` then `supabase/seed.sql`, then `supabase/migrate-realtime-orders.sql` (live order updates for admin and customers).
 3. Add environment variables (local `.env.local` and Vercel → Settings → Environment Variables):
 
 | Name | Notes |

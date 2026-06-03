@@ -24,9 +24,10 @@ import {
 interface TableSessionContextValue {
   tableLetter: string;
   tableLabel: string;
+  /** True only after scanning a table QR (?table=). Walk-in orders use no table session. */
   hasTableSession: boolean;
   setTableLetter: (letter: string) => void;
-  /** End QR session: clear storage and strip ?table= from customer routes. */
+  /** End optional table QR session: clear storage and strip ?table= from customer routes. */
   clearTableSession: () => void;
   pathWithSession: (path: string) => string;
 }

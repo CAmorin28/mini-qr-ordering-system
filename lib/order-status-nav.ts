@@ -12,16 +12,23 @@ export function activePlacedOrders(orders: PlacedOrder[]): PlacedOrder[] {
   return customerVisibleOrders(orders.filter(isPlacedOrder));
 }
 
-/** Active placed orders that belong to the current table QR session only. */
+/**
+ * Active orders for the current customer context.
+ * With a table letter: orders for that QR table session.
+ * Without: guest orders on this device (no table on the order).
+ */
 export function activePlacedOrdersForTable(
   orders: PlacedOrder[],
   tableLetter: string,
 ): PlacedOrder[] {
   const table = normalizeTableLetter(tableLetter);
-  if (!table) return [];
-  return activePlacedOrders(orders).filter(
-    (o) => normalizeTableLetter(o.customer.tableLetter) === table,
-  );
+  const active = activePlacedOrders(orders);
+  if (table) {
+    return active.filter(
+      (o) => normalizeTableLetter(o.customer.tableLetter) === table,
+    );
+  }
+  return active.filter((o) => !normalizeTableLetter(o.customer.tableLetter));
 }
 
 /** Where to send the customer for live status + receipt (step 3). */
@@ -31,9 +38,7 @@ export function resolveOrderStatusHref(
   pathWithSession: (path: string) => string,
 ): string | null {
   const table = normalizeTableLetter(tableLetter);
-  if (!table) return null;
-
-  const active = activePlacedOrdersForTable(orders, table);
+  const active = activePlacedOrdersForTable(orders, tableLetter);
   if (active.length === 1) {
     return pathWithSession(checkoutConfirmationPath(active[0].orderId));
   }
@@ -44,12 +49,15 @@ export function resolveOrderStatusHref(
   const activeId = getActiveOrderId(table);
   if (activeId) {
     const localMatch = listOrders(table).find((o) => o.orderId === activeId);
-    if (localMatch && activePlacedOrdersForTable([localMatch], table).length === 1) {
+    if (
+      localMatch &&
+      activePlacedOrdersForTable([localMatch], tableLetter).length === 1
+    ) {
       return pathWithSession(checkoutConfirmationPath(activeId));
     }
   }
 
-  const local = activePlacedOrdersForTable(listOrders(table), table);
+  const local = activePlacedOrdersForTable(listOrders(table), tableLetter);
   if (local.length === 1) {
     return pathWithSession(checkoutConfirmationPath(local[0].orderId));
   }
