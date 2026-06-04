@@ -1000,6 +1000,20 @@ body:has(.qr-page-root) {
   animation: slide-up var(--motion-normal) var(--motion-ease-out) forwards;
 }
 
+/* Cart sheet sits above the menu sticky checkout bar */
+@media (max-width: 1023px) {
+  .menu-page:has(.menu-checkout-bar) .cart-dropdown-panel {
+    bottom: calc(var(--menu-checkout-bar-offset) + 0.5rem);
+    max-height: min(
+      70dvh,
+      calc(
+        100dvh - var(--header-height) - env(safe-area-inset-top, 0px) -
+          var(--menu-checkout-bar-offset) - 1.5rem
+      )
+    );
+  }
+}
+
 .checkout-cta,
 a.checkout-cta,
 button.checkout-cta {
@@ -1061,6 +1075,8 @@ button.checkout-cta {
   display: flex;
   width: 100%;
   min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   flex: 1 1 auto;
   flex-direction: column;
 }
@@ -1068,16 +1084,61 @@ button.checkout-cta {
 .admin-login-page {
   display: grid;
   width: 100%;
+  height: 100dvh;
   min-height: 100dvh;
+  max-height: 100dvh;
   flex: 1 1 auto;
   grid-template-columns: 1fr;
+  overflow: hidden;
   background: var(--color-background);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+@media (max-width: 1023px) {
+  .admin-login-shell {
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-login-page {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-login-hero {
+    flex-shrink: 0;
+    min-height: auto;
+  }
+
+  .admin-login-main {
+    flex-shrink: 0;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .admin-login-hero {
+    gap: 1.25rem;
+    padding: 1.25rem;
+  }
+
+  .admin-login-hero-title {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+
+  .admin-login-hero-lead {
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .admin-login-page {
-    grid-template-columns: minmax(26rem, 46%) minmax(0, 1fr);
+    grid-template-columns: minmax(28rem, 46%) minmax(0, 1fr);
   }
 }
 
@@ -1088,8 +1149,8 @@ button.checkout-cta {
   flex-direction: column;
   justify-content: space-between;
   gap: 2rem;
-  overflow-y: auto;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  overflow: hidden;
+  padding: clamp(1.75rem, 4vw, 3.25rem);
   background: linear-gradient(
     160deg,
     var(--color-primary) 0%,
@@ -1101,7 +1162,7 @@ button.checkout-cta {
 
 .admin-login-hero-inner {
   width: 100%;
-  max-width: 36rem;
+  max-width: 40rem;
 }
 
 .admin-login-hero-lead {
@@ -1131,15 +1192,15 @@ button.checkout-cta {
 
 .admin-login-form-wrap {
   width: 100%;
-  max-width: 26rem;
+  max-width: 32rem;
 }
 
 .admin-login-card {
   width: 100%;
-  border-radius: 1rem;
+  border-radius: 1.125rem;
   border: 1px solid var(--color-surface-variant);
   background: var(--color-surface-container-lowest);
-  padding: clamp(1.25rem, 3vw, 2rem);
+  padding: clamp(1.5rem, 3.5vw, 2.5rem);
   box-shadow: 0 4px 24px rgba(5, 5, 27, 0.06);
 }
 
@@ -1151,17 +1212,19 @@ button.checkout-cta {
 .admin-login-field .checkout-input {
   display: block;
   width: 100%;
+  min-height: 3.25rem;
   box-sizing: border-box;
+  font-size: 1rem;
 }
 
 .admin-login-field-icon {
   pointer-events: none;
   position: absolute;
-  left: 0.75rem;
+  left: 0.875rem;
   top: 50%;
   z-index: 1;
   translate: 0 -50%;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   color: var(--color-on-surface-variant);
 }
 
@@ -1211,6 +1274,9 @@ button.checkout-cta {
 :root {
   --header-height: 72px;
   --page-bottom-safe: env(safe-area-inset-bottom, 0px);
+  /* Sticky mobile chrome — keep in sync with MenuCheckoutBar / checkout-aside-actions */
+  --menu-checkout-bar-offset: 7.75rem;
+  --checkout-mobile-actions-offset: 9rem;
 }
 
 @media (max-width: 639px) {
@@ -1279,6 +1345,175 @@ body {
   box-sizing: border-box;
 }
 
+/* Menu page — Foodpanda-style desktop cart + layout (1024px+) */
+@media (min-width: 1024px) {
+  .menu-page {
+    --spacing-cart-width: 22rem;
+    --spacing-margin-desktop: 2rem;
+  }
+
+  .menu-page .menu-cart-aside {
+    width: var(--spacing-cart-width);
+    max-width: min(22rem, 30vw);
+    flex-shrink: 0;
+  }
+
+  .menu-page .menu-cart-sticky {
+    position: sticky;
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 0.75rem);
+    width: 100%;
+  }
+
+  /* Fit content when few items; cap height and scroll when cart is full */
+  .menu-page .menu-cart-panel {
+    height: auto;
+    max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px) - 1.5rem);
+  }
+
+  .menu-page .menu-cart-body {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px) - 12.5rem);
+  }
+
+  .menu-page .menu-cart-body--empty {
+    min-height: 11rem;
+    max-height: 11rem;
+  }
+
+  /* Fixed-width qty stepper so + buttons align across all cart lines */
+  .menu-page .menu-cart-qty {
+    width: 7.25rem;
+    justify-content: space-between;
+  }
+
+  .menu-page main.menu-page-main {
+    max-width: 100rem;
+    gap: 2rem;
+    padding-inline: 2rem;
+  }
+
+  .menu-page .menu-grid {
+    gap: 1.5rem;
+  }
+
+  .menu-page .menu-food-card {
+    min-height: 18.5rem;
+    padding: 1.25rem;
+  }
+
+  .menu-page .menu-food-card__image {
+    margin-bottom: 1rem;
+  }
+
+  .menu-page .menu-food-card__emoji {
+    font-size: 4.5rem;
+  }
+
+  .menu-page .menu-food-card__name {
+    font-size: 1.125rem;
+    line-height: 1.35;
+  }
+
+  .menu-page .menu-food-card__price {
+    font-size: 1.375rem;
+    margin-top: 0.375rem;
+  }
+
+  .menu-page .menu-food-card__add {
+    min-height: 3rem;
+    font-size: 1rem;
+    padding-block: 0.75rem;
+  }
+
+  .menu-page .menu-category-btn {
+    min-height: 3.25rem;
+    padding-inline: 1.75rem;
+    font-size: 1.0625rem;
+  }
+
+  .menu-page .menu-category-btn__emoji {
+    font-size: 1.75rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-title {
+    font-size: 1.375rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-meta {
+    font-size: 0.9375rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-header,
+  .menu-page .menu-cart-panel .menu-cart-body,
+  .menu-page .menu-cart-panel .menu-cart-footer {
+    padding-inline: 1.5rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-item-thumb {
+    height: 4.5rem;
+    width: 4.5rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-item-name {
+    font-size: 1rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-item-price {
+    font-size: 1rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-subtotal-label {
+    font-size: 1rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-subtotal-value {
+    font-size: 1.5rem;
+  }
+
+  .menu-page .menu-cart-panel .menu-cart-checkout {
+    min-height: 3.25rem;
+    font-size: 1.0625rem;
+    padding-block: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .menu-page {
+    --spacing-cart-width: 24rem;
+  }
+
+  .menu-page .menu-cart-aside {
+    max-width: min(24rem, 28vw);
+  }
+
+  .menu-page main.menu-page-main {
+    gap: 2.5rem;
+    padding-inline: 2.5rem;
+  }
+
+  .menu-page .menu-grid {
+    gap: 1.75rem;
+  }
+
+  .menu-page .menu-food-card {
+    min-height: 20rem;
+    padding: 1.5rem;
+  }
+
+  .menu-page .menu-food-card__emoji {
+    font-size: 5rem;
+  }
+
+  .menu-page .menu-food-card__name {
+    font-size: 1.25rem;
+  }
+
+  .menu-page .menu-food-card__price {
+    font-size: 1.5rem;
+  }
+}
+
 /* Shared page chrome — consistent gutters and notch/home-indicator spacing */
 .page-main {
   box-sizing: border-box;
@@ -1292,34 +1527,208 @@ body {
   padding-bottom: calc(var(--spacing-xl) + var(--page-bottom-safe));
 }
 
-/* Primary CTAs: full width on phones, inline on larger screens */
-.checkout-actions {
+/* Checkout — Foodpanda-style desktop (full width, sticky summary column) */
+@media (min-width: 1024px) {
+  .checkout-page {
+    --checkout-aside-width: min(30rem, 36vw);
+    --spacing-margin-desktop: 2rem;
+  }
+
+  .checkout-page .checkout-page-main {
+    max-width: min(100rem, calc(100vw - 2.5rem));
+    padding-inline: 2rem;
+  }
+
+  .checkout-page .checkout-hero {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1.75rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .checkout-page .checkout-hero__heading {
+    flex: 0 1 auto;
+    max-width: min(26rem, 42vw);
+    margin: 0;
+    padding: 0;
+    border: none;
+    text-align: left;
+  }
+
+  .checkout-page .checkout-hero__stepper {
+    flex: 0 1 32rem;
+    width: auto;
+    min-width: min(100%, 18rem);
+    max-width: 36rem;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .checkout-page .checkout-hero__stepper .checkout-stepper {
+    width: 100%;
+  }
+
+  .checkout-page .checkout-page-title {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .checkout-page .checkout-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--checkout-aside-width);
+    align-items: start;
+    gap: 2rem;
+  }
+
+  .checkout-page .checkout-aside-sticky {
+    position: sticky;
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 0.75rem);
+    width: 100%;
+  }
+
+  .checkout-page .checkout-aside-card {
+    padding: 1.5rem;
+  }
+
+  .checkout-page .checkout-line-qty {
+    width: 7.75rem;
+    justify-content: space-between;
+  }
+
+  .checkout-page .checkout-line-item__controls {
+    justify-content: center;
+  }
+
+  .checkout-page .checkout-input {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+
+  .checkout-page .checkout-aside-total {
+    font-size: 1.875rem;
+  }
+
+  .checkout-page .checkout-actions-primary,
+  .checkout-page .checkout-actions-secondary {
+    min-height: 3.5rem;
+    padding-block: 1.0625rem;
+    padding-inline: var(--spacing-lg);
+    font-size: 1.0625rem;
+  }
+
+  /* Review step: use horizontal space for form sections */
+  .checkout-page .checkout-layout__main .rounded-2xl.border {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .checkout-page {
+    --checkout-aside-width: 32rem;
+  }
+
+  .checkout-page .checkout-page-main {
+    max-width: min(100rem, calc(100vw - 3rem));
+    padding-inline: 2.5rem;
+  }
+
+  .checkout-page .checkout-layout {
+    gap: 2.5rem;
+  }
+
+  .checkout-page .checkout-hero {
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+  }
+
+  .checkout-page .checkout-hero__stepper {
+    flex-basis: 34rem;
+    max-width: 38rem;
+  }
+
+  .checkout-page .checkout-page-title {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .checkout-page {
+    --checkout-aside-width: 34rem;
+  }
+
+  .checkout-page .checkout-page-main {
+    padding-inline: 3rem;
+  }
+
+  .checkout-page .checkout-layout {
+    gap: 3rem;
+  }
+}
+
+/* Primary CTAs: full width on phones, side by side on larger screens */
+.checkout-actions,
+.checkout-aside-actions {
   display: flex;
+  width: 100%;
+  max-width: 100%;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-base);
 }
 
 @media (min-width: 640px) {
   .checkout-actions {
     flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
+    gap: var(--spacing-base);
   }
 
   .checkout-actions .checkout-actions-primary,
   .checkout-actions .checkout-actions-secondary {
+    flex: 1 1 50%;
+    min-width: 0;
     width: auto;
   }
 }
 
 .checkout-actions-primary,
 .checkout-actions-secondary {
-  display: inline-flex;
+  display: flex;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  padding-block: 0.9375rem;
+  padding-inline: var(--spacing-md);
+  font-size: var(--text-headline-sm);
+  line-height: var(--text-headline-sm--line-height);
   touch-action: manipulation;
+}
+
+/* Checkout steps 1–2: sticky Pay / Continue bar on phones & tablets */
+@media (max-width: 1023px) {
+  .checkout-page:has(.checkout-aside-actions) .checkout-page-main {
+    padding-bottom: calc(
+      var(--spacing-xl) + var(--checkout-mobile-actions-offset) + var(--page-bottom-safe)
+    );
+  }
+
+  .checkout-page .checkout-aside-actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--spacing-md) var(--spacing-margin-mobile);
+    padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-surface-variant);
+    background: var(--color-surface-container-lowest);
+    box-shadow: 0 -8px 24px rgba(5, 5, 27, 0.1);
+  }
 }
 
 .touch-target {
@@ -1462,6 +1871,183 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Admin dashboard — larger desktop scale (768px+); mobile unchanged */
+@media (min-width: 768px) {
+  .admin-shell .admin-content {
+    max-width: 72rem;
+  }
+
+  .admin-shell .admin-header-title {
+    font-size: 1.5rem;
+  }
+
+  .admin-shell .admin-header-brand {
+    font-size: 0.75rem;
+  }
+
+  .admin-shell .admin-header-icon {
+    font-size: 2rem;
+  }
+
+  .admin-shell .admin-header-toolbar .admin-header-btn {
+    min-height: 2.875rem;
+    min-width: 0;
+    gap: 0.375rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .admin-shell .admin-header-toolbar .admin-header-btn .material-symbols-outlined {
+    font-size: 1.375rem;
+  }
+
+  .admin-shell .admin-stat-card {
+    padding: 1.25rem;
+  }
+
+  .admin-shell .admin-stat-label {
+    font-size: 0.875rem;
+  }
+
+  .admin-shell .admin-stat-icon {
+    font-size: 1.75rem;
+  }
+
+  .admin-shell .admin-stat-number {
+    font-size: 2.25rem;
+    line-height: 1.15;
+  }
+
+  .admin-shell .admin-filter-label {
+    font-size: 0.875rem;
+  }
+
+  .admin-shell .admin-view-tabs {
+    max-width: none;
+    gap: 0.75rem;
+  }
+
+  .admin-shell .admin-view-tab {
+    min-height: 3.5rem;
+    flex-direction: row;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+  }
+
+  .admin-shell .admin-view-tab .material-symbols-outlined {
+    font-size: 1.5rem;
+  }
+
+  .admin-shell .admin-view-tab__label {
+    width: auto;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .admin-shell .admin-view-tab__count {
+    font-size: 0.875rem;
+    padding: 0.125rem 0.625rem;
+  }
+
+  .admin-shell .admin-order-type-tabs {
+    max-width: 36rem;
+    gap: 0.75rem;
+  }
+
+  .admin-shell .admin-order-type-tab {
+    min-height: 3.5rem;
+    padding-inline: 1.25rem;
+    font-size: 1rem;
+  }
+
+  .admin-shell .admin-order-type-tab .material-symbols-outlined {
+    font-size: 1.5rem;
+  }
+
+  .admin-shell .admin-board-section {
+    padding: 1.25rem;
+  }
+
+  .admin-shell .admin-section-icon {
+    font-size: 2rem;
+  }
+
+  .admin-shell .admin-section-title {
+    font-size: 1.25rem;
+  }
+
+  .admin-shell .admin-section-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .admin-shell .admin-section-count {
+    font-size: 0.9375rem;
+    padding: 0.125rem 0.625rem;
+  }
+
+  .admin-shell .admin-order-card {
+    padding: 1.25rem;
+  }
+
+  .admin-shell .admin-order-card__id {
+    font-size: 1.25rem;
+  }
+
+  .admin-shell .admin-order-card__meta {
+    font-size: 0.9375rem;
+  }
+
+  .admin-shell .admin-order-card__total {
+    font-size: 1.5rem;
+  }
+
+  .admin-shell .admin-order-card__detail {
+    font-size: 0.9375rem;
+  }
+
+  .admin-shell .admin-status-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.875rem;
+  }
+
+  .admin-shell .admin-main-grid {
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-shell .admin-content {
+    max-width: 84rem;
+  }
+
+  .admin-shell .admin-header-title {
+    font-size: 1.75rem;
+  }
+
+  .admin-shell .admin-stat-number {
+    font-size: 2.5rem;
+  }
+
+  .admin-shell .admin-stat-card {
+    padding: 1.5rem;
+  }
+
+  .admin-shell .admin-view-tab {
+    min-height: 3.75rem;
+    padding: 1rem 1.25rem;
+    font-size: 1.0625rem;
+  }
+
+  .admin-shell .admin-order-type-tab {
+    min-height: 3.75rem;
+  }
+
+  .admin-shell .admin-order-card__total {
+    font-size: 1.625rem;
+  }
+}
+
 .admin-order-modal-backdrop {
   align-items: flex-end;
   padding: 0;
@@ -1486,8 +2072,141 @@ body {
 
 @media (min-width: 640px) {
   .admin-order-modal-panel {
+    width: min(94vw, 40rem);
+    max-width: min(94vw, 40rem);
     max-height: min(92dvh, calc(100dvh - 2rem));
     border-radius: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-order-modal-backdrop {
+    padding: 1.5rem;
+  }
+
+  .admin-order-modal-panel {
+    width: min(90vw, 52rem);
+    max-width: min(90vw, 52rem);
+  }
+
+  .admin-order-modal-panel .admin-modal-header {
+    padding: 1.5rem 2rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-body {
+    padding: 1.5rem 2rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-footer {
+    padding: 1.5rem 2rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-eyebrow {
+    font-size: 0.9375rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-title {
+    font-size: 1.75rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-meta {
+    font-size: 1rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-total {
+    font-size: 2.25rem;
+    line-height: 1.15;
+  }
+
+  .admin-order-modal-panel .admin-modal-subtext,
+  .admin-order-modal-panel .admin-modal-section p,
+  .admin-order-modal-panel .admin-modal-section li {
+    font-size: 1.0625rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-section h3 {
+    font-size: 1.125rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-label {
+    font-size: 0.9375rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-hint {
+    font-size: 0.9375rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-status-badge {
+    font-size: 0.9375rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-footer button {
+    min-height: 3.25rem;
+    font-size: 1.0625rem;
+    padding-block: 1rem;
+  }
+
+  .admin-order-modal-panel .checkout-input {
+    min-height: 3.25rem;
+    font-size: 1.0625rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-close {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-order-modal-panel {
+    width: min(85vw, 64rem);
+    max-width: min(85vw, 64rem);
+  }
+
+  .admin-order-modal-panel .admin-modal-title {
+    font-size: 2rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-total {
+    font-size: 2.75rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-subtext,
+  .admin-order-modal-panel .admin-modal-section p,
+  .admin-order-modal-panel .admin-modal-section li {
+    font-size: 1.125rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-section h3 {
+    font-size: 1.25rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-label {
+    font-size: 1rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-hint {
+    font-size: 1rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-status-badge {
+    font-size: 1rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-footer button {
+    min-height: 3.5rem;
+    font-size: 1.125rem;
+  }
+
+  .admin-order-modal-panel .checkout-input {
+    min-height: 3.5rem;
+    font-size: 1.125rem;
+  }
+
+  .admin-order-modal-panel .admin-modal-header,
+  .admin-order-modal-panel .admin-modal-body,
+  .admin-order-modal-panel .admin-modal-footer {
+    padding: 1.75rem 2.25rem;
   }
 }
 

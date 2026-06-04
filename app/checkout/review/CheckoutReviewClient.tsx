@@ -168,8 +168,72 @@ export default function CheckoutReviewClient() {
         step={2}
         title="Review & pay"
         subtitle="Confirm your order details and choose how to pay."
+        onSubmit={handlePlaceOrder}
+        aside={
+          <>
+            <section className="checkout-aside-card rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg shadow-[0_8px_28px_rgba(29,29,53,0.08)]">
+              <h2 className="text-headline-md font-semibold text-on-surface">Order review</h2>
+              <ul className="mb-md mt-md space-y-2.5 border-b border-surface-variant pb-md">
+                {lines.map((line) => (
+                  <li key={line.item.id} className="price-row text-sm text-on-surface-variant sm:text-base">
+                    <span className="min-w-0">
+                      {line.item.name}{" "}
+                      <span className="text-on-surface">× {line.quantity}</span>
+                    </span>
+                    <span className="font-medium text-on-surface">
+                      {formatPrice(lineSubtotal(line))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="price-row items-end border-t border-dashed border-surface-variant pt-md">
+                <span className="text-base font-semibold text-on-surface">Total</span>
+                <span className="checkout-aside-total text-2xl font-bold text-secondary">
+                  {formatPrice(grandTotal)}
+                </span>
+              </div>
+            </section>
+
+            {paymentError && paymentMethod === "gcash" ? (
+              <PaymentFailedPanel message={paymentError} onRetry={handleRetryPayment} />
+            ) : null}
+
+            {formError ? (
+              <p className="rounded-lg border border-error bg-error-container px-md py-sm text-sm text-error">
+                {formError}
+              </p>
+            ) : null}
+
+            <div className="checkout-actions checkout-aside-actions">
+              <Link
+                href={pathWithSession(CHECKOUT_PAGE_PATH)}
+                className={`checkout-actions-secondary rounded-xl border border-outline-variant font-semibold text-on-surface-variant hover:bg-surface-container ${
+                  processingPayment ? "pointer-events-none opacity-50" : ""
+                }`}
+              >
+                Back to summary
+              </Link>
+              <button
+                type="submit"
+                disabled={processingPayment}
+                className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
+              >
+                {processingPayment
+                  ? isPayNow
+                    ? "Processing…"
+                    : "Placing order…"
+                  : isPayNow
+                    ? "Pay now"
+                    : "Place order"}
+                <span className="material-symbols-outlined text-[20px]">
+                  {isPayNow ? "account_balance_wallet" : "check"}
+                </span>
+              </button>
+            </div>
+          </>
+        }
       >
-        <form onSubmit={handlePlaceOrder} className="space-y-lg">
+        <div className="space-y-md lg:space-y-5">
           {paymentMethod === "gcash" ? (
             <MockPaymentDevControls paymentMethod={paymentMethod} />
           ) : null}
@@ -313,64 +377,7 @@ export default function CheckoutReviewClient() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-lg">
-            <h2 className="mb-md text-headline-md font-semibold">Order review</h2>
-            <ul className="mb-md space-y-2 border-b border-surface-variant pb-md">
-              {lines.map((line) => (
-                <li key={line.item.id} className="price-row text-sm text-on-surface-variant">
-                  <span className="min-w-0">
-                    {line.item.name}{" "}
-                    <span className="text-on-surface">× {line.quantity}</span>
-                  </span>
-                  <span className="font-medium text-on-surface">
-                    {formatPrice(lineSubtotal(line))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="price-row mt-md items-end border-t border-dashed border-surface-variant pt-md">
-              <span className="font-semibold text-on-surface">Total</span>
-              <span className="text-xl font-bold text-secondary">{formatPrice(grandTotal)}</span>
-            </div>
-          </section>
-
-          {paymentError && paymentMethod === "gcash" && (
-            <PaymentFailedPanel message={paymentError} onRetry={handleRetryPayment} />
-          )}
-
-          {formError && (
-            <p className="rounded-lg border border-error bg-error-container px-md py-sm text-sm text-error">
-              {formError}
-            </p>
-          )}
-
-          <div className="checkout-actions">
-            <Link
-              href={pathWithSession(CHECKOUT_PAGE_PATH)}
-              className={`checkout-actions-secondary rounded-xl border border-outline-variant px-lg py-3 text-sm font-semibold text-on-surface-variant ${
-                processingPayment ? "pointer-events-none opacity-50" : ""
-              }`}
-            >
-              Back to summary
-            </Link>
-            <button
-              type="submit"
-              disabled={processingPayment}
-              className="checkout-cta checkout-actions-primary gap-2 rounded-xl bg-primary px-lg py-3.5 text-headline-sm font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
-            >
-              {processingPayment
-                ? isPayNow
-                  ? "Processing…"
-                  : "Placing order…"
-                : isPayNow
-                  ? "Pay now"
-                  : "Place order"}
-              <span className="material-symbols-outlined text-[20px]">
-                {isPayNow ? "account_balance_wallet" : "check"}
-              </span>
-            </button>
-          </div>
-        </form>
+        </div>
       </CheckoutShell>
     </>
   );

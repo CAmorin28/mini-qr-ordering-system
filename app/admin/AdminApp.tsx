@@ -81,34 +81,36 @@ function OrderListCard({
       <button
         type="button"
         onClick={() => onSelect(order.orderId)}
-        className="w-full touch-manipulation rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md active:scale-[0.99]"
+        className="admin-order-card w-full touch-manipulation rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md active:scale-[0.99]"
       >
         <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-on-surface">{order.orderNumber}</p>
-            <p className="break-words text-xs text-on-surface-variant">
+            <p className="admin-order-card__id font-bold text-on-surface">{order.orderNumber}</p>
+            <p className="admin-order-card__meta break-words text-xs text-on-surface-variant">
               {new Date(order.createdAt).toLocaleString("en-PH")} · {order.customer.fullName}
               {order.customer.tableLetter
                 ? ` · ${formatTableLabel(order.customer.tableLetter)}`
                 : ""}
             </p>
           </div>
-          <p className="shrink-0 text-base font-bold tabular-nums text-secondary sm:text-lg">
+          <p className="admin-order-card__total shrink-0 text-lg font-bold tabular-nums text-secondary">
             {formatPrice(order.grandTotal)}
           </p>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <AdminStatusBadge
+            className="admin-status-badge"
             kind="order"
             value={order.status}
             label={adminOrderStatusLabel(order)}
           />
           <AdminStatusBadge
+            className="admin-status-badge"
             kind="payment"
             value={order.paymentStatus}
             label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
           />
-          <span className="text-xs text-on-surface-variant">
+          <span className="admin-order-card__detail text-xs text-on-surface-variant">
             {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
             {PAYMENT_METHOD_LABELS[order.paymentMethod]}
           </span>
@@ -264,13 +266,13 @@ function OrderBoardSection({
 }) {
   return (
     <section
-      className={`rounded-2xl border p-md ${section.accentClass}`}
+      className={`admin-board-section rounded-2xl border p-md ${section.accentClass}`}
       aria-labelledby={`admin-section-${section.id}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span
-            className="material-symbols-outlined mt-0.5 text-[26px] text-secondary-container"
+            className="admin-section-icon material-symbols-outlined mt-0.5 text-[26px] text-secondary-container"
             aria-hidden
           >
             {section.icon}
@@ -278,14 +280,16 @@ function OrderBoardSection({
           <div className="min-w-0 flex-1">
             <h2
               id={`admin-section-${section.id}`}
-              className="text-base font-bold leading-snug text-on-surface"
+              className="admin-section-title text-base font-bold leading-snug text-on-surface"
             >
               {section.title}
-              <span className="ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
+              <span className="admin-section-count ml-2 inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-sm font-bold text-primary">
                 {section.orders.length}
               </span>
             </h2>
-            <p className="mt-0.5 text-xs text-on-surface-variant">{section.subtitle}</p>
+            <p className="admin-section-subtitle mt-0.5 text-xs text-on-surface-variant">
+              {section.subtitle}
+            </p>
           </div>
         </div>
       </div>
@@ -330,6 +334,7 @@ function OrderDetailPanel({
   const showDone = !archived && canMarkOrderDone(preview);
   const showComplete = !archived && readyHandoff;
   const preKitchen = status === "pending_payment" || status === "paid";
+  const nextKitchenStatus = getNextStatus(preview);
   const dirty =
     !archived && (status !== order.status || paymentStatus !== order.paymentStatus);
 
@@ -403,22 +408,22 @@ function OrderDetailPanel({
   }
 
   return createPortal(
-    <div className="admin-order-modal-backdrop fixed inset-0 z-[60] flex justify-center bg-primary/40 backdrop-blur-sm">
+    <div className="admin-order-modal-backdrop fixed inset-0 z-[60] flex items-end justify-center bg-primary/40 backdrop-blur-sm sm:items-center">
       <div
-        className="admin-order-modal-panel flex flex-col overflow-hidden border border-surface-variant bg-surface-container-lowest shadow-2xl"
+        className="admin-order-modal-panel flex w-full flex-col overflow-hidden border border-surface-variant bg-surface-container-lowest shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-order-title"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-surface-variant px-md py-md">
+        <div className="admin-modal-header flex items-start justify-between gap-3 border-b border-surface-variant px-md py-md">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+            <p className="admin-modal-eyebrow text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
               Order details
             </p>
-            <h2 id="admin-order-title" className="text-lg font-bold text-on-surface">
+            <h2 id="admin-order-title" className="admin-modal-title text-xl font-bold text-on-surface sm:text-2xl">
               {order.orderNumber}
             </h2>
-            <p className="text-xs text-on-surface-variant">
+            <p className="admin-modal-meta text-xs text-on-surface-variant">
               {new Date(order.createdAt).toLocaleString("en-PH")}
               {order.completedAt
                 ? ` · Completed ${new Date(order.completedAt).toLocaleString("en-PH")}`
@@ -429,60 +434,62 @@ function OrderDetailPanel({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="touch-target flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container"
+            className="admin-modal-close touch-target flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-[28px]">close</span>
           </button>
         </div>
 
-        <div className="cart-scroll flex-1 overflow-y-auto px-md py-md">
+        <div className="admin-modal-body cart-scroll flex-1 overflow-y-auto px-md py-md">
           <div className="flex flex-wrap gap-2">
             <AdminStatusBadge
+              className="admin-modal-status-badge"
               kind="order"
               value={order.status}
               label={adminOrderStatusLabel(order)}
             />
             <AdminStatusBadge
+              className="admin-modal-status-badge"
               kind="payment"
               value={order.paymentStatus}
               label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
             />
           </div>
 
-          <p className="admin-stat-value mt-md font-bold text-secondary">
+          <p className="admin-modal-total mt-md text-2xl font-bold text-secondary sm:text-3xl">
             {formatPrice(order.grandTotal)}
           </p>
-          <p className="text-sm text-on-surface-variant">
+          <p className="admin-modal-subtext text-sm text-on-surface-variant">
             {PAYMENT_METHOD_LABELS[order.paymentMethod]}
             {order.cutlery ? " · Cutlery requested" : ""}
           </p>
 
-          <section className="mt-lg">
-            <h3 className="text-sm font-bold text-on-surface">Customer</h3>
-            <p className="mt-1 text-sm text-on-surface">{order.customer.fullName}</p>
-            <p className="text-sm text-on-surface-variant">
+          <section className="admin-modal-section mt-lg">
+            <h3 className="text-base font-bold text-on-surface">Customer</h3>
+            <p className="mt-1 text-base text-on-surface">{order.customer.fullName}</p>
+            <p className="text-base text-on-surface-variant">
               {ORDER_TYPE_LABELS[order.customer.orderType]}
               {order.customer.tableLetter
                 ? ` · ${formatTableLabel(order.customer.tableLetter)}`
                 : ""}
             </p>
             {order.customer.contactNumber ? (
-              <p className="text-sm text-on-surface-variant">{order.customer.contactNumber}</p>
+              <p className="text-base text-on-surface-variant">{order.customer.contactNumber}</p>
             ) : null}
             {order.customer.notes ? (
-              <p className="mt-2 rounded-lg bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
+              <p className="mt-2 rounded-lg bg-surface-container-low px-3 py-2 text-base text-on-surface-variant">
                 {order.customer.notes}
               </p>
             ) : null}
           </section>
 
-          <section className="mt-lg">
-            <h3 className="text-sm font-bold text-on-surface">Items</h3>
-            <ul className="mt-2 space-y-2">
+          <section className="admin-modal-section mt-lg">
+            <h3 className="text-base font-bold text-on-surface">Items</h3>
+            <ul className="mt-2 space-y-2.5">
               {order.lines.map((line) => (
                 <li
                   key={line.item.id}
-                  className="flex items-center justify-between gap-2 text-sm"
+                  className="flex items-center justify-between gap-2 text-base"
                 >
                   <span className="text-on-surface">
                     <span className="mr-1">{line.item.emoji ?? "🍽️"}</span>
@@ -504,20 +511,34 @@ function OrderDetailPanel({
           ) : null}
 
           <section
-            className={`mt-lg space-y-md rounded-xl border border-surface-variant bg-surface-container-low p-md ${archived ? "pointer-events-none opacity-50" : ""}`}
+            className={`admin-modal-section mt-lg space-y-md rounded-xl border border-surface-variant bg-surface-container-low p-md md:p-lg ${archived ? "pointer-events-none opacity-50" : ""}`}
           >
-            <h3 className="text-sm font-bold text-on-surface">Update status</h3>
+            <h3 className="text-base font-bold text-on-surface">Update status</h3>
 
             <div>
-              <label htmlFor="order-status" className="text-xs font-semibold text-on-surface-variant">
+              <label
+                htmlFor="order-status"
+                className="admin-modal-label text-xs font-semibold text-on-surface-variant"
+              >
                 Kitchen status
               </label>
               {preKitchen ? (
-                <p className="mt-1 rounded-lg border border-surface-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
-                  {adminOrderStatusLabel({ ...order, status, paymentStatus })} — use{" "}
-                  <span className="font-semibold text-on-surface">Payment status</span> below, then
-                  Advance or Mark as paid before starting preparation.
-                </p>
+                <div className="mt-1 space-y-2">
+                  <p className="rounded-lg border border-surface-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
+                    {adminOrderStatusLabel(preview)} — update{" "}
+                    <span className="font-semibold text-on-surface">Payment status</span> below if
+                    needed, then start preparation when ready.
+                  </p>
+                  {nextKitchenStatus ? (
+                    <button
+                      type="button"
+                      onClick={() => setStatus(nextKitchenStatus)}
+                      className="w-full rounded-lg border border-sky-300 bg-sky-50 px-3 py-2.5 text-sm font-semibold text-sky-900 hover:bg-sky-100"
+                    >
+                      Start {ORDER_STATUS_LABELS[nextKitchenStatus]}
+                    </button>
+                  ) : null}
+                </div>
               ) : (
                 <select
                   id="order-status"
@@ -537,7 +558,7 @@ function OrderDetailPanel({
             <div>
               <label
                 htmlFor="payment-status"
-                className="text-xs font-semibold text-on-surface-variant"
+                className="admin-modal-label text-xs font-semibold text-on-surface-variant"
               >
                 Payment status
               </label>
@@ -553,38 +574,6 @@ function OrderDetailPanel({
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="admin-quick-actions">
-              {order.paymentStatus !== "paid" && (
-                <button
-                  type="button"
-                  onClick={() => setPaymentStatus("paid")}
-                  className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 sm:py-1.5"
-                >
-                  Mark as paid
-                </button>
-              )}
-              {getNextStatus(order) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = getNextStatus({ ...order, status, paymentStatus });
-                    if (!next) return;
-                    setStatus(next);
-                  }}
-                  className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left text-xs font-semibold text-sky-900 hover:bg-sky-100 sm:py-1.5"
-                >
-                  Advance to {ORDER_STATUS_LABELS[getNextStatus({ ...order, status, paymentStatus })!]}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setPaymentStatus("failed")}
-                className="rounded-lg border border-error/30 bg-error-container/40 px-3 py-2 text-xs font-semibold text-error hover:opacity-90 sm:py-1.5"
-              >
-                Mark payment failed
-              </button>
             </div>
           </section>
         </div>
@@ -632,7 +621,7 @@ function OrderDetailPanel({
                 </p>
               ) : null}
               {!showDone && !showComplete ? (
-                <p className="text-xs text-on-surface-variant">
+                <p className="admin-modal-hint text-xs text-on-surface-variant">
                   Update payment and kitchen status above. When food is served or ready for pick-up
                   with payment confirmed, Done appears here.
                 </p>
@@ -811,16 +800,16 @@ export function AdminApp() {
   return (
     <PageEnter className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
       <header className="sticky top-0 z-50 border-b border-primary-container/20 bg-primary pt-[env(safe-area-inset-top,0px)] shadow-md">
-        <div className="mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-2 px-margin-mobile py-3 sm:gap-3 sm:py-4 md:px-margin-desktop">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <span className="material-symbols-outlined shrink-0 text-[26px] text-secondary-container sm:text-[28px]">
+        <div className="admin-content mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between gap-2 px-margin-mobile py-3 sm:gap-3 md:gap-4 md:py-5 md:px-margin-desktop">
+          <div className="flex min-w-0 items-center gap-2 md:gap-4">
+            <span className="admin-header-icon material-symbols-outlined shrink-0 text-[26px] text-secondary-container md:text-[32px]">
               admin_panel_settings
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-on-primary/60">
+              <p className="admin-header-brand text-[10px] font-semibold uppercase tracking-widest text-on-primary/60">
                 TableBite
               </p>
-              <h1 className="truncate text-base font-bold text-on-primary sm:text-lg">
+              <h1 className="admin-header-title truncate text-base font-bold text-on-primary">
                 Admin dashboard
               </h1>
             </div>
@@ -857,8 +846,8 @@ export function AdminApp() {
         </div>
       </header>
 
-      <main className="page-main mx-auto w-full min-w-0 max-w-6xl flex-1 px-margin-mobile pt-lg md:px-margin-desktop">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="admin-content page-main mx-auto w-full min-w-0 max-w-6xl flex-1 px-margin-mobile pb-xl pt-lg md:px-margin-desktop md:pt-xl">
+        <div className="admin-main-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Active orders", value: stats.active, icon: "pending_actions" },
             { label: "Dine-in active", value: stats.dineInActive, icon: "restaurant" },
@@ -871,26 +860,28 @@ export function AdminApp() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-2xl border border-surface-variant bg-surface-container-lowest p-md shadow-sm"
+              className="admin-stat-card rounded-2xl border border-surface-variant bg-surface-container-lowest p-md shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+                <p className="admin-stat-label text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
                   {stat.label}
                 </p>
-                <span className="material-symbols-outlined text-[22px] text-secondary-container">
+                <span className="admin-stat-icon material-symbols-outlined text-[22px] text-secondary-container">
                   {stat.icon}
                 </span>
               </div>
-              <p className="admin-stat-value mt-2 font-bold text-on-surface">{stat.value}</p>
+              <p className="admin-stat-number mt-2 font-bold text-on-surface max-md:admin-stat-value">
+                {stat.value}
+              </p>
             </div>
           ))}
         </div>
 
-        <div className="mt-lg">
-          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+        <div className="mt-lg md:mt-xl">
+          <p className="admin-filter-label text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
             View
           </p>
-          <div className="mt-2 grid w-full max-w-full grid-cols-3 gap-2 sm:max-w-[48rem]">
+          <div className="admin-view-tabs mt-2 grid w-full max-w-full grid-cols-3 gap-2 sm:max-w-[48rem]">
             {ADMIN_VIEW_TABS.map((tab) => {
               const count =
                 tab.key === "active"
@@ -913,11 +904,13 @@ export function AdminApp() {
                         : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px] sm:text-[22px]">{tab.icon}</span>
+                  <span className="material-symbols-outlined text-[20px] sm:text-[22px]">
+                    {tab.icon}
+                  </span>
                   <span className="admin-view-tab__label sm:hidden">{tab.shortLabel}</span>
                   <span className="admin-view-tab__label hidden sm:inline">{tab.label}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    className={`admin-view-tab__count rounded-full px-2 py-0.5 text-xs font-bold ${
                       active
                         ? "bg-on-primary/20 text-on-primary"
                         : queueNeedsAttention
@@ -934,11 +927,11 @@ export function AdminApp() {
         </div>
 
         {adminView === "active" ? (
-          <div className="mt-lg">
-            <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+          <div className="mt-lg md:mt-xl">
+            <p className="admin-filter-label text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
               Order type
             </p>
-            <div className="mt-2 grid w-full max-w-full grid-cols-2 gap-2 sm:max-w-[28rem]">
+            <div className="admin-order-type-tabs mt-2 grid w-full max-w-full grid-cols-2 gap-2 sm:max-w-[28rem]">
               {ORDER_TYPE_TABS.map((tab) => {
                 const count = typeCounts[tab.key];
                 const active = orderTypeTab === tab.key;
@@ -947,14 +940,16 @@ export function AdminApp() {
                     key={tab.key}
                     type="button"
                     onClick={() => setOrderTypeTab(tab.key)}
-                    className={`flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition-colors sm:min-h-12 sm:px-4 ${
+                    className={`admin-order-type-tab flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-xs font-semibold transition-colors sm:min-h-12 sm:gap-2 sm:px-4 sm:text-sm ${
                       active
                         ? "bg-primary text-on-primary shadow-sm"
                         : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-secondary-container hover:text-on-surface"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
-                    {tab.label}
+                    <span className="material-symbols-outlined shrink-0 text-[20px] sm:text-[22px]">
+                      {tab.icon}
+                    </span>
+                    <span className="min-w-0 truncate">{tab.label}</span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                         active

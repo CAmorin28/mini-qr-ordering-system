@@ -21,9 +21,10 @@ interface AdminStatusBadgeProps {
   kind: BadgeKind;
   value: OrderStatus | PaymentStatus;
   label: string;
+  className?: string;
 }
 
-export function AdminStatusBadge({ kind, value, label }: AdminStatusBadgeProps) {
+export function AdminStatusBadge({ kind, value, label, className = "" }: AdminStatusBadgeProps) {
   const styles =
     kind === "order"
       ? ORDER_STYLES[value as OrderStatus]
@@ -31,7 +32,7 @@ export function AdminStatusBadge({ kind, value, label }: AdminStatusBadgeProps) 
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${styles}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${styles} ${className}`.trim()}
     >
       {label}
     </span>

@@ -29,14 +29,14 @@ export function CategoryFilters({ active, onChange }: CategoryFiltersProps) {
             key={filter.id}
             type="button"
             onClick={() => onChange(filter.id)}
-            className={`flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-full px-3.5 py-2.5 text-sm font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:gap-2 sm:px-6 sm:text-base ${
+            className={`menu-category-btn flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-full px-3.5 py-2.5 text-sm font-semibold leading-snug shadow-sm transition-colors sm:min-h-12 sm:gap-2 sm:px-6 sm:text-base ${
               isActive
                 ? "bg-primary text-on-primary"
                 : "border border-surface-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:bg-surface-container"
             }`}
           >
             {filter.emoji && (
-              <span className="text-xl leading-none sm:text-2xl" aria-hidden>
+              <span className="menu-category-btn__emoji text-xl leading-none sm:text-2xl" aria-hidden>
                 {filter.emoji}
               </span>
             )}

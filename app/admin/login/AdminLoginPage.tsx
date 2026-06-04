@@ -73,19 +73,19 @@ export function AdminLoginPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-on-primary/60">
             Staff portal
           </p>
-          <h1 className="admin-login-hero-title mt-3 text-2xl font-bold leading-snug tracking-tight text-on-primary sm:text-3xl lg:text-4xl">
+          <h1 className="admin-login-hero-title mt-3 text-3xl font-bold leading-snug tracking-tight text-on-primary sm:text-4xl lg:text-[2.75rem]">
             Manage orders &amp; payments in one place
           </h1>
-          <p className="admin-login-hero-lead mt-4 text-sm text-on-primary/75 sm:text-base">
+          <p className="admin-login-hero-lead mt-4 text-base text-on-primary/75 sm:text-lg">
             Sign in with your admin account to view incoming orders and update payment
             status.
           </p>
 
           <ul className="mt-8 hidden space-y-4 lg:block">
             {FEATURES.map((item) => (
-              <li key={item.icon} className="flex items-center gap-3 text-sm text-on-primary/90">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-on-primary/10">
-                  <span className="material-symbols-outlined text-[20px] text-secondary-container">
+              <li key={item.icon} className="flex items-center gap-3 text-base text-on-primary/90">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-on-primary/10">
+                  <span className="material-symbols-outlined text-[22px] text-secondary-container">
                     {item.icon}
                   </span>
                 </span>
@@ -113,17 +113,17 @@ export function AdminLoginPage() {
           </div>
 
           <div className="admin-login-card">
-            <span className="material-symbols-outlined text-[40px] text-secondary-container">
+            <span className="material-symbols-outlined text-[48px] text-secondary-container">
               lock
             </span>
-            <h2 className="mt-3 text-2xl font-bold text-on-surface">Welcome back</h2>
-            <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
+            <h2 className="mt-3 text-2xl font-bold text-on-surface sm:text-3xl">Welcome back</h2>
+            <p className="mt-1 text-base leading-relaxed text-on-surface-variant">
               Enter your credentials to open the dashboard.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
-                <label htmlFor="admin-username" className="text-sm font-semibold text-on-surface">
+                <label htmlFor="admin-username" className="text-base font-semibold text-on-surface">
                   Username
                 </label>
                 <div className="admin-login-field mt-2">
@@ -143,7 +143,7 @@ export function AdminLoginPage() {
               </div>
 
               <div>
-                <label htmlFor="admin-password" className="text-sm font-semibold text-on-surface">
+                <label htmlFor="admin-password" className="text-base font-semibold text-on-surface">
                   Password
                 </label>
                 <div className="admin-login-field mt-2">
@@ -185,7 +185,7 @@ export function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={submitting || !username.trim() || !password}
-                className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-secondary-container px-lg py-3 text-sm font-bold text-on-secondary-container shadow-sm transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+                className="flex w-full min-h-14 items-center justify-center gap-2 rounded-xl bg-secondary-container px-lg py-3.5 text-base font-bold text-on-secondary-container shadow-sm transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
               >
                 {submitting ? (
                   <>

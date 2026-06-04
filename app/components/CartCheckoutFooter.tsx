@@ -21,15 +21,19 @@ export function CartCheckoutFooter({ onNavigate, className = "" }: CartCheckoutF
   return (
     <div className={className}>
       <div className="price-row mb-md items-center">
-        <span className="text-sm font-medium text-on-surface-variant">Subtotal</span>
-        <span className="text-xl font-bold text-secondary">{formatPrice(subtotal)}</span>
+        <span className="menu-cart-subtotal-label text-sm font-medium text-on-surface-variant">
+          Subtotal
+        </span>
+        <span className="menu-cart-subtotal-value text-xl font-bold text-secondary">
+          {formatPrice(subtotal)}
+        </span>
       </div>
       <Link
         href={pathWithSession(CHECKOUT_PAGE_PATH)}
         onClick={() => {
           if (itemCount > 0) onNavigate?.();
         }}
-        className={`checkout-cta flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
+        className={`menu-cart-checkout checkout-cta flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl py-3.5 text-headline-sm font-bold transition-all ${
           itemCount === 0
             ? "pointer-events-none cursor-not-allowed bg-surface-variant text-on-surface-variant opacity-60"
             : "bg-primary text-on-primary shadow-md hover:bg-primary-container active:scale-[0.99]"

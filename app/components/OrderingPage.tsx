@@ -44,8 +44,10 @@ export function OrderingPage() {
       <Header showTableBadge showOrderStatus />
 
       <main
-        className={`page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:flex-row lg:gap-8 lg:px-8 ${
-          itemCount > 0 ? "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0" : ""
+        className={`menu-page-main page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:flex-row lg:gap-8 lg:px-8 ${
+          itemCount > 0
+            ? "pb-[calc(var(--menu-checkout-bar-offset)+env(safe-area-inset-bottom,0px))] lg:pb-0"
+            : ""
         }`}
       >
         <section className="flex min-h-[calc(100dvh-var(--header-height)-36px)] min-w-0 flex-1 flex-col overflow-x-clip">
@@ -63,7 +65,7 @@ export function OrderingPage() {
             {loading ? (
               <LoadingBlock className="mt-xl py-xl" message="Loading menu…" />
             ) : (
-              <div className="menu-grid-enter mt-lg grid min-w-0 grid-cols-2 gap-2 content-start sm:gap-gutter sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="menu-grid menu-grid-enter mt-lg grid min-w-0 grid-cols-2 gap-2 content-start sm:gap-gutter sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((item) => (
                   <FoodCard key={item.id} item={item} />
                 ))}
@@ -72,9 +74,9 @@ export function OrderingPage() {
           </PageEnter>
         </section>
 
-        <aside className="hidden w-[var(--spacing-cart-width)] max-w-[32vw] shrink-0 lg:block">
-          <div className="sticky top-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] h-[calc(100dvh-var(--header-height)-env(safe-area-inset-top,0px)-24px)]">
-            <MenuCartPanel className="h-full min-h-0" />
+        <aside className="menu-cart-aside hidden shrink-0 lg:block lg:self-start">
+          <div className="menu-cart-sticky">
+            <MenuCartPanel className="menu-cart-panel w-full" />
           </div>
         </aside>
       </main>
