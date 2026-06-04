@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
@@ -40,7 +40,6 @@ export function StaffTableQrPanel({
   serverMenuUrl,
   initialSvg,
 }: StaffTableQrPanelProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [tableLetter, setTableLetter] = useState(
     normalizeTableLetter(initialTableLetter) || "A",
@@ -73,11 +72,11 @@ export function StaffTableQrPanel({
 
   useEffect(() => {
     const fromUrl = normalizeTableLetter(searchParams.get("table"));
-    const letter = fromUrl || normalizeTableLetter(initialTableLetter) || "A";
-    refreshQr(letter).catch(() => {
+    if (!fromUrl || fromUrl === tableLetter) return;
+    refreshQr(fromUrl).catch(() => {
       /* keep existing svg */
     });
-  }, [searchParams, initialTableLetter, refreshQr]);
+  }, [searchParams, tableLetter, refreshQr]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -89,7 +88,9 @@ export function StaffTableQrPanel({
     }
     setInputError(null);
     const normalized = normalizeTableLetter(inputValue)!;
-    router.replace(staffQrPath(normalized));
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", staffQrPath(normalized));
+    }
     refreshQr(normalized).catch(() => {
       /* handled above */
     });

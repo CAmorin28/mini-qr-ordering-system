@@ -37,8 +37,18 @@ export function getDeploymentOrigin(): string | null {
   );
 }
 
-function isLoopbackHost(hostname: string): boolean {
+export function isLoopbackHost(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+/** True when an env URL points at local dev, not a live deployment host. */
+export function isLoopbackOrigin(origin: string | null | undefined): boolean {
+  if (!origin) return false;
+  try {
+    return isLoopbackHost(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
 }
 
 function isPrivateLanHost(hostname: string): boolean {

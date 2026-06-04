@@ -1,5 +1,9 @@
 import { headers } from "next/headers";
-import { getDeploymentOrigin, originFromEnvValue } from "@/lib/origin";
+import {
+  getDeploymentOrigin,
+  isLoopbackOrigin,
+  originFromEnvValue,
+} from "@/lib/origin";
 import { menuUrlFromOrigin } from "@/lib/menu-url";
 
 /**
@@ -11,7 +15,10 @@ import { menuUrlFromOrigin } from "@/lib/menu-url";
  */
 export async function getSiteOrigin(): Promise<string> {
   const canonical = originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL);
-  if (canonical) return canonical;
+  // Ignore localhost NEXT_PUBLIC_APP_URL on Vercel — it breaks deployed QR codes.
+  const useCanonical =
+    canonical && !(process.env.VERCEL && isLoopbackOrigin(canonical));
+  if (useCanonical) return canonical;
 
   const headersList = await headers();
   const host =

@@ -13,14 +13,15 @@ export function checkoutConfirmationPath(orderId: string): string {
   return `/checkout/confirmation/${encodeURIComponent(orderId)}`;
 }
 
-/** Staff-only URL to open the QR display page (mobile + desktop). */
-export const STAFF_QR_PAGE_PATH = "/qr?view=staff" as const;
+/** Staff QR generator (not subject to guest /qr → /menu redirect). */
+export const STAFF_QR_PAGE_PATH = "/admin/qr" as const;
 
 export function staffQrPath(tableLetter?: string): string {
-  const params = new URLSearchParams({ view: "staff" });
+  const params = new URLSearchParams();
   const table = normalizeTableLetter(tableLetter);
   if (table) params.set("table", table);
-  return `/qr?${params.toString()}`;
+  const query = params.toString();
+  return query ? `${STAFF_QR_PAGE_PATH}?${query}` : STAFF_QR_PAGE_PATH;
 }
 
 /** Build the absolute menu URL from a site origin (optional table letter query param). */

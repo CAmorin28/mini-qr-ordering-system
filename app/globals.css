@@ -581,7 +581,9 @@ body:has(.qr-page-root) {
   padding: 0;
 }
 
-.qr-code-display svg {
+.qr-code-display svg,
+.qr-code-display .qr-code-image,
+.qr-code-image {
   display: block;
   width: 100%;
   height: 100%;

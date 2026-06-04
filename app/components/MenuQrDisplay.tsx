@@ -57,11 +57,19 @@ export function MenuQrDisplay({ menuUrl, initialSvg, tableLetter }: MenuQrDispla
     };
   }, [menuUrl, tableLetter]);
 
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSvg)}`;
+
   return (
-    <div
-      className="qr-code-display"
-      aria-label="QR code linking to the TableBite menu"
-      dangerouslySetInnerHTML={{ __html: qrSvg }}
-    />
+    <div className="qr-code-display">
+      {/* eslint-disable-next-line @next/next/no-img-element -- inline SVG QR from qrcode */}
+      <img
+        src={dataUrl}
+        alt="QR code linking to the TableBite menu"
+        width={MENU_QR_DISPLAY_WIDTH}
+        height={MENU_QR_DISPLAY_WIDTH}
+        className="qr-code-image"
+        decoding="sync"
+      />
+    </div>
   );
 }
