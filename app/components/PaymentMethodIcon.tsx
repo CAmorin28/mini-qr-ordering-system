@@ -8,14 +8,20 @@ interface PaymentMethodIconProps {
   selected?: boolean;
 }
 
+function iconContainerClass(selected: boolean | undefined, sizeClass: string) {
+  return [
+    "flex shrink-0 items-center justify-center rounded-lg",
+    sizeClass,
+    selected
+      ? "bg-white text-secondary ring-2 ring-secondary-container/50"
+      : "bg-white text-on-surface-variant ring-1 ring-surface-variant",
+  ].join(" ");
+}
+
 export function PaymentMethodIcon({ method, selected }: PaymentMethodIconProps) {
   if (method === "gcash") {
     return (
-      <span
-        className={`flex h-10 min-w-[2.75rem] shrink-0 items-center justify-center rounded-lg px-1.5 ${
-          selected ? "bg-white" : "bg-white ring-1 ring-surface-variant"
-        }`}
-      >
+      <span className={iconContainerClass(selected, "h-10 min-w-[2.75rem] px-1.5")}>
         <Image
           src="/payment/gcash-logo.svg"
           alt="GCash"
@@ -29,13 +35,7 @@ export function PaymentMethodIcon({ method, selected }: PaymentMethodIconProps) 
   }
 
   return (
-    <span
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-        selected
-          ? "bg-secondary-container text-on-secondary-container"
-          : "bg-surface-container text-on-surface-variant"
-      }`}
-    >
+    <span className={iconContainerClass(selected, "h-10 w-10")}>
       <span className="material-symbols-outlined">payments</span>
     </span>
   );
