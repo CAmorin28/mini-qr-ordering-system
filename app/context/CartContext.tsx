@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { CartPanelOverlay } from "@/app/components/CartPanelOverlay";
 import { useOptionalTableSession } from "@/app/context/TableSessionContext";
 import type { CartLine, MenuItem } from "@/lib/types";
 import { cartStorageKey } from "@/lib/table-session";
@@ -17,6 +18,10 @@ interface CartContextValue {
   lines: CartLine[];
   itemCount: number;
   total: number;
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  toggleCart: () => void;
   addItem: (item: MenuItem) => void;
   removeItem: (itemId: string) => void;
   increment: (itemId: string) => void;
@@ -52,6 +57,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const tableLetter = tableSession?.tableLetter ?? "";
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+  const toggleCart = useCallback(() => setIsCartOpen((open) => !open), []);
 
   useEffect(() => {
     setLines(readStoredCart(tableLetter));
@@ -121,6 +131,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       lines,
       itemCount,
       total,
+      isCartOpen,
+      openCart,
+      closeCart,
+      toggleCart,
       addItem,
       removeItem,
       increment,
@@ -131,6 +145,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       lines,
       itemCount,
       total,
+      isCartOpen,
+      openCart,
+      closeCart,
+      toggleCart,
       addItem,
       removeItem,
       increment,
@@ -139,7 +157,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <CartPanelOverlay />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

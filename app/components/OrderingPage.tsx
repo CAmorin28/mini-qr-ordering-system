@@ -5,7 +5,6 @@ import { Header } from "@/app/components/Header";
 import { CategoryFilters } from "@/app/components/CategoryFilters";
 import { FoodCard } from "@/app/components/FoodCard";
 import { ActiveOrderBanner } from "@/app/components/ActiveOrderBanner";
-import { MenuCartPanel } from "@/app/components/MenuCartPanel";
 import { MenuCheckoutBar } from "@/app/components/MenuCheckoutBar";
 import { TableSessionBanner } from "@/app/components/TableSessionBanner";
 import { useCart } from "@/app/context/CartContext";
@@ -44,7 +43,7 @@ export function OrderingPage() {
       <Header showTableBadge showOrderStatus />
 
       <main
-        className={`menu-page-main page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:flex-row lg:gap-8 lg:px-8 ${
+        className={`menu-page-main page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:px-8 ${
           itemCount > 0
             ? "pb-[calc(var(--menu-checkout-bar-offset)+env(safe-area-inset-bottom,0px))] lg:pb-0"
             : ""
@@ -73,12 +72,6 @@ export function OrderingPage() {
             )}
           </PageEnter>
         </section>
-
-        <aside className="menu-cart-aside hidden shrink-0 lg:block lg:self-start">
-          <div className="menu-cart-sticky">
-            <MenuCartPanel className="menu-cart-panel w-full" />
-          </div>
-        </aside>
       </main>
 
       <MenuCheckoutBar />

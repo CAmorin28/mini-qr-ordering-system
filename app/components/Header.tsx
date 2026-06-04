@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { CartDropdown } from "@/app/components/CartDropdown";
 import { OrderStatusNavButton } from "@/app/components/OrderStatusNavButton";
 import { useCart } from "@/app/context/CartContext";
 import { useTableSession } from "@/app/context/TableSessionContext";
@@ -28,9 +26,8 @@ export function Header({
   backLabel,
   variant = "default",
 }: HeaderProps) {
-  const { itemCount } = useCart();
+  const { itemCount, isCartOpen, toggleCart } = useCart();
   const { tableLabel, hasTableSession, pathWithSession } = useTableSession();
-  const [cartOpen, setCartOpen] = useState(false);
   const isQr = variant === "qr";
   const menuHref = hasTableSession ? pathWithSession(MENU_PAGE_PATH) : MENU_PAGE_PATH;
   const navBackHref = backHref ?? menuHref;
@@ -100,9 +97,10 @@ export function Header({
             <button
               type="button"
               data-cart-trigger
-              onClick={() => setCartOpen((v) => !v)}
+              onClick={toggleCart}
               aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
-              aria-expanded={cartOpen}
+              aria-expanded={isCartOpen}
+              aria-controls="cart-panel"
               className="relative flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-on-primary/20 bg-on-primary/10 px-3 py-2.5 text-on-primary transition-colors hover:bg-secondary-container hover:text-on-secondary-container"
             >
               <span className="material-symbols-outlined text-[24px]">shopping_cart</span>
@@ -115,10 +113,6 @@ export function Header({
           )}
         </div>
       </header>
-
-      {showCart && !isQr && (
-        <CartDropdown open={cartOpen} onClose={() => setCartOpen(false)} />
-      )}
     </>
   );
 }
