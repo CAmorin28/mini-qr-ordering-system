@@ -2,6 +2,9 @@ import { normalizeTableLetter } from "@/lib/table-session";
 import { shouldRefreshQrFromBrowser } from "@/lib/origin";
 export const MENU_PAGE_PATH = "/menu" as const;
 
+/** QR scan entry — opens server visit, then redirects to /menu?table= */
+export const TABLE_ENTER_PAGE_PATH = "/menu/enter" as const;
+
 export const CHECKOUT_PAGE_PATH = "/checkout" as const;
 export const CHECKOUT_REVIEW_PATH = "/checkout/review" as const;
 export const ORDERS_HISTORY_PATH = "/orders" as const;
@@ -26,8 +29,9 @@ export function staffQrPath(tableLetter?: string): string {
 
 /** Build the absolute menu URL from a site origin (optional table letter query param). */
 export function menuUrlFromOrigin(origin: string, tableLetter?: string): string {
-  const url = new URL(MENU_PAGE_PATH, origin);
   const table = normalizeTableLetter(tableLetter);
+  const path = table ? TABLE_ENTER_PAGE_PATH : MENU_PAGE_PATH;
+  const url = new URL(path, origin);
   if (table) {
     url.searchParams.set("table", table);
   }

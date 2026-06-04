@@ -111,3 +111,18 @@ export async function markOrderReadyForCompletion(orderId: string): Promise<Plac
 export async function completeAdminOrder(orderId: string): Promise<PlacedOrder> {
   return updateAdminOrder(orderId, { completed: true });
 }
+
+export async function openAdminTableVisit(tableLetter: string): Promise<void> {
+  const table = tableLetter.trim().toUpperCase();
+  const res = await adminFetch("/api/admin/table-visit", {
+    method: "POST",
+    body: JSON.stringify({ table }),
+  });
+  const data = await res.json();
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+  if (!res.ok) {
+    throw new Error(data.error ?? "Failed to open table for new guests");
+  }
+}

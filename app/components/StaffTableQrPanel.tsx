@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
+import { openAdminTableVisit } from "@/lib/api-admin";
 import { ADMIN_DASHBOARD_PATH, menuUrlForTable, staffQrPath } from "@/lib/menu-url";
 import {
   MENU_QR_COLORS,
@@ -49,6 +50,8 @@ export function StaffTableQrPanel({
   const [menuUrl, setMenuUrl] = useState(serverMenuUrl);
   const [qrSvg, setQrSvg] = useState(initialSvg);
   const [generating, setGenerating] = useState(false);
+  const [openingVisit, setOpeningVisit] = useState(false);
+  const [visitMessage, setVisitMessage] = useState<string | null>(null);
 
   const refreshQr = useCallback(
     async (letter: string) => {
@@ -101,8 +104,9 @@ export function StaffTableQrPanel({
       <section className="qr-card-staff-form mb-md w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
         <h2 className="text-sm font-bold text-on-surface">Table letter</h2>
         <p className="mt-1 text-xs text-on-surface-variant">
-          Type any table letter or code (up to {TABLE_ID_MAX_LENGTH} characters). Each value
-          generates a unique QR that opens the menu for that table session.
+          Type any table letter or code (up to {TABLE_ID_MAX_LENGTH} characters). QR codes open a
+          short entry step, then the menu with a table session. After you complete an order, guests
+          must scan again (or use the button below).
         </p>
         <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <label className="sr-only" htmlFor="table-letter-input">
@@ -150,8 +154,35 @@ export function StaffTableQrPanel({
 
       <div className="qr-card-footer">
         <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
-        <p className="qr-card-footer-sub">Scans open the menu page directly</p>
+        <p className="qr-card-footer-sub">Scans start a new table visit at the restaurant</p>
       </div>
+
+      <button
+        type="button"
+        disabled={openingVisit}
+        className="mt-md w-full rounded-xl border border-secondary/40 bg-secondary-container/20 px-4 py-3 text-sm font-bold text-on-surface disabled:opacity-60"
+        onClick={() => {
+          setVisitMessage(null);
+          setOpeningVisit(true);
+          openAdminTableVisit(tableLetter)
+            .then(() => {
+              setVisitMessage(`${formatTableLabel(tableLetter)} is open for new guests to scan.`);
+            })
+            .catch((err: unknown) => {
+              setVisitMessage(
+                err instanceof Error ? err.message : "Could not open table visit.",
+              );
+            })
+            .finally(() => setOpeningVisit(false));
+        }}
+      >
+        {openingVisit ? "Opening…" : "Open table for new guests"}
+      </button>
+      {visitMessage ? (
+        <p className="mt-2 text-center text-xs text-on-surface-variant" role="status">
+          {visitMessage}
+        </p>
+      ) : null}
 
       <QrDownloadActions menuUrl={menuUrl} tableLetter={tableLetter} />
 

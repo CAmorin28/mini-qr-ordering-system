@@ -1,6 +1,10 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { mapOrderRow, type OrderRow } from "@/lib/supabase/order-mapper";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import {
+  closeTableVisitIfNoActiveOrders,
+  openTableVisit,
+} from "@/lib/supabase/table-visits";
 import { normalizeTableLetter } from "@/lib/table-session";
 import {
   canArchiveOrder,
@@ -57,7 +61,13 @@ export async function saveOrderToDb(order: PlacedOrder): Promise<SaveOrderResult
       return { ok: false, status: 500, error: error.message };
     }
 
-    return { ok: true, order: rowToPlacedOrder(data as OrderRow) };
+    const saved = rowToPlacedOrder(data as OrderRow);
+    const table = normalizeTableLetter(saved.customer.tableLetter);
+    if (table) {
+      await openTableVisit(table);
+    }
+
+    return { ok: true, order: saved };
   } catch (err) {
     return {
       ok: false,
@@ -212,7 +222,15 @@ export async function updateOrderInDb(
       return { ok: false, status: 500, error: error.message };
     }
 
-    return { ok: true, order: rowToPlacedOrder(data as OrderRow) };
+    const updated = rowToPlacedOrder(data as OrderRow);
+    if (updates.completed === true) {
+      const table = normalizeTableLetter(updated.customer.tableLetter);
+      if (table) {
+        await closeTableVisitIfNoActiveOrders(table);
+      }
+    }
+
+    return { ok: true, order: updated };
   } catch (err) {
     return {
       ok: false,

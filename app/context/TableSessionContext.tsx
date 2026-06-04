@@ -11,6 +11,7 @@ import {
   Suspense,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { fetchTableVisitStatus } from "@/lib/api-table-visit";
 import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
 import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
 import { clearTableCustomerSession } from "@/lib/customer-table-session";
@@ -20,6 +21,7 @@ import {
   clearTableVisitEndedMark,
   formatTableLabel,
   isTableVisitEnded,
+  markTableVisitEnded,
   normalizeTableLetter,
   type TableVisitEndedDetail,
 } from "@/lib/table-session";
@@ -62,17 +64,35 @@ function TableSessionSync({
   useEffect(() => {
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
-      // Staff completed this table — do not re-bind session from stale ?table= in the URL.
       if (isTableVisitEnded(fromUrl)) {
         sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
         router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
         return;
       }
-      // Fresh QR scan (?table=) starts a new visit — clear any ended flag.
-      clearTableVisitEndedMark(fromUrl);
-      setTableLetterState(fromUrl);
-      sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);
-      return;
+
+      let cancelled = false;
+
+      (async () => {
+        const status = await fetchTableVisitStatus(fromUrl);
+        if (cancelled) return;
+
+        if (status && !status.canBind) {
+          markTableVisitEnded(fromUrl);
+          sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+          router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
+          return;
+        }
+
+        if (status?.canBind ?? true) {
+          clearTableVisitEndedMark(fromUrl);
+          setTableLetterState(fromUrl);
+          sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (tableLetter) return;
@@ -80,11 +100,31 @@ function TableSessionSync({
     const stored = normalizeTableLetter(
       sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY),
     );
-    if (stored && !isTableVisitEnded(stored)) {
-      setTableLetterState(stored);
-    } else if (stored && isTableVisitEnded(stored)) {
+    if (!stored) return;
+
+    if (isTableVisitEnded(stored)) {
       sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+      return;
     }
+
+    let cancelled = false;
+
+    (async () => {
+      const status = await fetchTableVisitStatus(stored);
+      if (cancelled) return;
+
+      if (status && !status.canBind) {
+        markTableVisitEnded(stored);
+        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        return;
+      }
+
+      setTableLetterState(stored);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams, tableLetter, setTableLetterState, pathname, router]);
 
   return null;

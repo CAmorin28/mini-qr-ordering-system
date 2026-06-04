@@ -37,8 +37,20 @@ create index if not exists orders_created_at_idx on public.orders (created_at de
 create index if not exists orders_ready_at_idx on public.orders (ready_at desc nulls last);
 create index if not exists orders_completed_at_idx on public.orders (completed_at desc nulls last);
 
+-- Table QR visit gate (see supabase/migrate-table-visits.sql)
+create table if not exists public.table_visits (
+  table_number text primary key check (table_number ~ '^[A-Z0-9]{1,4}$'),
+  is_open boolean not null default false,
+  opened_at timestamptz,
+  closed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists table_visits_is_open_idx on public.table_visits (is_open);
+
 alter table public.products enable row level security;
 alter table public.orders enable row level security;
+alter table public.table_visits enable row level security;
 
 drop policy if exists "Products are publicly readable" on public.products;
 create policy "Products are publicly readable"
