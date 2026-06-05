@@ -236,7 +236,10 @@ export default function OrderConfirmationPage() {
       <OrderStatusTracker
         orderId={order.orderId}
         initialOrder={order}
-        onUpdate={setOrder}
+        onUpdate={(updated) => {
+          setOrder(updated);
+          saveOrder(updated);
+        }}
         onVisitEnded={() => setVisitEnded(true)}
       />
 

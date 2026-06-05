@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const DEFAULT_POLL_MS = 30_000;
+const DEFAULT_POLL_MS = 5_000;
 
 export type OrdersRealtimeFilter =
   | { mode: "all" }
@@ -32,11 +32,25 @@ export function useOrdersRealtime(
   useEffect(() => {
     if (!enabled || !pollRef.current) return;
 
-    const timer = window.setInterval(() => {
+    const poll = () => {
       pollRef.current?.();
-    }, intervalMs);
+    };
 
-    return () => window.clearInterval(timer);
+    poll();
+
+    const timer = window.setInterval(poll, intervalMs);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        poll();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [enabled, intervalMs]);
 
   return false;

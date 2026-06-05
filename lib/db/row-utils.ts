@@ -1,4 +1,4 @@
-import type { CartLine } from "@/lib/types";
+import type { CartLine, PaymentStatus } from "@/lib/types";
 import type { OrderRow } from "@/lib/db/order-mapper";
 import type { RowDataPacket } from "mysql2";
 
@@ -34,13 +34,20 @@ function parseLines(value: unknown): CartLine[] {
   return [];
 }
 
+function normalizePaymentStatus(value: unknown): PaymentStatus {
+  const normalized = String(value ?? "pending").trim().toLowerCase();
+  if (normalized === "paid") return "paid";
+  if (normalized === "failed") return "failed";
+  return "pending";
+}
+
 export function normalizeOrderRow(row: RowDataPacket): OrderRow {
   return {
     order_id: String(row.order_id),
     order_number: String(row.order_number),
     created_at: toIso(row.created_at) ?? new Date().toISOString(),
     status: String(row.status),
-    payment_status: row.payment_status as OrderRow["payment_status"],
+    payment_status: normalizePaymentStatus(row.payment_status),
     payment_method: String(row.payment_method),
     order_type: row.order_type as OrderRow["order_type"],
     table_number: row.table_number != null ? String(row.table_number) : null,

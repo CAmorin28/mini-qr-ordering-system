@@ -11,11 +11,11 @@ import {
 import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
-import { listOrders } from "@/lib/order-history";
+import { listOrders, saveOrder } from "@/lib/order-history";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
-const POLL_INTERVAL_MS = 15_000;
+const POLL_INTERVAL_MS = 5_000;
 
 interface OrderStatusTrackerProps {
   orderId: string;
@@ -34,12 +34,12 @@ function orderSnapshotKey(order: PlacedOrder): string {
   ].join("|");
 }
 
-function isTerminalOrder(order: PlacedOrder): boolean {
-  return (
-    isCompletedOrder(order) ||
-    order.status === "served" ||
-    order.status === "ready_for_pickup"
-  );
+function isKitchenHandoffStatus(order: PlacedOrder): boolean {
+  return order.status === "served" || order.status === "ready_for_pickup";
+}
+
+function shouldKeepPolling(order: PlacedOrder): boolean {
+  return !isCompletedOrder(order);
 }
 
 export function OrderStatusTracker({
@@ -50,7 +50,7 @@ export function OrderStatusTracker({
 }: OrderStatusTrackerProps) {
   const [order, setOrder] = useState(initialOrder);
   const [refreshing, setRefreshing] = useState(false);
-  const [pollingEnabled, setPollingEnabled] = useState(!isTerminalOrder(initialOrder));
+  const [pollingEnabled, setPollingEnabled] = useState(shouldKeepPolling(initialOrder));
   const sessionCleared = useRef(false);
   const lastSyncedKeyRef = useRef(orderSnapshotKey(initialOrder));
   const onUpdateRef = useRef(onUpdate);
@@ -61,7 +61,7 @@ export function OrderStatusTracker({
   useEffect(() => {
     setOrder(initialOrder);
     lastSyncedKeyRef.current = orderSnapshotKey(initialOrder);
-    setPollingEnabled(!isTerminalOrder(initialOrder));
+    setPollingEnabled(shouldKeepPolling(initialOrder));
   }, [initialOrder]);
 
   const applyLatest = useCallback(async (latest: PlacedOrder) => {
@@ -70,9 +70,10 @@ export function OrderStatusTracker({
 
     lastSyncedKeyRef.current = key;
     setOrder(latest);
+    saveOrder(latest);
     onUpdateRef.current?.(latest);
 
-    if (isTerminalOrder(latest)) {
+    if (!shouldKeepPolling(latest)) {
       setPollingEnabled(false);
     }
 
@@ -120,7 +121,7 @@ export function OrderStatusTracker({
   useEffect(() => {
     sessionCleared.current = false;
     lastSyncedKeyRef.current = orderSnapshotKey(initialOrder);
-    setPollingEnabled(!isTerminalOrder(initialOrder));
+    setPollingEnabled(shouldKeepPolling(initialOrder));
     void pollRef.current();
   }, [orderId]);
 
@@ -144,7 +145,7 @@ export function OrderStatusTracker({
   const label = visitComplete
     ? "Visit complete — thank you!"
     : customerOrderStatusLabel(order);
-  const isTerminal = isTerminalOrder(order);
+  const kitchenHandoff = isKitchenHandoffStatus(order);
 
   return (
     <section
@@ -163,7 +164,7 @@ export function OrderStatusTracker({
             {order.customer.tableLetter ? ` · Table ${order.customer.tableLetter}` : ""}
           </p>
         </div>
-        {!isTerminal &&
+        {!visitComplete &&
           (refreshing ? (
             <LoadingSpinner size="sm" label="Updating status" />
           ) : (
@@ -181,11 +182,17 @@ export function OrderStatusTracker({
             ? "Staff marked this visit complete. Your table QR session on this phone has ended — scan the code again when you return or when the next party is seated."
             : "Staff marked your order complete. You can place a new order from the menu anytime."}
         </p>
-      ) : !isTerminal ? (
+      ) : kitchenHandoff ? (
         <p className="mt-3 text-xs text-on-surface-variant">
-          Status updates automatically every 15 seconds.
+          {order.customer.orderType === "pickup"
+            ? "Your order is ready for pick-up. Payment and receipt details still update here automatically."
+            : "Your food has been served. Payment and receipt details still update here automatically."}
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-3 text-xs text-on-surface-variant">
+          Status updates automatically every few seconds.
+        </p>
+      )}
     </section>
   );
 }

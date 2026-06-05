@@ -1,4 +1,4 @@
-import { syncStatuses } from "@/lib/order-workflow";
+import { coerceStatusForOrderType, syncStatuses } from "@/lib/order-workflow";
 import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/types";
 
 const PH_TIMEZONE = "Asia/Manila";
@@ -20,10 +20,14 @@ export function resolveOrderAfterAdminUpdate(
   existing: PlacedOrder,
   updates: { status?: OrderStatus; paymentStatus?: PaymentStatus },
 ): { status: OrderStatus; paymentStatus: PaymentStatus } {
-  return syncStatuses(
+  const synced = syncStatuses(
     updates.status ?? existing.status,
     updates.paymentStatus ?? existing.paymentStatus,
   );
+  return {
+    status: coerceStatusForOrderType(synced.status, existing.customer.orderType),
+    paymentStatus: synced.paymentStatus,
+  };
 }
 
 export function isTerminalWorkflowStatus(order: PlacedOrder): boolean {

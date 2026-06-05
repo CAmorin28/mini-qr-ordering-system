@@ -1,5 +1,10 @@
 import { filterInProgressActiveOrders } from "@/lib/order-completion";
+import { normalizeOrderStatus } from "@/lib/order-labels";
 import type { OrderStatus, OrderType, PlacedOrder } from "@/lib/types";
+
+function workflowStatus(order: PlacedOrder): OrderStatus {
+  return normalizeOrderStatus(order.status, order.customer.orderType);
+}
 
 export interface AdminBoardSection {
   id: string;
@@ -29,13 +34,18 @@ function healthy(orders: PlacedOrder[]): PlacedOrder[] {
 }
 
 function withStatus(orders: PlacedOrder[], status: OrderStatus): PlacedOrder[] {
-  return healthy(orders).filter((o) => o.status === status).sort(byNewestFirst);
+  return healthy(orders)
+    .filter((o) => workflowStatus(o) === status)
+    .sort(byNewestFirst);
 }
 
 /** Paid or still in payment queue — kitchen has not started yet. */
 function awaitingKitchen(orders: PlacedOrder[]): PlacedOrder[] {
   return healthy(orders)
-    .filter((o) => o.status === "paid" || o.status === "pending_payment")
+    .filter((o) => {
+      const status = workflowStatus(o);
+      return status === "paid" || status === "pending_payment";
+    })
     .sort(byNewestFirst);
 }
 

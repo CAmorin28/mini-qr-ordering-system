@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/format";
 import {
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
+  customerOrderStatusLabel,
   orderStatusLabel,
   paymentStatusLabel,
 } from "@/lib/order-labels";
@@ -42,7 +43,7 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
               Digital receipt
             </p>
             <p className="mt-1 text-sm font-medium leading-snug text-on-surface">
-              {orderStatusLabel(order.status, order.customer.orderType)}
+              {customerOrderStatusLabel(order)}
             </p>
           </div>
           <span className="shrink-0 rounded-full bg-secondary-container/25 px-2.5 py-1 text-xs font-bold text-secondary">
@@ -83,7 +84,7 @@ export function OrderReceipt({ order, id = "order-receipt" }: OrderReceiptProps)
           <div>
             <dt className="text-on-surface-variant">Order status</dt>
             <dd className="font-medium text-on-surface">
-              {orderStatusLabel(order.status, order.customer.orderType)}
+              {customerOrderStatusLabel(order)}
             </dd>
           </div>
           <div>

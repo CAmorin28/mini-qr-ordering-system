@@ -28,6 +28,7 @@ async function refreshGuestOrdersFromApi(local: PlacedOrder[]): Promise<PlacedOr
   const byId = new Map(local.map((o) => [o.orderId, o]));
   for (const order of refreshed) {
     byId.set(order.orderId, order);
+    saveOrder(order);
   }
   return [...byId.values()];
 }
@@ -51,6 +52,9 @@ export function useActiveCustomerOrders(tableLetter: string) {
     if (table) {
       try {
         const fromApi = await fetchOrderHistory(table);
+        for (const order of fromApi) {
+          saveOrder(order);
+        }
         setOrders(activePlacedOrdersForTable(fromApi, table));
       } catch {
         setOrders(activePlacedOrdersForTable(listOrders(table), table));
@@ -115,7 +119,7 @@ export function useActiveCustomerOrders(tableLetter: string) {
         );
       },
     },
-    { enabled: true, fallbackPoll: load, pollIntervalMs: 30_000 },
+    { enabled: true, fallbackPoll: load, pollIntervalMs: 5_000 },
   );
 
   return { orders, loading, refresh: load };

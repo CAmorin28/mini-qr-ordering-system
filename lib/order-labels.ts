@@ -1,5 +1,5 @@
 import type { OrderStatus, OrderType, PaymentStatus, PlacedOrder } from "@/lib/types";
-import { getAllowedStatuses } from "@/lib/order-workflow";
+import { coerceStatusForOrderType, getAllowedStatuses } from "@/lib/order-workflow";
 
 export const PAYMENT_METHOD_LABELS: Record<PlacedOrder["paymentMethod"], string> = {
   gcash: "GCash (simulated)",
@@ -39,10 +39,17 @@ export function normalizeOrderStatus(
   orderType: OrderType = "dine_in",
 ): OrderStatus {
   if (!status) return "pending_payment";
-  if (status in ORDER_STATUS_LABELS) return status as OrderStatus;
-  const mapped = LEGACY_STATUS_MAP[status];
-  if (mapped === "served" && orderType === "pickup") return "ready_for_pickup";
-  return mapped ?? "pending_payment";
+
+  let resolved: OrderStatus;
+  if (status in ORDER_STATUS_LABELS) {
+    resolved = status as OrderStatus;
+  } else {
+    const mapped = LEGACY_STATUS_MAP[status];
+    resolved =
+      mapped === "served" && orderType === "pickup" ? "ready_for_pickup" : mapped ?? "pending_payment";
+  }
+
+  return coerceStatusForOrderType(resolved, orderType);
 }
 
 export function orderStatusLabel(
@@ -64,6 +71,13 @@ export function customerOrderStatusLabel(order: PlacedOrder): string {
   }
 
   const status = normalizeOrderStatus(order.status, order.customer.orderType);
+
+  if (
+    order.paymentStatus === "paid" &&
+    (status === "pending_payment" || status === "paid")
+  ) {
+    return "Paid — waiting for kitchen";
+  }
 
   if (status === "served") return "Food served";
   if (status === "ready_for_pickup") return "Ready for pick-up";
