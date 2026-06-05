@@ -49,3 +49,15 @@ CREATE TABLE IF NOT EXISTS table_visits (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX table_visits_is_open_idx (is_open)
 );
+
+-- Device-bound guest sessions after a table QR scan (production anti-sharing).
+CREATE TABLE IF NOT EXISTS guest_qr_sessions (
+  session_id VARCHAR(64) PRIMARY KEY,
+  table_number VARCHAR(4) NOT NULL,
+  visit_opened_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX guest_sessions_table_idx (table_number),
+  INDEX guest_sessions_expires_idx (expires_at)
+);

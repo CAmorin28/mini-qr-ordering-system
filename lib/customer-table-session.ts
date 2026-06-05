@@ -1,3 +1,4 @@
+import { clearServerGuestSession } from "@/lib/api-guest-session";
 import { filterActiveOrders } from "@/lib/order-completion";
 import {
   TABLE_SESSION_STORAGE_KEY,
@@ -42,6 +43,7 @@ export function clearTableCustomerSession(tableLetter: string): void {
   sessionStorage.removeItem(PENDING_ORDER_KEY);
   sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
   markTableVisitEnded(letter);
+  void clearServerGuestSession();
   window.dispatchEvent(
     new CustomEvent<TableVisitEndedDetail>(TABLE_VISIT_ENDED_EVENT, {
       detail: { tableLetter: letter },

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { listOrdersFromDb, saveOrderToDb } from "@/lib/db/orders";
+import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
+import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
@@ -35,6 +37,9 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
+
+  const session = await requireGuestSessionForApi(request, tableLetter);
+  if (!session.ok) return session.response;
 
   try {
     const orders = await listOrdersFromDb({
@@ -72,6 +77,20 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const orderTable = normalizeTableLetter(body.customer.tableLetter);
+  if (isGuestQrSecurityEnabled(request.headers.get("host")) && !orderTable) {
+    return NextResponse.json(
+      {
+        error: "Table QR session required to place orders on the live site.",
+        code: "guest_session_required",
+      },
+      { status: 401 },
+    );
+  }
+
+  const session = await requireGuestSessionForApi(request, orderTable);
+  if (!session.ok) return session.response;
 
   const result = await saveOrderToDb(body);
   if (!result.ok) {

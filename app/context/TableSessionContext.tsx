@@ -12,6 +12,9 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fetchTableVisitStatus } from "@/lib/api-table-visit";
+import { clearServerGuestSession } from "@/lib/api-guest-session";
+import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
+import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
 import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
 import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
 import { clearTableCustomerSession } from "@/lib/customer-table-session";
@@ -79,6 +82,11 @@ function TableSessionSync({
         if (status && !status.canBind) {
           markTableVisitEnded(fromUrl);
           sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+          void clearServerGuestSession();
+          if (isGuestQrSecurityEnabledClient()) {
+            router.replace(guestAccessDeniedUrl("visit_ended"));
+            return;
+          }
           router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
           return;
         }
@@ -116,6 +124,10 @@ function TableSessionSync({
       if (status && !status.canBind) {
         markTableVisitEnded(stored);
         sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        void clearServerGuestSession();
+        if (isGuestQrSecurityEnabledClient()) {
+          router.replace(guestAccessDeniedUrl("visit_ended"));
+        }
         return;
       }
 

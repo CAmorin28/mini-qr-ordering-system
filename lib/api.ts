@@ -44,6 +44,7 @@ export async function submitOrder(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    credentials: "include",
   });
   const data = await res.json();
   if (!res.ok) {
@@ -59,6 +60,7 @@ export async function submitPlacedOrder(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order),
+    credentials: "include",
   });
   const data = await res.json();
   if (!res.ok) {
@@ -70,7 +72,7 @@ export async function submitPlacedOrder(
 export async function fetchOrderById(orderId: string): Promise<PlacedOrder | null> {
   const res = await fetch(
     `${API_BASE}/api/orders/${encodeURIComponent(orderId)}`,
-    { cache: "no-store" },
+    { cache: "no-store", credentials: "include" },
   );
   if (res.status === 404) return null;
   if (!res.ok) {
@@ -87,6 +89,7 @@ export async function fetchOrderHistory(tableLetter = ""): Promise<PlacedOrder[]
   const qs = params.toString();
   const res = await fetch(`${API_BASE}/api/orders${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
+    credentials: "include",
   });
   if (!res.ok) {
     throw new Error("Failed to load order history");

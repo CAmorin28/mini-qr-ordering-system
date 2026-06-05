@@ -4,6 +4,7 @@ import {
   getTableVisitStatus,
   openTableVisit,
 } from "@/lib/db/table-visits";
+import { jsonWithGuestSessionCookie } from "@/lib/guest-session-response";
 import { normalizeTableLetter } from "@/lib/table-session";
 
 /** GET /api/table-visit?table=A — whether the guest may bind a table session */
@@ -71,11 +72,21 @@ export async function POST(request: Request) {
   }
 
   if (before.canBind && before.visitOpen) {
-    return NextResponse.json({ ...before, databaseConfigured: true });
+    return jsonWithGuestSessionCookie(
+      request,
+      tableLetter,
+      { ...before, databaseConfigured: true },
+      true,
+    );
   }
 
   if (before.hasActiveOrders) {
-    return NextResponse.json({ ...before, databaseConfigured: true });
+    return jsonWithGuestSessionCookie(
+      request,
+      tableLetter,
+      { ...before, databaseConfigured: true },
+      before.canBind,
+    );
   }
 
   const opened = await openTableVisit(tableLetter);
@@ -93,5 +104,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to load table visit" }, { status: 500 });
   }
 
-  return NextResponse.json({ ...status, databaseConfigured: true });
+  return jsonWithGuestSessionCookie(
+    request,
+    tableLetter,
+    { ...status, databaseConfigured: true },
+    status.canBind,
+  );
 }

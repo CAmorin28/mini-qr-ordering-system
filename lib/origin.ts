@@ -51,7 +51,7 @@ export function isLoopbackOrigin(origin: string | null | undefined): boolean {
   }
 }
 
-function isPrivateLanHost(hostname: string): boolean {
+export function isPrivateLanHost(hostname: string): boolean {
   return (
     hostname.endsWith(".local") ||
     /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||

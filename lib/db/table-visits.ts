@@ -1,4 +1,5 @@
 import { isDatabaseConfigured } from "@/lib/db/config";
+import { revokeGuestSessionsForTable } from "@/lib/db/guest-sessions";
 import { listOrdersFromDb } from "@/lib/db/orders";
 import { getPool } from "@/lib/db/pool";
 import { mysqlNow } from "@/lib/db/row-utils";
@@ -118,10 +119,38 @@ export async function closeTableVisit(tableLetter: string): Promise<boolean> {
          updated_at = VALUES(updated_at)`,
       [table, now, now],
     );
+    await revokeGuestSessionsForTable(table);
     return true;
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
     return !isMissingTableError(message);
+  }
+}
+
+/** Milliseconds since epoch for the current visit's opened_at (null when visit is closed or missing). */
+export async function getTableVisitOpenedAtMs(
+  tableLetter: string,
+): Promise<number | null> {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table || !isDatabaseConfigured()) return null;
+
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT is_open, opened_at FROM table_visits WHERE table_number = ? LIMIT 1",
+      [table],
+    );
+    const row = rows[0];
+    if (!row || !row.is_open || !row.opened_at) return null;
+
+    const openedAt =
+      row.opened_at instanceof Date ? row.opened_at : new Date(row.opened_at);
+    const ms = openedAt.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    if (isMissingTableError(message)) return null;
+    return null;
   }
 }
 

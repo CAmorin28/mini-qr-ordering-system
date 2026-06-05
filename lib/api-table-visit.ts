@@ -18,6 +18,7 @@ export async function fetchTableVisitStatus(
     const params = new URLSearchParams({ table });
     const res = await fetch(`${API_BASE}/api/table-visit?${params}`, {
       cache: "no-store",
+      credentials: "include",
     });
     if (!res.ok) return null;
     return (await res.json()) as TableVisitStatusResponse;
@@ -39,6 +40,7 @@ export async function openTableVisitOnScan(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ table }),
       cache: "no-store",
+      credentials: "include",
     });
     if (!res.ok) return null;
     return (await res.json()) as TableVisitStatusResponse;
