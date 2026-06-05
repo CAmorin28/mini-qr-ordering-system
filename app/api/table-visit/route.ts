@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isDatabaseConfigured } from "@/lib/db/config";
 import {
   getTableVisitStatus,
   openTableVisit,
-} from "@/lib/supabase/table-visits";
+} from "@/lib/db/table-visits";
 import { normalizeTableLetter } from "@/lib/table-session";
 
 /** GET /api/table-visit?table=A — whether the guest may bind a table session */
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({
       tableLetter,
       visitOpen: true,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid table letter" }, { status: 400 });
   }
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({
       tableLetter,
       visitOpen: true,
@@ -82,8 +82,7 @@ export async function POST(request: Request) {
   if (!opened) {
     return NextResponse.json(
       {
-        error:
-          "Could not open table visit. Run supabase/migrate-table-visits.sql in Supabase SQL Editor.",
+        error: "Could not open table visit. Check MySQL table_visits setup.",
       },
       { status: 503 },
     );

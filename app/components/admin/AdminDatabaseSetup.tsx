@@ -21,38 +21,37 @@ export function AdminDatabaseSetup({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold text-on-surface">
-            {isConnectionError ? "Could not connect to database" : "Connect Supabase to load orders"}
+            {isConnectionError ? "Could not connect to database" : "Connect MySQL to load orders"}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
             {isConnectionError
               ? (message ??
-                "Supabase credentials are set but the server could not reach your database. Check the URL, service role key, and that you ran the SQL schema.")
-              : "The admin dashboard reads orders from Supabase. Add your project API keys to a local `.env.local` file, then restart the dev server."}
+                "Database credentials are set but the server could not reach MySQL. Check host, user, password, and that you ran the schema.")
+              : "The admin dashboard reads orders from MySQL. Implement the data layer in lib/db/, add connection env vars to .env.local, then restart the dev server."}
           </p>
 
           {!isConnectionError && (
             <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-on-surface-variant">
               <li>
-                Create a project at{" "}
-                <a
-                  href="https://supabase.com/dashboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-secondary hover:underline"
-                >
-                  supabase.com
-                </a>
+                Create a MySQL database and run{" "}
+                <code className="rounded bg-surface-container px-1 text-xs">
+                  database/schema-reference.sql
+                </code>{" "}
+                (adapt as needed)
               </li>
               <li>
-                In <strong>SQL Editor</strong>, run <code className="rounded bg-surface-container px-1 text-xs">supabase/schema.sql</code> then{" "}
-                <code className="rounded bg-surface-container px-1 text-xs">supabase/seed.sql</code>
+                Implement queries in{" "}
+                <code className="rounded bg-surface-container px-1 text-xs">lib/db/orders.ts</code>{" "}
+                and set{" "}
+                <code className="rounded bg-surface-container px-1 text-xs">
+                  isDatabaseConfigured()
+                </code>{" "}
+                in{" "}
+                <code className="rounded bg-surface-container px-1 text-xs">lib/db/config.ts</code>
               </li>
               <li>
-                Copy <strong>Project URL</strong>, <strong>anon key</strong>, and{" "}
-                <strong>service_role key</strong> from Project Settings → API
-              </li>
-              <li>
-                Paste them into <code className="rounded bg-surface-container px-1 text-xs">.env.local</code> in the project root
+                Add MySQL variables to{" "}
+                <code className="rounded bg-surface-container px-1 text-xs">.env.local</code>
               </li>
               <li>
                 Restart: <code className="rounded bg-surface-container px-1 text-xs">npm run dev</code>
@@ -63,14 +62,18 @@ export function AdminDatabaseSetup({
           <div className="mt-5 rounded-xl border border-surface-variant bg-surface-container-lowest p-md font-mono text-xs leading-relaxed text-on-surface-variant">
             <p className="font-sans text-xs font-semibold text-on-surface">.env.local</p>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap">
-{`NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...`}
+{`MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=tablebite
+MYSQL_PASSWORD=your-password
+MYSQL_DATABASE=tablebite`}
             </pre>
           </div>
 
           <p className="mt-4 text-xs text-on-surface-variant">
-            On Vercel, add the same variables under Project Settings → Environment Variables, then redeploy.
+            See <code className="rounded bg-surface-container px-1 text-xs">lib/db/README.md</code>{" "}
+            for integration notes. On Vercel, add the same variables under Project Settings →
+            Environment Variables, then redeploy.
           </p>
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">

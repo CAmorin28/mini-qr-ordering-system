@@ -8,7 +8,7 @@ Use **one** dev server on **http://localhost:3000** (menu, checkout, admin, and 
 
 ```bash
 npm install
-cp .env.example .env.local   # then add Supabase keys
+cp .env.example .env.local   # optional MySQL + admin vars
 npm run dev
 ```
 
@@ -52,7 +52,7 @@ If someone opens `/qr` without staff access (e.g. an old guest link), middleware
 API routes are served on the same domain as the app:
 
 - `GET /api/health` — app + database status
-- `GET /api/products?category=all` — products from Supabase
+- `GET /api/products?category=all` — products (local menu until MySQL is wired)
 - `GET /api/menu?category=all` — alias of products (`items` key)
 - `POST /api/orders` — save a completed order
 - `GET /api/orders` — list recent orders
@@ -76,22 +76,29 @@ Protected API routes (require admin session cookie):
 - `PATCH /api/admin/orders/:orderId` — update `status` and/or `paymentStatus`
 - `POST /api/admin/auth` — sign in (`username`, `password`) · `DELETE /api/admin/auth` — sign out
 
-## Supabase database
+## MySQL database
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In **SQL Editor**, run `supabase/schema.sql` then `supabase/seed.sql`, then `supabase/migrate-realtime-orders.sql` (live order updates for admin and customers).
+Persistence is implemented in `lib/db/` (see `lib/db/README.md`). Until MySQL is connected:
+
+- Menu uses `lib/data/menu.ts`
+- Order APIs return **503 Database not configured**
+- Table QR flow works in dev without a database
+
+1. Create a MySQL database and run `database/schema-reference.sql` (adapt as needed).
+2. Implement `lib/db/orders.ts`, `products.ts`, `table-visits.ts`, and `isDatabaseConfigured()` in `lib/db/config.ts`.
 3. Add environment variables (local `.env.local` and Vercel → Settings → Environment Variables):
 
 | Name | Notes |
 |------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** — required for POST/GET orders |
+| `MYSQL_HOST` | Database host |
+| `MYSQL_PORT` | Default `3306` |
+| `MYSQL_USER` / `MYSQL_PASSWORD` | **Server only** |
+| `MYSQL_DATABASE` | Database name |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | **Server only** — optional override for `/admin/login` |
 
 4. Redeploy on Vercel after saving env vars.
 
-Tables: **`products`**, **`orders`** (order line items stored in `orders.lines` as JSON).
+Tables: **`products`**, **`orders`** (`lines` as JSON), **`table_visits`**.
 
 ## Project structure
 
@@ -99,6 +106,8 @@ Tables: **`products`**, **`orders`** (order line items stored in `orders.lines` 
 |------|---------|
 | `app/` | Pages and UI components |
 | `app/api/` | Serverless API (Vercel-compatible) |
-| `lib/data/menu.ts` | Menu data |
+| `lib/data/menu.ts` | Menu data (default until MySQL products) |
+| `lib/db/` | MySQL data layer (implement here) |
+| `database/schema-reference.sql` | Reference MySQL schema |
 | `lib/orders.ts` | Order validation |
 | `server/` | Optional local Express server only |

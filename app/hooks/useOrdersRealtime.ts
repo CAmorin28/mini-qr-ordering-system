@@ -1,52 +1,43 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
-import {
-  subscribeOrdersRealtime,
-  type OrdersRealtimeCallbacks,
-  type OrdersRealtimeFilter,
-} from "@/lib/supabase/orders-realtime";
 
-const FALLBACK_POLL_MS = 60_000;
+const DEFAULT_POLL_MS = 30_000;
+
+export type OrdersRealtimeFilter =
+  | { mode: "all" }
+  | { mode: "table"; tableLetter: string }
+  | { mode: "order"; orderId: string }
+  | { mode: "orderIds"; orderIds: string[] };
+
+export interface OrdersRealtimeCallbacks {
+  onUpsert: (order: import("@/lib/types").PlacedOrder) => void;
+  onDelete?: (orderId: string) => void;
+}
 
 /**
- * Subscribes to Supabase Realtime order changes. Falls back to optional slow poll
- * when Realtime is not configured (missing anon key or SQL migration).
+ * Polls for order updates until MySQL live updates are implemented.
+ * `fallbackPoll` should refetch orders from the API.
  */
 export function useOrdersRealtime(
-  filter: OrdersRealtimeFilter,
-  callbacks: OrdersRealtimeCallbacks,
-  options?: { enabled?: boolean; fallbackPoll?: () => void },
+  _filter: OrdersRealtimeFilter,
+  _callbacks: OrdersRealtimeCallbacks,
+  options?: { enabled?: boolean; fallbackPoll?: () => void; pollIntervalMs?: number },
 ): boolean {
-  const callbacksRef = useRef(callbacks);
-  callbacksRef.current = callbacks;
   const enabled = options?.enabled !== false;
-  const realtimeReady = isSupabaseRealtimeConfigured();
-
-  const tableLetter = filter.mode === "table" ? filter.tableLetter : "";
-  const orderId = filter.mode === "order" ? filter.orderId : "";
-  const orderIdsKey =
-    filter.mode === "orderIds" ? filter.orderIds.slice().sort().join(",") : "";
+  const intervalMs = options?.pollIntervalMs ?? DEFAULT_POLL_MS;
+  const pollRef = useRef(options?.fallbackPoll);
+  pollRef.current = options?.fallbackPoll;
 
   useEffect(() => {
-    if (!enabled || !realtimeReady) return;
-
-    return subscribeOrdersRealtime(filter, {
-      onUpsert: (order) => callbacksRef.current.onUpsert(order),
-      onDelete: (orderId) => callbacksRef.current.onDelete?.(orderId),
-    });
-  }, [enabled, realtimeReady, filter.mode, tableLetter, orderId, orderIdsKey]);
-
-  useEffect(() => {
-    if (!enabled || realtimeReady || !options?.fallbackPoll) return;
+    if (!enabled || !pollRef.current) return;
 
     const timer = window.setInterval(() => {
-      options.fallbackPoll?.();
-    }, FALLBACK_POLL_MS);
+      pollRef.current?.();
+    }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [enabled, realtimeReady, options?.fallbackPoll]);
+  }, [enabled, intervalMs]);
 
-  return realtimeReady;
+  return false;
 }

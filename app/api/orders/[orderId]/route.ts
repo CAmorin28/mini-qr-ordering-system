@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getOrderFromDb } from "@/lib/supabase/orders";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { getOrderFromDb } from "@/lib/db/orders";
 
 /** GET /api/orders/:orderId — single order by client order id */
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
   const { orderId } = await context.params;
   const id = decodeURIComponent(orderId);
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 

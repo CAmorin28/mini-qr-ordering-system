@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect } from "react";
 import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
-import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
 import { isCompletedOrder } from "@/lib/order-completion";
 import { saveOrder } from "@/lib/order-history";
 import {
@@ -12,12 +11,9 @@ import {
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
-const FALLBACK_POLL_MS = 8_000;
-
-/** Clears the table QR session when staff completes the visit (realtime or slow poll). */
+/** Clears the table QR session when staff completes the visit (polled). */
 export function useTableVisitEndSync(tableLetter: string) {
   const table = normalizeTableLetter(tableLetter);
-  const realtimeOn = isSupabaseRealtimeConfigured();
 
   const run = useCallback(async () => {
     if (!table) return;
@@ -42,14 +38,6 @@ export function useTableVisitEndSync(tableLetter: string) {
         void applyTableOrderRealtimeUpdate(order, table);
       },
     },
-    { enabled: !!table, fallbackPoll: run },
+    { enabled: !!table, fallbackPoll: run, pollIntervalMs: 8_000 },
   );
-
-  useEffect(() => {
-    if (!table || realtimeOn) return;
-    const timer = window.setInterval(() => {
-      void run();
-    }, FALLBACK_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [table, realtimeOn, run]);
 }

@@ -31,9 +31,7 @@ function safeEqual(a: string, b: string): boolean {
 
 function sessionSecret(): string {
   return (
-    process.env.ADMIN_SESSION_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    "tablebite-admin-session-secret"
+    process.env.ADMIN_SESSION_SECRET?.trim() || "tablebite-admin-session-secret"
   );
 }
 

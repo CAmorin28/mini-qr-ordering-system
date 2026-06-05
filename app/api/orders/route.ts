@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { listOrdersFromDb, saveOrderToDb } from "@/lib/supabase/orders";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { listOrdersFromDb, saveOrderToDb } from "@/lib/db/orders";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
@@ -18,7 +18,7 @@ function isPlacedOrder(body: unknown): body is PlacedOrder {
 
 /** GET /api/orders — active orders for customers (?table=A, active-only by default) */
 export async function GET(request: Request) {
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json(
       { error: "Database not configured", orders: [] },
       { status: 503 },
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
 /** POST /api/orders — create order record after checkout */
 export async function POST(request: Request) {
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json(
       { error: "Database not configured" },
       { status: 503 },

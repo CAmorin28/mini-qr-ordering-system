@@ -19,7 +19,7 @@ import {
   updateAdminOrder,
 } from "@/lib/api-admin";
 import { formatPrice } from "@/lib/format";
-import { mergeOrderIntoList } from "@/lib/supabase/orders-realtime";
+import { mergeOrderIntoList } from "@/lib/orders-merge";
 import { ADMIN_LOGIN_PATH, staffQrPath } from "@/lib/menu-url";
 import {
   adminOrderStatusLabel,

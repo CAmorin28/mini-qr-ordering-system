@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchProductsFromDb } from "@/lib/supabase/products";
+import { fetchProductsFromDb } from "@/lib/db/products";
 import type { MenuCategory } from "@/lib/types";
 
 /** GET /api/menu — alias of products for existing clients */

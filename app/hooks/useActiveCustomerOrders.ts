@@ -7,12 +7,9 @@ import { isCompletedOrder } from "@/lib/order-completion";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { listOrders, saveOrder } from "@/lib/order-history";
 import { applyTableOrderRealtimeUpdate } from "@/lib/sync-table-visit-end";
-import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
-import { mergeOrderIntoList } from "@/lib/supabase/orders-realtime";
+import { mergeOrderIntoList } from "@/lib/orders-merge";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
-
-const FALLBACK_POLL_MS = 30_000;
 
 async function refreshGuestOrdersFromApi(local: PlacedOrder[]): Promise<PlacedOrder[]> {
   const active = activePlacedOrdersForTable(local, "");
@@ -49,7 +46,6 @@ export function useActiveCustomerOrders(tableLetter: string) {
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
   const [loading, setLoading] = useState(true);
-  const realtimeOn = isSupabaseRealtimeConfigured();
 
   const load = useCallback(async () => {
     if (table) {
@@ -119,16 +115,8 @@ export function useActiveCustomerOrders(tableLetter: string) {
         );
       },
     },
-    { enabled: true, fallbackPoll: load },
+    { enabled: true, fallbackPoll: load, pollIntervalMs: 30_000 },
   );
-
-  useEffect(() => {
-    if (realtimeOn) return;
-    const timer = window.setInterval(() => {
-      void load();
-    }, FALLBACK_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [realtimeOn, load]);
 
   return { orders, loading, refresh: load };
 }

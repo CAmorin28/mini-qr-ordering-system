@@ -1,7 +1,9 @@
 import { getMenuByCategory, menuItems } from "@/lib/data/menu";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { getPool } from "@/lib/db/pool";
+import { ensureProductsSeeded } from "@/lib/db/seed-products";
 import type { MenuCategory, MenuItem } from "@/lib/types";
+import type { RowDataPacket } from "mysql2";
 
 interface ProductRow {
   id: string;
@@ -26,29 +28,29 @@ function mapRow(row: ProductRow): MenuItem {
 export async function fetchProductsFromDb(
   category: MenuCategory = "all",
 ): Promise<MenuItem[]> {
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return getMenuByCategory(category);
   }
 
   try {
-    const supabase = getSupabaseAdmin();
-    let query = supabase
-      .from("products")
-      .select("id, name, price, category, image_url, emoji")
-      .order("name", { ascending: true });
+    await ensureProductsSeeded();
+    const pool = getPool();
+    const params: string[] = [];
+    let sql =
+      "SELECT id, name, price, category, image_url, emoji FROM products ORDER BY name ASC";
 
     if (category !== "all") {
-      query = query.eq("category", category);
+      sql =
+        "SELECT id, name, price, category, image_url, emoji FROM products WHERE category = ? ORDER BY name ASC";
+      params.push(category);
     }
 
-    const { data, error } = await query;
-
-    if (error) throw error;
-    if (!data?.length) {
+    const [rows] = await pool.query<RowDataPacket[]>(sql, params);
+    if (!rows.length) {
       return getMenuByCategory(category);
     }
 
-    return data.map((row) => mapRow(row as ProductRow));
+    return rows.map((row) => mapRow(row as ProductRow));
   } catch {
     return getMenuByCategory(category);
   }

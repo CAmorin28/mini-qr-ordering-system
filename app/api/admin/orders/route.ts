@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-api-route";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { listOrdersFromDb } from "@/lib/supabase/orders";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { listOrdersFromDb } from "@/lib/db/orders";
 
 /** GET /api/admin/orders — list orders (admin only) */
 export async function GET() {
   const denied = await requireAdminSession();
   if (denied) return denied;
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json(
       { error: "Database not configured", orders: [] },
       { status: 503 },

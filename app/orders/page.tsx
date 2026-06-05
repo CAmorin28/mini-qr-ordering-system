@@ -10,8 +10,7 @@ import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { listOrders, saveOrder } from "@/lib/order-history";
-import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
-import { mergeOrderIntoList } from "@/lib/supabase/orders-realtime";
+import { mergeOrderIntoList } from "@/lib/orders-merge";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { normalizeTableLetter } from "@/lib/table-session";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
@@ -20,8 +19,6 @@ import {
   customerOrderStatusLabel,
 } from "@/lib/order-labels";
 import type { PlacedOrder } from "@/lib/types";
-
-const FALLBACK_POLL_MS = 30_000;
 
 async function loadGuestOrders(): Promise<PlacedOrder[]> {
   let local = listOrders("");
@@ -51,7 +48,6 @@ export default function OrdersHistoryPage() {
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"database" | "local">("database");
-  const realtimeOn = isSupabaseRealtimeConfigured();
 
   const loadOrders = useCallback(async () => {
     if (table) {
@@ -100,16 +96,8 @@ export default function OrdersHistoryPage() {
         );
       },
     },
-    { enabled: true, fallbackPoll: loadOrders },
+    { enabled: true, fallbackPoll: loadOrders, pollIntervalMs: 30_000 },
   );
-
-  useEffect(() => {
-    if (realtimeOn) return;
-    const timer = window.setInterval(() => {
-      loadOrders();
-    }, FALLBACK_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [loadOrders, realtimeOn]);
 
   return (
     <div className="orders-page flex min-h-dvh w-full min-w-0 max-w-full flex-col overflow-x-clip bg-background">
@@ -124,7 +112,7 @@ export default function OrdersHistoryPage() {
             ? " When staff completes your visit, orders clear for the next guest."
             : " Orders on this device are saved locally until staff marks them complete."}
           {source === "local" ? " (Showing saved orders on this device.)" : ""}
-          {realtimeOn ? " Updates appear instantly." : ""}
+          {" "}Status refreshes automatically every few seconds.
         </p>
 
         {loading ? (

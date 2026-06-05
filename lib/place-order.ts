@@ -64,7 +64,7 @@ export function isPlacedOrder(order: PlacedOrder): boolean {
   return order.paymentStatus !== "failed";
 }
 
-/** Persists to Supabase via POST /api/orders. Throws if the server cannot save the order. */
+/** Persists via POST /api/orders. Throws if the server cannot save the order. */
 export async function placeOrderWithSimulation(
   order: PlacedOrder,
 ): Promise<PlacedOrder> {

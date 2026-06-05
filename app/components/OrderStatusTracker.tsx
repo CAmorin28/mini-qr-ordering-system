@@ -12,11 +12,10 @@ import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { listOrders } from "@/lib/order-history";
-import { isSupabaseRealtimeConfigured } from "@/lib/supabase/config";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
-const FALLBACK_POLL_MS = 8000;
+const POLL_INTERVAL_MS = 15_000;
 
 interface OrderStatusTrackerProps {
   orderId: string;
@@ -24,6 +23,23 @@ interface OrderStatusTrackerProps {
   onUpdate?: (order: PlacedOrder) => void;
   /** Called when staff completes this table visit and the QR session is cleared. */
   onVisitEnded?: () => void;
+}
+
+function orderSnapshotKey(order: PlacedOrder): string {
+  return [
+    order.status,
+    order.paymentStatus,
+    order.readyAt ?? "",
+    order.completedAt ?? "",
+  ].join("|");
+}
+
+function isTerminalOrder(order: PlacedOrder): boolean {
+  return (
+    isCompletedOrder(order) ||
+    order.status === "served" ||
+    order.status === "ready_for_pickup"
+  );
 }
 
 export function OrderStatusTracker({
@@ -34,42 +50,55 @@ export function OrderStatusTracker({
 }: OrderStatusTrackerProps) {
   const [order, setOrder] = useState(initialOrder);
   const [refreshing, setRefreshing] = useState(false);
+  const [pollingEnabled, setPollingEnabled] = useState(!isTerminalOrder(initialOrder));
   const sessionCleared = useRef(false);
-  const realtimeOn = isSupabaseRealtimeConfigured();
+  const lastSyncedKeyRef = useRef(orderSnapshotKey(initialOrder));
+  const onUpdateRef = useRef(onUpdate);
+  const onVisitEndedRef = useRef(onVisitEnded);
+  onUpdateRef.current = onUpdate;
+  onVisitEndedRef.current = onVisitEnded;
 
   useEffect(() => {
     setOrder(initialOrder);
+    lastSyncedKeyRef.current = orderSnapshotKey(initialOrder);
+    setPollingEnabled(!isTerminalOrder(initialOrder));
   }, [initialOrder]);
 
-  const applyLatest = useCallback(
-    async (latest: PlacedOrder) => {
-      setOrder(latest);
-      onUpdate?.(latest);
-      if (isCompletedOrder(latest) && !sessionCleared.current) {
-        sessionCleared.current = true;
-        const table = normalizeTableLetter(latest.customer.tableLetter);
-        try {
-          let remaining: PlacedOrder[];
-          if (table) {
-            const fromApi = await fetchOrderHistory(table);
-            remaining = activePlacedOrdersForTable(fromApi, table);
-          } else {
-            remaining = activePlacedOrdersForTable(listOrders(""), "");
-          }
-          afterCustomerOrderCompleted(latest, remaining);
-          if (remaining.length === 0) {
-            onVisitEnded?.();
-          }
-        } catch {
-          if (table) {
-            clearTableCustomerSession(table);
-          }
-          onVisitEnded?.();
+  const applyLatest = useCallback(async (latest: PlacedOrder) => {
+    const key = orderSnapshotKey(latest);
+    if (key === lastSyncedKeyRef.current) return;
+
+    lastSyncedKeyRef.current = key;
+    setOrder(latest);
+    onUpdateRef.current?.(latest);
+
+    if (isTerminalOrder(latest)) {
+      setPollingEnabled(false);
+    }
+
+    if (isCompletedOrder(latest) && !sessionCleared.current) {
+      sessionCleared.current = true;
+      const table = normalizeTableLetter(latest.customer.tableLetter);
+      try {
+        let remaining: PlacedOrder[];
+        if (table) {
+          const fromApi = await fetchOrderHistory(table);
+          remaining = activePlacedOrdersForTable(fromApi, table);
+        } else {
+          remaining = activePlacedOrdersForTable(listOrders(""), "");
         }
+        afterCustomerOrderCompleted(latest, remaining);
+        if (remaining.length === 0) {
+          onVisitEndedRef.current?.();
+        }
+      } catch {
+        if (table) {
+          clearTableCustomerSession(table);
+        }
+        onVisitEndedRef.current?.();
       }
-    },
-    [onUpdate, onVisitEnded],
-  );
+    }
+  }, []);
 
   const pollLatest = useCallback(async () => {
     setRefreshing(true);
@@ -85,11 +114,15 @@ export function OrderStatusTracker({
     }
   }, [orderId, applyLatest]);
 
+  const pollRef = useRef(pollLatest);
+  pollRef.current = pollLatest;
+
   useEffect(() => {
-    if (isCompletedOrder(initialOrder)) {
-      void applyLatest(initialOrder);
-    }
-  }, [initialOrder, applyLatest]);
+    sessionCleared.current = false;
+    lastSyncedKeyRef.current = orderSnapshotKey(initialOrder);
+    setPollingEnabled(!isTerminalOrder(initialOrder));
+    void pollRef.current();
+  }, [orderId]);
 
   useOrdersRealtime(
     { mode: "order", orderId },
@@ -99,31 +132,19 @@ export function OrderStatusTracker({
       },
     },
     {
-      enabled: true,
-      fallbackPoll: pollLatest,
+      enabled: pollingEnabled,
+      fallbackPoll: () => {
+        void pollRef.current();
+      },
+      pollIntervalMs: POLL_INTERVAL_MS,
     },
   );
-
-  useEffect(() => {
-    void pollLatest();
-  }, [orderId, pollLatest]);
-
-  useEffect(() => {
-    if (realtimeOn) return;
-    const timer = window.setInterval(() => {
-      void pollLatest();
-    }, FALLBACK_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [realtimeOn, pollLatest]);
 
   const visitComplete = isCompletedOrder(order);
   const label = visitComplete
     ? "Visit complete — thank you!"
     : customerOrderStatusLabel(order);
-  const isTerminal =
-    visitComplete ||
-    order.status === "served" ||
-    order.status === "ready_for_pickup";
+  const isTerminal = isTerminalOrder(order);
 
   return (
     <section
@@ -147,10 +168,10 @@ export function OrderStatusTracker({
             <LoadingSpinner size="sm" label="Updating status" />
           ) : (
             <span
-              className={`material-symbols-outlined ${realtimeOn ? "text-secondary" : "text-on-surface-variant"}`}
+              className="material-symbols-outlined text-on-surface-variant"
               aria-hidden
             >
-              {realtimeOn ? "sensors" : "sync"}
+              sync
             </span>
           ))}
       </div>
@@ -162,9 +183,7 @@ export function OrderStatusTracker({
         </p>
       ) : !isTerminal ? (
         <p className="mt-3 text-xs text-on-surface-variant">
-          {realtimeOn
-            ? "Status updates instantly when the kitchen or staff changes your order."
-            : "Status updates automatically every few seconds."}
+          Status updates automatically every 15 seconds.
         </p>
       ) : null}
     </section>

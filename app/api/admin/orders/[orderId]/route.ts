@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-api-route";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { updateOrderInDb } from "@/lib/supabase/orders";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { updateOrderInDb } from "@/lib/db/orders";
 import type { OrderStatus, PaymentStatus } from "@/lib/types";
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -30,7 +30,7 @@ export async function PATCH(
   const denied = await requireAdminSession();
   if (denied) return denied;
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 

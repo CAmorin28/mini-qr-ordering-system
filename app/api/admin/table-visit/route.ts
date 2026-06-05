@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-api-route";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getTableVisitStatus, openTableVisit } from "@/lib/supabase/table-visits";
+import { isDatabaseConfigured } from "@/lib/db/config";
+import { getTableVisitStatus, openTableVisit } from "@/lib/db/table-visits";
 import { normalizeTableLetter } from "@/lib/table-session";
 
 /** POST /api/admin/table-visit — open table for the next party after a visit was completed */
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const denied = await requireAdminSession();
   if (denied) return denied;
 
-  if (!isSupabaseConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
@@ -34,8 +34,7 @@ export async function POST(request: Request) {
   if (!opened) {
     return NextResponse.json(
       {
-        error:
-          "Could not open table visit. Run supabase/migrate-table-visits.sql in Supabase SQL Editor.",
+        error: "Could not open table visit. Check MySQL table_visits setup.",
       },
       { status: 503 },
     );
