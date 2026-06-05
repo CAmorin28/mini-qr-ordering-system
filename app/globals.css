@@ -2146,6 +2146,7 @@ body {
   width: 100%;
   max-width: 100%;
   flex-direction: column;
+  flex-wrap: wrap;
   gap: var(--spacing-base);
 }
 
@@ -2177,10 +2178,16 @@ body {
     min-width: 0;
     width: auto;
   }
+
+  .checkout-actions .checkout-actions-full {
+    flex: 1 1 100%;
+    width: 100%;
+  }
 }
 
 .checkout-actions-primary,
-.checkout-actions-secondary {
+.checkout-actions-secondary,
+.checkout-actions-full {
   display: flex;
   width: 100%;
   min-height: 3rem;
