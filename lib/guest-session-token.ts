@@ -77,10 +77,14 @@ export function generateGuestSessionId(): string {
   return randomBytes(32).toString("hex");
 }
 
-export function guestSessionCookieOptions() {
+export function guestSessionCookieOptions(opts?: { secure?: boolean }) {
+  const secure =
+    opts?.secure ??
+    (process.env.NODE_ENV === "production" ? true : false);
+
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax" as const,
     path: "/",
     maxAge: GUEST_SESSION_MAX_AGE_SEC,

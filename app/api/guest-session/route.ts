@@ -53,8 +53,13 @@ export async function DELETE(request: Request) {
     cleared: true,
     tableLetter: record?.tableLetter ?? payload?.table ?? "",
   });
+
+  const xfProto = request.headers.get("x-forwarded-proto");
+  const secure =
+    xfProto != null ? xfProto.toLowerCase().includes("https") : process.env.NODE_ENV === "production";
+
   response.cookies.set(GUEST_SESSION_COOKIE, "", {
-    ...guestSessionCookieOptions(),
+    ...guestSessionCookieOptions({ secure }),
     maxAge: 0,
   });
 

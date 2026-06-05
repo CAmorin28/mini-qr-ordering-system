@@ -48,7 +48,15 @@ export async function jsonWithGuestSessionCookie(
     );
   }
 
+  const xfProto = request.headers.get("x-forwarded-proto");
+  const secure =
+    xfProto != null ? xfProto.toLowerCase().includes("https") : process.env.NODE_ENV === "production";
+
   const response = NextResponse.json(body);
-  response.cookies.set(GUEST_SESSION_COOKIE, issued.token, guestSessionCookieOptions());
+  response.cookies.set(
+    GUEST_SESSION_COOKIE,
+    issued.token,
+    guestSessionCookieOptions({ secure }),
+  );
   return response;
 }

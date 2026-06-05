@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GuestStatusScreen } from "@/app/components/GuestStatusScreen";
 import { openTableVisitOnScan } from "@/lib/api-table-visit";
 import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
@@ -65,16 +66,14 @@ export default function MenuEnterPage() {
 
   if (error) {
     return (
-      <div className="customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <main className="customer-page-scroll mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-md py-xl text-center">
-          <span className="material-symbols-outlined text-4xl text-on-surface-variant">
-            table_restaurant
-          </span>
-          <p className="text-on-surface">{error}</p>
-          {isGuestQrSecurityEnabledClient() ? (
+      <GuestStatusScreen
+        icon="table_restaurant"
+        title="Can't open this table"
+        action={
+          isGuestQrSecurityEnabledClient() ? (
             <button
               type="button"
-              className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
+              className="guest-status-btn"
               onClick={() => router.replace(guestAccessDeniedUrl("device_locked"))}
             >
               Why can&apos;t I open this link?
@@ -82,28 +81,22 @@ export default function MenuEnterPage() {
           ) : (
             <button
               type="button"
-              className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
+              className="guest-status-btn"
               onClick={() => router.replace(MENU_PAGE_PATH)}
             >
               Browse menu without table
             </button>
-          )}
-        </main>
-      </div>
+          )
+        }
+      >
+        <p>{error}</p>
+      </GuestStatusScreen>
     );
   }
 
   return (
-    <div className="customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      <main className="customer-page-scroll mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-md py-xl text-center">
-        <span
-          className="material-symbols-outlined animate-pulse text-4xl text-secondary"
-          aria-hidden
-        >
-          qr_code_scanner
-        </span>
-        <p className="text-on-surface-variant">Opening your table session…</p>
-      </main>
-    </div>
+    <GuestStatusScreen title="Opening your table" loading>
+      <p>Hang tight — we&apos;re linking this device to your table so you can start ordering.</p>
+    </GuestStatusScreen>
   );
 }

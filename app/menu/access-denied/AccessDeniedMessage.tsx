@@ -23,5 +23,5 @@ export function AccessDeniedMessage() {
   const reason = (searchParams.get("reason") ?? "no_session") as GuestAccessDeniedReason;
   const message = MESSAGES[reason] ?? MESSAGES.no_session;
 
-  return <p className="text-on-surface-variant">{message}</p>;
+  return <p>{message}</p>;
 }
