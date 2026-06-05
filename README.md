@@ -222,9 +222,31 @@ All API routes are same-origin with the app:
 - Use the **Network** URL (`http://192.168.x.x:3000`) on your phone, not `localhost`.
 - Open `/admin/qr` from the same LAN URL before generating or updating the QR.
 
-### Port 3000 already in use
+### Port 3000 already in use (`EADDRINUSE`)
 
-- Stop any other `next dev` or Node process on port 3000, then run `npm run dev` again.
+Something else on the PC is already using port 3000 (often a leftover dev server from an earlier run).
+
+**Automatic fix (updated project):** `npm run dev` now tries the next free port (3001, 3002, …) and prints the URL to open.
+
+**Manual fix on Windows:**
+
+1. Find what is using port 3000:
+   ```powershell
+   netstat -ano | findstr :3000
+   ```
+2. Note the **PID** in the last column, then stop it:
+   ```powershell
+   taskkill /PID <PID> /F
+   ```
+3. Run `npm run dev` again.
+
+**Or use a different port:**
+
+```powershell
+$env:PORT=3001; npm run dev
+```
+
+Then open **http://localhost:3001** (use that port in the LAN URL if testing on a phone).
 
 ---
 
