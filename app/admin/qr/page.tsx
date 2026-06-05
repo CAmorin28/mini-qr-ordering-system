@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { QrPageLayout } from "@/app/components/QrPageLayout";
 import { StaffTableQrPanel } from "@/app/components/StaffTableQrPanel";
 import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
-import { ADMIN_DASHBOARD_PATH } from "@/lib/menu-url";
+import { ADMIN_DASHBOARD_PATH, ADMIN_LOGIN_PATH } from "@/lib/menu-url";
 import { loadStaffQrPanelProps } from "@/lib/staff-qr-props";
+import { getAdminSessionFromCookies } from "@/lib/admin-auth";
 
 export const metadata: Metadata = {
   title: "Table QR codes — TableBite Admin",
@@ -17,6 +19,9 @@ interface AdminQrPageProps {
 
 export default async function AdminQrPage({ searchParams }: AdminQrPageProps) {
   const params = await searchParams;
+  const authenticated = await getAdminSessionFromCookies();
+  if (!authenticated) redirect(ADMIN_LOGIN_PATH);
+
   const props = await loadStaffQrPanelProps(params.table);
 
   return (

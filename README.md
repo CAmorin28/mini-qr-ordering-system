@@ -47,7 +47,8 @@ Use your real live URL (no trailing path). This keeps downloaded/printed QR code
 
 After changing env vars, **redeploy** and **re-download** the QR from **Show QR** on the live site.
 
-If someone opens `/qr` without staff access (e.g. an old guest link), middleware redirects them to `/menu`. Legacy `/qr?view=staff` links redirect to `/admin/qr`.
+If someone opens `/qr?view=staff` (legacy staff link), middleware redirects them to `/admin/qr`.
+Otherwise `/qr` stays as the guest “scan to order” page.
 
 API routes are served on the same domain as the app:
 

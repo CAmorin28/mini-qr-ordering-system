@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { openAdminTableVisit } from "@/lib/api-admin";
-import { ADMIN_DASHBOARD_PATH, menuUrlForTable, staffQrPath } from "@/lib/menu-url";
+import { menuUrlForTable, staffQrPath } from "@/lib/menu-url";
 import {
   MENU_QR_COLORS,
   MENU_QR_DISPLAY_WIDTH,
@@ -81,22 +80,30 @@ export function StaffTableQrPanel({
     });
   }, [searchParams, tableLetter, refreshQr]);
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  function updateQrFromInput() {
     if (!isValidTableLetterInput(inputValue)) {
       setInputError(
         `Enter 1–${TABLE_ID_MAX_LENGTH} letters or numbers (e.g. A, B, VIP, T1).`,
       );
       return;
     }
+
     setInputError(null);
     const normalized = normalizeTableLetter(inputValue)!;
+
     if (typeof window !== "undefined") {
+      // Keep the URL in sync (use replaceState so we don't navigate away from /admin/qr).
       window.history.replaceState(null, "", staffQrPath(normalized));
     }
+
     refreshQr(normalized).catch(() => {
       /* handled above */
     });
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    updateQrFromInput();
   }
 
   return (
@@ -148,9 +155,10 @@ export function StaffTableQrPanel({
             className="checkout-input w-full uppercase sm:max-w-[10rem]"
           />
           <button
-            type="submit"
+            type="button"
             disabled={generating}
             className="inline-flex min-h-11 w-full shrink-0 touch-manipulation items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-on-primary disabled:opacity-60 sm:w-auto"
+            onClick={updateQrFromInput}
           >
             {generating ? "Updating…" : "Update QR"}
           </button>
@@ -190,11 +198,6 @@ export function StaffTableQrPanel({
       ) : null}
 
       <QrDownloadActions menuUrl={menuUrl} tableLetter={tableLetter} />
-
-      <Link href={ADMIN_DASHBOARD_PATH} className="qr-back-admin-btn">
-        <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
-        Back to admin dashboard
-      </Link>
     </div>
   );
 }

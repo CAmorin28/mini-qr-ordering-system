@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import {
-  ADMIN_SESSION_COOKIE,
-  verifyAdminSessionToken,
-} from "@/lib/admin-auth";
-import { STAFF_QR_PAGE_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
+import { STAFF_QR_PAGE_PATH } from "@/lib/menu-url";
 
 /** Staff open the QR display page with this query param (legacy URL). */
 export const STAFF_QR_VIEW_PARAM = "view";
@@ -18,8 +14,7 @@ function redirectToStaffQrPage(request: NextRequest): NextResponse {
 }
 
 /**
- * Guests who land on /qr (e.g. old printed codes) are sent to the menu.
- * Staff use /admin/qr (or legacy /qr?view=staff) to generate table QR codes.
+ * Legacy staff link: `/qr?view=staff` should go to the staff Table QR generator.
  */
 export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname !== "/qr") {
@@ -32,15 +27,10 @@ export function proxy(request: NextRequest) {
     return redirectToStaffQrPage(request);
   }
 
-  const adminSession = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
-  if (verifyAdminSessionToken(adminSession)) {
-    return redirectToStaffQrPage(request);
-  }
-
-  const menuUrl = request.nextUrl.clone();
-  menuUrl.pathname = MENU_PAGE_PATH;
-  menuUrl.search = "";
-  return NextResponse.redirect(menuUrl);
+  // Guests must be able to open `/qr` to understand how ordering works.
+  // Redirecting to `/admin/qr` based on an existing admin cookie would leak the staff area.
+  // Admin QR codes are private and should be accessed via `/admin/qr` (or legacy `?view=staff`).
+  return NextResponse.next();
 }
 
 export const config = {
