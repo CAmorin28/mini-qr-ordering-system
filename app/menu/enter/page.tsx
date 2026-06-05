@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GuestStatusScreen } from "@/app/components/GuestStatusScreen";
+import { fetchGuestSessionStatus } from "@/lib/api-guest-session";
 import { openTableVisitOnScan } from "@/lib/api-table-visit";
 import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
 import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
-import { clearTableVisitEndedMark, formatTableLabel } from "@/lib/table-session";
+import {
+  clearTableVisitEndedMark,
+  formatTableLabel,
+  normalizeTableLetter,
+} from "@/lib/table-session";
 
 /**
  * QR codes point here (not /menu?table=). Opens the server visit, then redirects to the menu.
@@ -55,8 +60,20 @@ export default function MenuEnterPage() {
         return;
       }
 
+      if (isGuestQrSecurityEnabledClient()) {
+        const guest = await fetchGuestSessionStatus();
+        if (cancelled) return;
+        if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== table) {
+          setError(
+            "Could not link this device to your table. Please scan the QR code again.",
+          );
+          return;
+        }
+      }
+
       clearTableVisitEndedMark(table);
-      router.replace(pathWithTable(MENU_PAGE_PATH, table));
+      // Full page load so the new httpOnly session cookie is sent to the menu guard.
+      window.location.assign(pathWithTable(MENU_PAGE_PATH, table));
     })();
 
     return () => {

@@ -11,6 +11,7 @@ import {
   type GuestAccessDeniedReason,
 } from "@/lib/guest-session-paths";
 import { guestSessionTokenFromRequest } from "@/lib/guest-session-token";
+import { TABLE_ENTER_PAGE_PATH, pathWithTable } from "@/lib/menu-url";
 import { normalizeTableLetter } from "@/lib/table-session";
 
 export type { GuestAccessDeniedReason };
@@ -25,14 +26,17 @@ export async function enforceGuestQrAccess(options?: {
   const host = headerStore.get("host");
   if (!isGuestQrSecurityEnabled(host)) return null;
 
+  const urlTable = normalizeTableLetter(options?.tableLetter);
   const payload = await getGuestSessionPayloadFromCookies();
   const record = await validateGuestSessionPayload(payload);
   if (!record) {
+    // First scan (or legacy /menu?table= links) — run the QR entry flow instead of denying.
+    if (!payload && urlTable) {
+      redirect(pathWithTable(TABLE_ENTER_PAGE_PATH, urlTable));
+    }
     const reason: GuestAccessDeniedReason = payload ? "invalid_session" : "no_session";
     redirect(guestAccessDeniedUrl(reason));
   }
-
-  const urlTable = normalizeTableLetter(options?.tableLetter);
   if (options?.requireTableInUrl && !urlTable) {
     redirect(guestAccessDeniedUrl("scan_required"));
   }

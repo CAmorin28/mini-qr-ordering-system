@@ -1,6 +1,6 @@
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { getPool } from "@/lib/db/pool";
-import { mysqlNow } from "@/lib/db/row-utils";
+import { mysqlNow, normalizeVisitOpenedAtMs } from "@/lib/db/row-utils";
 import {
   GUEST_SESSION_MAX_AGE_SEC,
   createGuestSessionToken,
@@ -43,7 +43,7 @@ async function getVisitOpenedAtMs(tableLetter: string): Promise<number | null> {
     const openedAt =
       row.opened_at instanceof Date ? row.opened_at : new Date(row.opened_at);
     const ms = openedAt.getTime();
-    return Number.isFinite(ms) ? ms : null;
+    return Number.isFinite(ms) ? normalizeVisitOpenedAtMs(ms) : null;
   } catch {
     return null;
   }
@@ -77,10 +77,11 @@ export async function getActiveGuestSessionForTable(
     const row = rows[0];
     if (!row) return null;
 
-    const visitOpenedAt =
+    const visitOpenedAt = normalizeVisitOpenedAtMs(
       row.visit_opened_at instanceof Date
         ? row.visit_opened_at.getTime()
-        : new Date(row.visit_opened_at).getTime();
+        : new Date(row.visit_opened_at).getTime(),
+    );
 
     return {
       sessionId: String(row.session_id),
@@ -216,10 +217,11 @@ export async function getGuestSessionRecord(
       return null;
     }
 
-    const visitOpenedAt =
+    const visitOpenedAt = normalizeVisitOpenedAtMs(
       row.visit_opened_at instanceof Date
         ? row.visit_opened_at.getTime()
-        : new Date(row.visit_opened_at).getTime();
+        : new Date(row.visit_opened_at).getTime(),
+    );
 
     return {
       sessionId: String(row.session_id),
@@ -276,10 +278,11 @@ export async function validateGuestSessionPayload(
   const record = await getGuestSessionRecord(payload.sid);
   if (!record) return null;
   if (record.tableLetter !== normalizeTableLetter(payload.table)) return null;
-  if (record.visitOpenedAtMs !== payload.visitOpenedAtMs) return null;
+  const payloadVisitOpenedAtMs = normalizeVisitOpenedAtMs(payload.visitOpenedAtMs);
+  if (record.visitOpenedAtMs !== payloadVisitOpenedAtMs) return null;
 
   const currentVisitOpenedAt = await getVisitOpenedAtMs(record.tableLetter);
-  if (currentVisitOpenedAt == null || currentVisitOpenedAt !== payload.visitOpenedAtMs) {
+  if (currentVisitOpenedAt == null || currentVisitOpenedAt !== payloadVisitOpenedAtMs) {
     await revokeGuestSession(payload.sid);
     return null;
   }

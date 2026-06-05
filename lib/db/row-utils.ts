@@ -16,6 +16,11 @@ export function mysqlNow(): string {
   return toMysqlDatetime(new Date())!;
 }
 
+/** MySQL TIMESTAMP is second-precision — keep token and DB comparisons aligned. */
+export function normalizeVisitOpenedAtMs(ms: number): number {
+  return Math.floor(ms / 1000) * 1000;
+}
+
 function toIso(value: unknown): string | null {
   if (value == null) return null;
   if (value instanceof Date) return value.toISOString();
