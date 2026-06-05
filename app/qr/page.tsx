@@ -39,8 +39,12 @@ export default async function QrPage({ searchParams }: QrPageProps) {
   }
 
   return (
-    <QrPageLayout>
-      <div className="qr-page-shell">
+    <QrPageLayout
+      eyebrow="QR table ordering"
+      title="Scan to order"
+      subtitle="Ready to eat? Scan your table QR code to open the menu and order from your phone."
+    >
+      <div className="qr-page-shell qr-page-shell--guest">
         <section className="qr-panel-left">
           <div className="qr-panel-left-inner">
             <div className="qr-hero-block">
@@ -82,13 +86,24 @@ export default async function QrPage({ searchParams }: QrPageProps) {
         <section className="qr-panel-right" aria-label="Table QR code">
           <div className="qr-panel-right-glow" aria-hidden />
           <div className="qr-panel-right-inner">
-            <div className="qr-card">
-              <p className="qr-card-footer-sub px-md pt-md text-center">
-                Staff should use{" "}
+            <div className="qr-card qr-card--guest">
+              <div className="qr-guest-spotlight" aria-hidden>
+                <span className="material-symbols-outlined qr-guest-spotlight-icon">
+                  qr_code_2
+                </span>
+              </div>
+              <p className="qr-card-footer-title">Your table QR</p>
+              <p className="qr-card-footer-sub">
+                Look for the QR code on your table tent or ask staff to point you to it.
+              </p>
+              <Link href={MENU_PAGE_PATH} className="qr-open-menu-btn qr-open-menu-btn--inline">
+                Browse menu without QR
+              </Link>
+              <p className="qr-card-staff-hint">
+                Staff: generate codes in{" "}
                 <Link href={staffQrPath()} className="font-semibold text-secondary">
-                  Table QR in admin
-                </Link>{" "}
-                to generate table QR codes.
+                  Table QR admin
+                </Link>
               </p>
             </div>
           </div>

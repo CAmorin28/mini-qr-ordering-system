@@ -46,31 +46,35 @@ export default function MenuEnterPage() {
 
   if (error) {
     return (
-      <main className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center gap-4 px-md py-xl text-center">
-        <span className="material-symbols-outlined text-4xl text-on-surface-variant">
-          table_restaurant
-        </span>
-        <p className="text-on-surface">{error}</p>
-        <button
-          type="button"
-          className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
-          onClick={() => router.replace(MENU_PAGE_PATH)}
-        >
-          Browse menu without table
-        </button>
-      </main>
+      <div className="customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
+        <main className="customer-page-scroll mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-md py-xl text-center">
+          <span className="material-symbols-outlined text-4xl text-on-surface-variant">
+            table_restaurant
+          </span>
+          <p className="text-on-surface">{error}</p>
+          <button
+            type="button"
+            className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
+            onClick={() => router.replace(MENU_PAGE_PATH)}
+          >
+            Browse menu without table
+          </button>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-[40vh] max-w-md flex-col items-center justify-center gap-3 px-md py-xl text-center">
-      <span
-        className="material-symbols-outlined animate-pulse text-4xl text-secondary"
-        aria-hidden
-      >
-        qr_code_scanner
-      </span>
-      <p className="text-on-surface-variant">Opening your table session…</p>
-    </main>
+    <div className="customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
+      <main className="customer-page-scroll mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-md py-xl text-center">
+        <span
+          className="material-symbols-outlined animate-pulse text-4xl text-secondary"
+          aria-hidden
+        >
+          qr_code_scanner
+        </span>
+        <p className="text-on-surface-variant">Opening your table session…</p>
+      </main>
+    </div>
   );
 }

@@ -20,16 +20,21 @@ export default async function AdminQrPage({ searchParams }: AdminQrPageProps) {
   const props = await loadStaffQrPanelProps(params.table);
 
   return (
-    <QrPageLayout backHref={ADMIN_DASHBOARD_PATH} backLabel="Admin dashboard">
-      <div className="qr-page-shell">
-        <section className="qr-panel-left">
+    <QrPageLayout
+      backHref={ADMIN_DASHBOARD_PATH}
+      backLabel="Admin dashboard"
+      eyebrow="Staff · Table QR"
+      title="Generate table QR"
+    >
+      <div className="qr-page-shell qr-page-shell--staff">
+        <section className="qr-panel-left qr-panel-left--desktop-only">
           <div className="qr-panel-left-inner">
             <div className="qr-hero-block">
-              <span className="qr-eyebrow">QR table ordering</span>
+              <span className="qr-eyebrow">Staff · Table QR</span>
               <h1 className="qr-title">Generate table QR</h1>
-              <p className="qr-lead">
-                Type a table letter and print or download its QR code. Customers scan to open
-                the menu — no login required.
+              <p className="qr-lead qr-lead--staff">
+                Pick a table letter, then print or share the code. Guests scan to order — no app
+                install needed.
               </p>
             </div>
           </div>

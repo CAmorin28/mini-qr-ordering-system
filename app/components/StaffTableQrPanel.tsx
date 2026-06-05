@@ -101,7 +101,27 @@ export function StaffTableQrPanel({
 
   return (
     <div className="qr-card-staff">
-      <section className="qr-card-staff-form mb-md w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
+      <div className="qr-card-staff-hero">
+        <p className="qr-table-badge">{formatTableLabel(tableLetter)}</p>
+
+        <div className="qr-scan-pill">
+          <span className="material-symbols-outlined qr-scan-pill-icon">center_focus_strong</span>
+          <span>Scan with camera</span>
+        </div>
+
+        <div className="qr-code-spotlight">
+          <div className="qr-code-frame">
+            <MenuQrDisplay menuUrl={menuUrl} initialSvg={qrSvg} tableLetter={tableLetter} />
+          </div>
+        </div>
+
+        <div className="qr-card-footer">
+          <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
+          <p className="qr-card-footer-sub">Scans start a new table visit at the restaurant</p>
+        </div>
+      </div>
+
+      <section className="qr-card-staff-form w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
         <h2 className="text-sm font-bold text-on-surface">Table letter</h2>
         <p className="mt-1 text-xs text-on-surface-variant">
           Type any table letter or code (up to {TABLE_ID_MAX_LENGTH} characters). QR codes open a
@@ -143,24 +163,10 @@ export function StaffTableQrPanel({
         ) : null}
       </section>
 
-      <div className="qr-scan-pill">
-        <span className="material-symbols-outlined qr-scan-pill-icon">center_focus_strong</span>
-        <span>Scan with camera</span>
-      </div>
-
-      <div className="qr-code-frame">
-        <MenuQrDisplay menuUrl={menuUrl} initialSvg={qrSvg} tableLetter={tableLetter} />
-      </div>
-
-      <div className="qr-card-footer">
-        <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
-        <p className="qr-card-footer-sub">Scans start a new table visit at the restaurant</p>
-      </div>
-
       <button
         type="button"
         disabled={openingVisit}
-        className="mt-md w-full rounded-xl border border-secondary/40 bg-secondary-container/20 px-4 py-3 text-sm font-bold text-on-surface disabled:opacity-60"
+        className="w-full rounded-xl border border-secondary/40 bg-secondary-container/20 px-4 py-3 text-sm font-bold text-on-surface disabled:opacity-60"
         onClick={() => {
           setVisitMessage(null);
           setOpeningVisit(true);
@@ -179,7 +185,7 @@ export function StaffTableQrPanel({
         {openingVisit ? "Opening…" : "Open table for new guests"}
       </button>
       {visitMessage ? (
-        <p className="mt-2 text-center text-xs text-on-surface-variant" role="status">
+        <p className="text-center text-xs text-on-surface-variant" role="status">
           {visitMessage}
         </p>
       ) : null}

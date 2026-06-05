@@ -203,33 +203,34 @@ export default function CheckoutReviewClient() {
                 {formError}
               </p>
             ) : null}
-
-            <div className="checkout-actions checkout-aside-actions">
-              <Link
-                href={pathWithSession(CHECKOUT_PAGE_PATH)}
-                className={`checkout-actions-secondary rounded-xl border border-outline-variant font-semibold text-on-surface-variant hover:bg-surface-container ${
-                  processingPayment ? "pointer-events-none opacity-50" : ""
-                }`}
-              >
-                Back to summary
-              </Link>
-              <button
-                type="submit"
-                disabled={processingPayment}
-                className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
-              >
-                {processingPayment
-                  ? isPayNow
-                    ? "Processing…"
-                    : "Placing order…"
-                  : isPayNow
-                    ? "Pay now"
-                    : "Place order"}
-                <span className="material-symbols-outlined text-[20px]">
-                  {isPayNow ? "account_balance_wallet" : "check"}
-                </span>
-              </button>
-            </div>
+          </>
+        }
+        footerActions={
+          <>
+            <Link
+              href={pathWithSession(CHECKOUT_PAGE_PATH)}
+              className={`checkout-actions-secondary rounded-xl border border-outline-variant font-semibold text-on-surface-variant hover:bg-surface-container ${
+                processingPayment ? "pointer-events-none opacity-50" : ""
+              }`}
+            >
+              Back to summary
+            </Link>
+            <button
+              type="submit"
+              disabled={processingPayment}
+              className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container disabled:opacity-60"
+            >
+              {processingPayment
+                ? isPayNow
+                  ? "Processing…"
+                  : "Placing order…"
+                : isPayNow
+                  ? "Pay now"
+                  : "Place order"}
+              <span className="material-symbols-outlined text-[20px]">
+                {isPayNow ? "account_balance_wallet" : "check"}
+              </span>
+            </button>
           </>
         }
       >

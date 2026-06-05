@@ -787,7 +787,7 @@ export function AdminApp() {
 
   if (booting) {
     return (
-      <div className="admin-shell min-h-dvh w-full bg-background">
+      <div className="admin-shell flex h-full min-h-0 w-full flex-1 flex-col bg-background">
         <LoadingBlock fullPage message="Loading admin…" />
       </div>
     );
@@ -798,8 +798,8 @@ export function AdminApp() {
   }
 
   return (
-    <PageEnter className="admin-shell flex min-h-dvh w-full min-w-0 flex-1 flex-col bg-background">
-      <header className="sticky top-0 z-50 border-b border-primary-container/20 bg-primary pt-[env(safe-area-inset-top,0px)] shadow-md">
+    <PageEnter className="admin-shell flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background">
+      <header className="sticky top-0 z-50 shrink-0 border-b border-primary-container/20 bg-primary pt-[env(safe-area-inset-top,0px)] shadow-md">
         <div className="admin-content mx-auto flex w-full max-w-6xl min-w-0 items-center justify-between gap-2 px-margin-mobile py-3 sm:gap-3 md:gap-4 md:py-5 md:px-margin-desktop">
           <div className="flex min-w-0 items-center gap-2 md:gap-4">
             <span className="admin-header-icon material-symbols-outlined shrink-0 text-[26px] text-secondary-container md:text-[32px]">
@@ -846,7 +846,7 @@ export function AdminApp() {
         </div>
       </header>
 
-      <main className="admin-content page-main mx-auto w-full min-w-0 max-w-6xl flex-1 px-margin-mobile pb-xl pt-lg md:px-margin-desktop md:pt-xl">
+      <main className="admin-content admin-page-scroll page-main mx-auto w-full min-w-0 max-w-6xl flex-1 min-h-0 px-margin-mobile pb-xl pt-lg md:px-margin-desktop md:pt-xl">
         <div className="admin-main-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Active orders", value: stats.active, icon: "pending_actions" },

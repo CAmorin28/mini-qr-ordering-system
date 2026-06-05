@@ -117,7 +117,7 @@ export default function OrderConfirmationPage() {
 
   if (loading || !order) {
     return (
-      <div className="checkout-page flex min-h-dvh bg-background">
+      <div className="checkout-page customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <LoadingBlock fullPage message="Loading your receipt…" />
       </div>
     );

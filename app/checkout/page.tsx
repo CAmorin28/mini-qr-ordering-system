@@ -55,22 +55,23 @@ export default function CheckoutPage() {
             </label>
             <PriceBreakdown subtotal={subtotal} showCutleryNote cutlery={cutlery} />
           </section>
-
-          <div className="checkout-actions checkout-aside-actions">
-            <Link
-              href={menuPath}
-              className="checkout-actions-secondary rounded-xl border border-outline-variant font-semibold text-on-surface-variant hover:bg-surface-container"
-            >
-              Add more items
-            </Link>
-            <Link
-              href={pathWithSession(CHECKOUT_REVIEW_PATH)}
-              className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container"
-            >
-              Continue to payment
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </Link>
-          </div>
+        </>
+      }
+      footerActions={
+        <>
+          <Link
+            href={menuPath}
+            className="checkout-actions-secondary rounded-xl border border-outline-variant font-semibold text-on-surface-variant hover:bg-surface-container"
+          >
+            Add more items
+          </Link>
+          <Link
+            href={pathWithSession(CHECKOUT_REVIEW_PATH)}
+            className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container"
+          >
+            Continue to payment
+            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+          </Link>
         </>
       }
     >

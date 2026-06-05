@@ -39,17 +39,17 @@ export function OrderingPage() {
   }, [category, loadMenu]);
 
   return (
-    <div className="menu-page flex min-h-dvh w-full max-w-full flex-col overflow-x-clip bg-background">
+    <div className="menu-page customer-page-shell flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-background">
       <Header showTableBadge showOrderStatus />
 
       <main
-        className={`menu-page-main page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl overflow-x-clip px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:px-8 ${
+        className={`menu-page-main customer-page-scroll page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:px-8 ${
           itemCount > 0
             ? "pb-[calc(var(--menu-checkout-bar-offset)+env(safe-area-inset-bottom,0px))] lg:pb-0"
             : ""
         }`}
       >
-        <section className="flex min-h-[calc(100dvh-var(--header-height)-36px)] min-w-0 flex-1 flex-col overflow-x-clip">
+        <section className="flex min-w-0 flex-1 flex-col">
           <PageEnter className="flex flex-col">
             <TableSessionBanner />
             <ActiveOrderBanner />
