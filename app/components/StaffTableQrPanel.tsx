@@ -1,10 +1,14 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useLayoutEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
+import {
+  readPersistedAdminQrPanel,
+  shouldRestoreAdminQrFromStorage,
+  writePersistedAdminQrPanel,
+} from "@/lib/admin-qr-persistence";
 import { openAdminTableVisit } from "@/lib/api-admin";
 import { menuUrlForTable } from "@/lib/menu-url";
 import {
@@ -40,7 +44,6 @@ export function StaffTableQrPanel({
   serverMenuUrl,
   initialSvg,
 }: StaffTableQrPanelProps) {
-  const searchParams = useSearchParams();
   const [tableLetter, setTableLetter] = useState(
     normalizeTableLetter(initialTableLetter) || "A",
   );
@@ -51,6 +54,18 @@ export function StaffTableQrPanel({
   const [generating, setGenerating] = useState(false);
   const [openingVisit, setOpeningVisit] = useState(false);
   const [visitMessage, setVisitMessage] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (!shouldRestoreAdminQrFromStorage()) return;
+    const persisted = readPersistedAdminQrPanel();
+    if (!persisted) return;
+
+    setTableLetter(persisted.tableLetter);
+    setInputValue(persisted.tableLetter);
+    setMenuUrl(persisted.menuUrl);
+    setQrSvg(persisted.qrSvg);
+    setVisitMessage(persisted.visitMessage);
+  }, []);
 
   const refreshQr = useCallback(
     async (letter: string) => {
@@ -65,20 +80,18 @@ export function StaffTableQrPanel({
         setQrSvg(svg);
         setTableLetter(normalized);
         setInputValue(normalized);
+        writePersistedAdminQrPanel({
+          tableLetter: normalized,
+          menuUrl: url,
+          qrSvg: svg,
+          visitMessage,
+        });
       } finally {
         setGenerating(false);
       }
     },
-    [serverMenuUrl],
+    [serverMenuUrl, visitMessage],
   );
-
-  useEffect(() => {
-    const fromUrl = normalizeTableLetter(searchParams.get("table"));
-    if (!fromUrl || fromUrl === tableLetter) return;
-    refreshQr(fromUrl).catch(() => {
-      /* keep existing svg */
-    });
-  }, [searchParams, tableLetter, refreshQr]);
 
   function updateQrFromInput() {
     if (!isValidTableLetterInput(inputValue)) {
@@ -174,7 +187,14 @@ export function StaffTableQrPanel({
           setOpeningVisit(true);
           openAdminTableVisit(tableLetter)
             .then(() => {
-              setVisitMessage(`${formatTableLabel(tableLetter)} is open for new guests to scan.`);
+              const message = `${formatTableLabel(tableLetter)} is open for new guests to scan.`;
+              setVisitMessage(message);
+              writePersistedAdminQrPanel({
+                tableLetter,
+                menuUrl,
+                qrSvg,
+                visitMessage: message,
+              });
             })
             .catch((err: unknown) => {
               setVisitMessage(

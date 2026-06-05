@@ -3,15 +3,15 @@ import { mapOrderRow, type OrderRow } from "@/lib/db/order-mapper";
 import { getPool } from "@/lib/db/pool";
 import { mysqlNow, normalizeOrderRow, toMysqlDatetime } from "@/lib/db/row-utils";
 import {
-  closeTableVisitIfNoActiveOrders,
-  openTableVisit,
-} from "@/lib/db/table-visits";
+  closeTableSessionIfNoActiveOrders,
+} from "@/lib/db/table-qr-session";
 import {
   canArchiveOrder,
   canMarkOrderDone,
   hasReadyHandoff,
   resolveOrderAfterAdminUpdate,
 } from "@/lib/order-completion";
+import { canCustomerCancelOrder } from "@/lib/order-workflow";
 import { publishOrderUpdated } from "@/lib/order-realtime-hub";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
@@ -122,11 +122,6 @@ export async function saveOrderToDb(order: PlacedOrder): Promise<SaveOrderResult
     const saved = await getOrderFromDb(order.orderId);
     if (!saved) {
       return { ok: false, status: 500, error: "Order saved but could not be loaded" };
-    }
-
-    const table = normalizeTableLetter(saved.customer.tableLetter);
-    if (table) {
-      await openTableVisit(table);
     }
 
     publishOrderUpdated(saved);
@@ -273,7 +268,7 @@ export async function updateOrderInDb(
     if (updates.completed === true) {
       const table = normalizeTableLetter(updated.customer.tableLetter);
       if (table) {
-        await closeTableVisitIfNoActiveOrders(table);
+        await closeTableSessionIfNoActiveOrders(table);
       }
     }
 
@@ -290,5 +285,57 @@ export async function updateOrderInDb(
       };
     }
     return { ok: false, status: 500, error: message };
+  }
+}
+
+export async function cancelOrderInDb(orderId: string): Promise<SaveOrderResult> {
+  if (!isDatabaseConfigured()) {
+    return { ok: false, status: 503, error: "Database not configured" };
+  }
+
+  const existing = await getOrderFromDb(orderId);
+  if (!existing) {
+    return { ok: false, status: 404, error: "Order not found" };
+  }
+
+  if (!canCustomerCancelOrder(existing)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "This order can no longer be cancelled once kitchen preparation has started.",
+    };
+  }
+
+  try {
+    const pool = getPool();
+    const now = mysqlNow();
+    const [result] = await pool.query<ResultSetHeader>(
+      "UPDATE orders SET completed_at = ? WHERE order_id = ? AND completed_at IS NULL",
+      [now, orderId],
+    );
+
+    if (result.affectedRows === 0) {
+      return { ok: false, status: 404, error: "Order not found" };
+    }
+
+    const updated = await getOrderFromDb(orderId);
+    if (!updated) {
+      return { ok: false, status: 500, error: "Order cancelled but could not be loaded" };
+    }
+
+    const table = normalizeTableLetter(updated.customer.tableLetter);
+    if (table) {
+      await closeTableSessionIfNoActiveOrders(table);
+    }
+
+    publishOrderUpdated(updated);
+
+    return { ok: true, order: updated };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 500,
+      error: err instanceof Error ? err.message : "Failed to cancel order",
+    };
   }
 }

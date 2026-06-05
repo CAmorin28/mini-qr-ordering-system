@@ -49,7 +49,7 @@ export async function openTableVisitOnScan(
       return {
         tableLetter: table,
         visitOpen: false,
-        hasActiveOrders: false,
+        hasActiveOrders: data.hasActiveOrders ?? false,
         canBind: false,
         error: data.error,
         code: data.code,

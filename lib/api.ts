@@ -97,3 +97,18 @@ export async function fetchOrderHistory(tableLetter = ""): Promise<PlacedOrder[]
   const data = (await res.json()) as { orders: PlacedOrder[] };
   return data.orders ?? [];
 }
+
+export async function cancelOrderById(orderId: string): Promise<PlacedOrder> {
+  const res = await fetch(
+    `${API_BASE}/api/orders/${encodeURIComponent(orderId)}`,
+    { method: "DELETE", credentials: "include" },
+  );
+  const data = (await res.json()) as { order?: PlacedOrder; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error ?? "Failed to cancel order");
+  }
+  if (!data.order) {
+    throw new Error("Failed to cancel order");
+  }
+  return data.order;
+}

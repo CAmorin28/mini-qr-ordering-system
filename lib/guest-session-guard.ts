@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { getGuestSessionPayloadFromCookies } from "@/lib/guest-session-cookies";
-import { validateGuestSessionPayload } from "@/lib/db/guest-sessions";
+import { validateGuestSessionPayload } from "@/lib/db/table-qr-session";
 import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
 import {
   guestAccessDeniedUrl,
@@ -30,8 +30,8 @@ export async function enforceGuestQrAccess(options?: {
   const payload = await getGuestSessionPayloadFromCookies();
   const record = await validateGuestSessionPayload(payload);
   if (!record) {
-    // First scan (or legacy /menu?table= links) — run the QR entry flow instead of denying.
-    if (!payload && urlTable) {
+    // Stale or missing cookie — always re-run QR entry when a table is in the URL.
+    if (urlTable) {
       redirect(pathWithTable(TABLE_ENTER_PAGE_PATH, urlTable));
     }
     const reason: GuestAccessDeniedReason = payload ? "invalid_session" : "no_session";

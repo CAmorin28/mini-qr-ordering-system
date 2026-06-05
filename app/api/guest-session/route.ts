@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { clearGuestSessionCookie, getGuestSessionPayloadFromCookies } from "@/lib/guest-session-cookies";
-import { validateGuestSessionPayload } from "@/lib/db/guest-sessions";
+import { revokeGuestSession, validateGuestSessionPayload } from "@/lib/db/table-qr-session";
 import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
 import {
   GUEST_SESSION_COOKIE,
   guestSessionCookieOptions,
 } from "@/lib/guest-session-token";
-import { formatTableLabel } from "@/lib/table-session";
+import { formatTableLabel, normalizeTableLetter } from "@/lib/table-session";
 
-/** GET /api/guest-session — validate device-bound table session (production). */
+/** GET /api/guest-session — validate the single active device slot for this table */
 export async function GET(request: Request) {
   const host = request.headers.get("host");
   if (!isGuestQrSecurityEnabled(host)) {
@@ -41,12 +41,17 @@ export async function GET(request: Request) {
   });
 }
 
-/** DELETE /api/guest-session — clear device session (visit ended or sign-out). */
+/** DELETE /api/guest-session — release this device's slot and clear the cookie */
 export async function DELETE(request: Request) {
   const host = request.headers.get("host");
   const payload = await getGuestSessionPayloadFromCookies();
   const record = payload ? await validateGuestSessionPayload(payload) : null;
+  const tableLetter =
+    record?.tableLetter ?? normalizeTableLetter(payload?.table ?? "");
 
+  if (record?.sessionId && tableLetter) {
+    await revokeGuestSession(record.sessionId, tableLetter);
+  }
   await clearGuestSessionCookie();
 
   const response = NextResponse.json({

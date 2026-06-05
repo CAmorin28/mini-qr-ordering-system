@@ -7,7 +7,7 @@ Supabase has been removed. Implement persistence here:
 | `config.ts` | Set `isDatabaseConfigured()` when `MYSQL_*` env vars are valid |
 | `orders.ts` | `orders` — CRUD, `ready_at`, `completed_at` |
 | `products.ts` | `products` — menu items (fallback: `lib/data/menu.ts`) |
-| `table-visits.ts` | `table_visits` — QR session open/close |
+| `table-qr-session.ts` | `table_qr_sessions` — one device per table, open/close, QR scan claim |
 
 Use `order-mapper.ts` to map DB rows ↔ `PlacedOrder`.
 

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { getTableVisitStatus, openTableVisit } from "@/lib/db/table-visits";
+import {
+  getTableVisitStatus,
+  openTableForNewGuests,
+} from "@/lib/db/table-qr-session";
 import { normalizeTableLetter } from "@/lib/table-session";
 
-/** POST /api/admin/table-visit — open table for the next party after a visit was completed */
+/** POST /api/admin/table-visit — reset table and open for the next party */
 export async function POST(request: Request) {
   const denied = await requireAdminSession();
   if (denied) return denied;
@@ -30,11 +33,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid table letter" }, { status: 400 });
   }
 
-  const opened = await openTableVisit(tableLetter);
+  const before = await getTableVisitStatus(tableLetter);
+  if (before?.hasActiveOrders) {
+    return NextResponse.json(
+      {
+        error:
+          "This table still has an active order. Complete or cancel it before opening for new guests.",
+      },
+      { status: 409 },
+    );
+  }
+
+  const opened = await openTableForNewGuests(tableLetter);
   if (!opened) {
     return NextResponse.json(
       {
-        error: "Could not open table visit. Check MySQL table_visits setup.",
+        error: "Could not open table. Re-run database/schema.sql in MySQL Workbench.",
       },
       { status: 503 },
     );
@@ -42,7 +56,7 @@ export async function POST(request: Request) {
 
   const status = await getTableVisitStatus(tableLetter);
   if (!status) {
-    return NextResponse.json({ error: "Failed to load table visit" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load table session" }, { status: 500 });
   }
 
   return NextResponse.json(status);

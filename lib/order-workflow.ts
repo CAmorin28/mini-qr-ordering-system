@@ -62,6 +62,11 @@ export function canStartPreparing(_order: PlacedOrder): boolean {
   return true;
 }
 
+/** Customer may cancel only before kitchen preparation has started. */
+export function canCustomerCancelOrder(order: PlacedOrder): boolean {
+  return order.status === "pending_payment" || order.status === "paid";
+}
+
 export function paymentStatusForOrderStatus(status: OrderStatus): PlacedOrder["paymentStatus"] {
   if (status === "pending_payment") return "pending";
   return "paid";

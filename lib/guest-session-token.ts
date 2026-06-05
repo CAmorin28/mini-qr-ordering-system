@@ -8,8 +8,8 @@ export const GUEST_SESSION_MAX_AGE_SEC = 60 * 60 * 4;
 export interface GuestSessionPayload {
   sid: string;
   table: string;
-  /** Milliseconds since epoch — must match table_visits.opened_at for this visit. */
-  visitOpenedAtMs: number;
+  /** Increments when staff taps Open table for new guests — invalidates prior cookies. */
+  gen: number;
   exp: number;
 }
 
@@ -32,7 +32,7 @@ function decodePayload(encoded: string): GuestSessionPayload | null {
     if (
       typeof parsed.sid !== "string" ||
       typeof parsed.table !== "string" ||
-      typeof parsed.visitOpenedAtMs !== "number" ||
+      typeof parsed.gen !== "number" ||
       typeof parsed.exp !== "number"
     ) {
       return null;

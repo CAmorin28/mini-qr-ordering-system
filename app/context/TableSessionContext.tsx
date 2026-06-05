@@ -105,14 +105,13 @@ function TableSessionSync({
         if (isGuestQrSecurityEnabledClient()) {
           const guest = await fetchGuestSessionStatus();
           if (cancelled) return;
-          if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== fromUrl) {
-            sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-            router.replace(
-              guestAccessDeniedUrl(
-                guest?.code === "invalid_session" ? "invalid_session" : "no_session",
-              ),
-            );
-            return;
+
+          if (guest?.enforced !== false) {
+            if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== fromUrl) {
+              sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+              router.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, fromUrl));
+              return;
+            }
           }
         }
 
@@ -127,7 +126,11 @@ function TableSessionSync({
             isGuestQrSecurityEnabledClient() &&
             !isPostOrderCustomerPath(pathname)
           ) {
-            router.replace(guestAccessDeniedUrl("visit_ended"));
+            if (!status.visitOpen) {
+              router.replace(guestAccessDeniedUrl("visit_ended"));
+              return;
+            }
+            router.replace(guestAccessDeniedUrl("device_locked"));
             return;
           }
           router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
@@ -164,14 +167,13 @@ function TableSessionSync({
       if (isGuestQrSecurityEnabledClient()) {
         const guest = await fetchGuestSessionStatus();
         if (cancelled) return;
-        if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== stored) {
-          sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-          router.replace(
-            guestAccessDeniedUrl(
-              guest?.code === "invalid_session" ? "invalid_session" : "no_session",
-            ),
-          );
-          return;
+
+        if (guest?.enforced !== false) {
+          if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== stored) {
+            sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+            router.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, stored));
+            return;
+          }
         }
       }
 
@@ -186,7 +188,11 @@ function TableSessionSync({
           isGuestQrSecurityEnabledClient() &&
           !isPostOrderCustomerPath(pathname)
         ) {
-          router.replace(guestAccessDeniedUrl("visit_ended"));
+          if (!status.visitOpen) {
+            router.replace(guestAccessDeniedUrl("visit_ended"));
+            return;
+          }
+          router.replace(guestAccessDeniedUrl("device_locked"));
         }
         return;
       }

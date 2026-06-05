@@ -12,7 +12,9 @@ import { useCheckout } from "@/app/context/CheckoutContext";
 import { useActiveCustomerOrders } from "@/app/hooks/useActiveCustomerOrders";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { isCompletedOrder } from "@/lib/order-completion";
-import { fetchOrderById } from "@/lib/api";
+import { cancelOrderById, fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import { afterCustomerOrderCompleted } from "@/lib/customer-table-session";
+import { canCustomerCancelOrder } from "@/lib/order-workflow";
 import {
   PAYMENT_METHOD_LABELS,
   customerOrderStatusLabel,
@@ -26,6 +28,7 @@ import {
   MENU_PAGE_PATH,
   ORDERS_HISTORY_PATH,
 } from "@/lib/menu-url";
+import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import type { PlacedOrder } from "@/lib/types";
 
 export default function OrderConfirmationPage() {
@@ -42,8 +45,11 @@ export default function OrderConfirmationPage() {
   const [visitEnded, setVisitEnded] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const visitComplete = order ? isCompletedOrder(order) || visitEnded : false;
+  const canCancel = order ? canCustomerCancelOrder(order) && !visitComplete : false;
   const otherActiveCount = order
     ? activeTableOrders.filter((o) => o.orderId !== order.orderId).length
     : 0;
@@ -124,6 +130,36 @@ export default function OrderConfirmationPage() {
     }
   }
 
+  async function handleCancelOrder() {
+    if (!order || cancelling || !canCancel) return;
+    setCancelError(null);
+    setCancelling(true);
+    try {
+      const cancelled = await cancelOrderById(order.orderId);
+      const table = tableLetter.trim().toUpperCase();
+      let remaining: PlacedOrder[] = [];
+      if (table) {
+        try {
+          const fromApi = await fetchOrderHistory(table);
+          remaining = activePlacedOrdersForTable(fromApi, table);
+        } catch {
+          remaining = [];
+        }
+      }
+      afterCustomerOrderCompleted(cancelled, remaining);
+      if (remaining.length === 0 && hasTableSession) {
+        setVisitEnded(true);
+      }
+      clearCart();
+      clearCheckout();
+      router.replace(hasTableSession && remaining.length === 0 ? MENU_PAGE_PATH : pathWithSession(MENU_PAGE_PATH));
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Could not cancel order.");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (loading || !order) {
     return (
       <div className="checkout-page customer-page-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
@@ -136,6 +172,19 @@ export default function OrderConfirmationPage() {
 
   const confirmationActions = (
     <>
+      {canCancel && (
+        <button
+          type="button"
+          disabled={cancelling}
+          onClick={() => void handleCancelOrder()}
+          className="checkout-actions-secondary rounded-xl border border-error/40 bg-error-container/15 font-semibold text-error hover:bg-error-container/25 disabled:opacity-60"
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            {cancelling ? "hourglass_top" : "cancel"}
+          </span>
+          {cancelling ? "Cancelling…" : "Cancel order"}
+        </button>
+      )}
       <button
         type="button"
         disabled={pdfDownloading}
@@ -255,6 +304,12 @@ export default function OrderConfirmationPage() {
       {pdfError ? (
         <p className="rounded-lg border border-error bg-error-container px-md py-sm text-sm text-error print:hidden">
           {pdfError}
+        </p>
+      ) : null}
+
+      {cancelError ? (
+        <p className="rounded-lg border border-error bg-error-container px-md py-sm text-sm text-error print:hidden">
+          {cancelError}
         </p>
       ) : null}
 

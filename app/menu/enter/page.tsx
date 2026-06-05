@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GuestStatusScreen } from "@/app/components/GuestStatusScreen";
-import { fetchGuestSessionStatus } from "@/lib/api-guest-session";
 import { openTableVisitOnScan } from "@/lib/api-table-visit";
 import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
@@ -11,7 +10,6 @@ import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu
 import {
   clearTableVisitEndedMark,
   formatTableLabel,
-  normalizeTableLetter,
 } from "@/lib/table-session";
 
 /**
@@ -40,7 +38,24 @@ export default function MenuEnterPage() {
       const status = await openTableVisitOnScan(table);
       if (cancelled) return;
 
-      if (status?.code === "session_locked") {
+      if (!status) {
+        setError("Could not connect to the server. Check your network and try again.");
+        return;
+      }
+
+      if (status.code === "visit_closed") {
+        if (isGuestQrSecurityEnabledClient()) {
+          router.replace(guestAccessDeniedUrl("visit_ended"));
+          return;
+        }
+        setError(
+          status.error ??
+            `Table ${formatTableLabel(table)} is not open yet. Ask staff to tap Open table for new guests.`,
+        );
+        return;
+      }
+
+      if (status.code === "session_locked") {
         if (isGuestQrSecurityEnabledClient()) {
           router.replace(guestAccessDeniedUrl("device_locked"));
           return;
@@ -52,7 +67,23 @@ export default function MenuEnterPage() {
         return;
       }
 
-      if (!status?.canBind) {
+      if (!status.canBind) {
+        if (status?.hasActiveOrders) {
+          if (isGuestQrSecurityEnabledClient()) {
+            router.replace(guestAccessDeniedUrl("active_orders"));
+            return;
+          }
+          setError(
+            status?.error ??
+              `Table ${formatTableLabel(table)} already has an order in progress. Ask staff for help.`,
+          );
+          return;
+        }
+
+        if (isGuestQrSecurityEnabledClient()) {
+          router.replace(guestAccessDeniedUrl("device_locked"));
+          return;
+        }
         setError(
           status?.error ??
             `Table ${formatTableLabel(table)} is not accepting orders right now. Ask staff for help.`,
@@ -60,19 +91,8 @@ export default function MenuEnterPage() {
         return;
       }
 
-      if (isGuestQrSecurityEnabledClient()) {
-        const guest = await fetchGuestSessionStatus();
-        if (cancelled) return;
-        if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== table) {
-          setError(
-            "Could not link this device to your table. Please scan the QR code again.",
-          );
-          return;
-        }
-      }
-
       clearTableVisitEndedMark(table);
-      // Full page load so the new httpOnly session cookie is sent to the menu guard.
+      // Full page load — menu guard validates the httpOnly cookie from the POST response.
       window.location.assign(pathWithTable(MENU_PAGE_PATH, table));
     })();
 

@@ -1,11 +1,16 @@
--- TableBite MySQL schema + seed data
--- Run the whole file in MySQL Workbench (creates DB, tables, and sample menu).
+-- TableBite MySQL schema + seed data (single source of truth)
+-- Run the entire file in MySQL Workbench on a new or existing database.
+-- Safe to re-run: uses IF NOT EXISTS / IF EXISTS and upserts sample menu rows.
 
 CREATE DATABASE IF NOT EXISTS tablebite
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
 USE tablebite;
+
+-- Remove legacy QR tables from older project versions (no-op if already gone).
+DROP TABLE IF EXISTS guest_qr_sessions;
+DROP TABLE IF EXISTS table_visits;
 
 CREATE TABLE IF NOT EXISTS products (
   id VARCHAR(64) PRIMARY KEY,
@@ -41,25 +46,17 @@ CREATE TABLE IF NOT EXISTS orders (
   INDEX orders_completed_at_idx (completed_at)
 );
 
-CREATE TABLE IF NOT EXISTS table_visits (
+-- One row per table: open/closed state + single active device session.
+CREATE TABLE IF NOT EXISTS table_qr_sessions (
   table_number VARCHAR(4) PRIMARY KEY,
   is_open TINYINT(1) NOT NULL DEFAULT 0,
+  session_generation BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  active_session_id VARCHAR(64) NULL,
+  session_expires_at TIMESTAMP NULL,
   opened_at TIMESTAMP NULL,
   closed_at TIMESTAMP NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX table_visits_is_open_idx (is_open)
-);
-
--- Device-bound guest sessions after a table QR scan (production anti-sharing).
-CREATE TABLE IF NOT EXISTS guest_qr_sessions (
-  session_id VARCHAR(64) PRIMARY KEY,
-  table_number VARCHAR(4) NOT NULL,
-  visit_opened_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  expires_at TIMESTAMP NOT NULL,
-  last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX guest_sessions_table_idx (table_number),
-  INDEX guest_sessions_expires_idx (expires_at)
+  INDEX table_qr_sessions_open_idx (is_open)
 );
 
 -- Sample menu (safe to re-run)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { getOrderFromDb } from "@/lib/db/orders";
+import { cancelOrderInDb, getOrderFromDb } from "@/lib/db/orders";
 import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
 import { normalizeTableLetter } from "@/lib/table-session";
 
@@ -32,4 +32,35 @@ export async function GET(
   } catch {
     return NextResponse.json({ error: "Failed to load order" }, { status: 500 });
   }
+}
+
+/** DELETE /api/orders/:orderId — customer cancels before kitchen preparation starts */
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ orderId: string }> },
+) {
+  const { orderId } = await context.params;
+  const id = decodeURIComponent(orderId);
+
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const existing = await getOrderFromDb(id);
+  if (!existing) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
+  const table = normalizeTableLetter(existing.customer.tableLetter);
+  if (table) {
+    const session = await requireGuestSessionForApi(request, table);
+    if (!session.ok) return session.response;
+  }
+
+  const result = await cancelOrderInDb(id);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  return NextResponse.json({ order: result.order });
 }
