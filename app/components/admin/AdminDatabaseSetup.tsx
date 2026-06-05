@@ -35,7 +35,7 @@ export function AdminDatabaseSetup({
               <li>
                 Create a MySQL database and run{" "}
                 <code className="rounded bg-surface-container px-1 text-xs">
-                  database/schema-reference.sql
+                  database/schema.sql
                 </code>{" "}
                 (adapt as needed)
               </li>

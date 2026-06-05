@@ -281,7 +281,7 @@ export async function updateOrderInDb(
       return {
         ok: false,
         status: 503,
-        error: "Database schema is out of date. Re-run database/schema-reference.sql.",
+        error: "Database schema is out of date. Re-run database/schema.sql.",
       };
     }
     return { ok: false, status: 500, error: message };

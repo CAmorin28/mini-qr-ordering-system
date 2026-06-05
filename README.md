@@ -85,7 +85,7 @@ Persistence is implemented in `lib/db/` (see `lib/db/README.md`). Until MySQL is
 - Order APIs return **503 Database not configured**
 - Table QR flow works in dev without a database
 
-1. Create a MySQL database and run `database/schema-reference.sql` (adapt as needed).
+1. Create a MySQL database and run `database/schema.sql` (adapt as needed).
 2. Implement `lib/db/orders.ts`, `products.ts`, `table-visits.ts`, and `isDatabaseConfigured()` in `lib/db/config.ts`.
 3. Add environment variables (local `.env.local` and Vercel → Settings → Environment Variables):
 
@@ -109,6 +109,6 @@ Tables: **`products`**, **`orders`** (`lines` as JSON), **`table_visits`**.
 | `app/api/` | Serverless API (Vercel-compatible) |
 | `lib/data/menu.ts` | Menu data (default until MySQL products) |
 | `lib/db/` | MySQL data layer (implement here) |
-| `database/schema-reference.sql` | Reference MySQL schema |
+| `database/schema.sql` | MySQL schema + sample menu seed |
 | `lib/orders.ts` | Order validation |
 | `server/` | Optional local Express server only |

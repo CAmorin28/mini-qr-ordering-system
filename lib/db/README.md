@@ -21,4 +21,4 @@ MYSQL_PASSWORD=
 MYSQL_DATABASE=tablebite
 ```
 
-Reference schema: `database/schema-reference.sql`. Seed products: `database/seed-products.sql`, or open the menu once (auto-seeds from `lib/data/menu.ts` when `products` is empty).
+Run `database/schema.sql` in MySQL (schema + sample menu). Or open the menu once (auto-seeds from `lib/data/menu.ts` when `products` is empty).
