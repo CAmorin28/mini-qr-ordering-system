@@ -180,6 +180,7 @@ export default function OrderConfirmationPage() {
   return (
     <CheckoutShell
       step={3}
+      asideFirstOnMobile
       title={paidViaGcash ? "Payment successful" : "Order placed"}
       subtitle="Track your order status below. The kitchen will update progress as your food is prepared."
       aside={

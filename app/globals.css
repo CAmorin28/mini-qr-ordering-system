@@ -1607,7 +1607,7 @@ button.checkout-cta {
   --qr-subheader-height: 4.75rem;
   --page-bottom-safe: env(safe-area-inset-bottom, 0px);
   /* Sticky mobile chrome — keep in sync with MenuCheckoutBar / checkout-aside-actions */
-  --menu-checkout-bar-offset: 7.75rem;
+  --menu-checkout-bar-offset: 9.25rem;
   --checkout-mobile-actions-offset: 9rem;
 }
 
@@ -1726,7 +1726,8 @@ body {
     touch-action: pan-y pinch-zoom;
   }
 
-  .checkout-page .checkout-page-body {
+  .checkout-page .checkout-page-body,
+  .menu-page .menu-page-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
@@ -1736,6 +1737,11 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+  }
+
+  .checkout-page .checkout-layout--aside-first-mobile .checkout-layout__aside {
+    order: -1;
+    margin-top: 0;
   }
 
   .checkout-page .checkout-aside-sticky {
@@ -2166,23 +2172,27 @@ body {
 }
 
 @media (min-width: 640px) {
-  .checkout-actions {
+  .checkout-mobile-footer .checkout-actions {
     flex-direction: row;
     align-items: stretch;
     gap: var(--spacing-base);
   }
 
-  .checkout-actions .checkout-actions-primary,
-  .checkout-actions .checkout-actions-secondary {
+  .checkout-mobile-footer .checkout-actions .checkout-actions-primary,
+  .checkout-mobile-footer .checkout-actions .checkout-actions-secondary {
     flex: 1 1 50%;
     min-width: 0;
     width: auto;
   }
 
-  .checkout-actions .checkout-actions-full {
+  .checkout-mobile-footer .checkout-actions .checkout-actions-full {
     flex: 1 1 100%;
     width: 100%;
   }
+}
+
+.checkout-page .checkout-aside-actions--desktop.checkout-actions {
+  flex-direction: column;
 }
 
 .checkout-actions-primary,

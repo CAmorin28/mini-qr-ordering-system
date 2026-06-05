@@ -34,6 +34,10 @@ interface CheckoutShellProps {
 
   onSubmit?: FormEventHandler<HTMLFormElement>;
 
+  /** On narrow screens, render the aside column above main (e.g. confirmation success). */
+
+  asideFirstOnMobile?: boolean;
+
 }
 
 
@@ -59,6 +63,8 @@ export function CheckoutShell({
   footerActions,
 
   onSubmit,
+
+  asideFirstOnMobile = false,
 
 }: CheckoutShellProps) {
 
@@ -148,7 +154,11 @@ export function CheckoutShell({
 
         {aside ? (
 
-          <div className={LAYOUT_CLASS}>{layoutBody}</div>
+          <div
+            className={`${LAYOUT_CLASS}${asideFirstOnMobile ? " checkout-layout--aside-first-mobile" : ""}`}
+          >
+            {layoutBody}
+          </div>
 
         ) : (
 

@@ -7,14 +7,12 @@ import { FoodCard } from "@/app/components/FoodCard";
 import { ActiveOrderBanner } from "@/app/components/ActiveOrderBanner";
 import { MenuCheckoutBar } from "@/app/components/MenuCheckoutBar";
 import { TableSessionBanner } from "@/app/components/TableSessionBanner";
-import { useCart } from "@/app/context/CartContext";
 import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
 import { PageEnter } from "@/app/components/ui/PageEnter";
 import { fetchMenu } from "@/lib/api";
 import type { MenuCategory, MenuItem } from "@/lib/types";
 
 export function OrderingPage() {
-  const { itemCount } = useCart();
   const [category, setCategory] = useState<MenuCategory>("all");
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,39 +40,35 @@ export function OrderingPage() {
     <div className="menu-page customer-page-shell flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-background">
       <Header showTableBadge showOrderStatus />
 
-      <main
-        className={`menu-page-main customer-page-scroll page-main mx-auto flex w-full min-w-0 max-w-full flex-1 flex-col gap-xl px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:px-8 ${
-          itemCount > 0
-            ? "pb-[calc(var(--menu-checkout-bar-offset)+env(safe-area-inset-bottom,0px))] lg:pb-0"
-            : ""
-        }`}
-      >
-        <section className="flex min-w-0 flex-1 flex-col">
-          <PageEnter className="flex flex-col">
-            <TableSessionBanner />
-            <ActiveOrderBanner />
-            <CategoryFilters active={category} onChange={setCategory} />
+      <div className="menu-page-body flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <main className="menu-page-main customer-page-scroll page-main mx-auto flex w-full min-w-0 max-w-full flex-1 min-h-0 flex-col gap-xl px-margin-mobile pt-[calc(var(--header-height)+env(safe-area-inset-top,0px)+12px)] md:max-w-[1400px] md:px-margin-desktop lg:px-8">
+          <section className="flex min-w-0 flex-1 flex-col">
+            <PageEnter className="flex flex-col">
+              <TableSessionBanner />
+              <ActiveOrderBanner />
+              <CategoryFilters active={category} onChange={setCategory} />
 
-            {loadError && (
-              <p className="mt-lg rounded-lg border border-error bg-error-container px-md py-sm text-error">
-                {loadError}
-              </p>
-            )}
+              {loadError && (
+                <p className="mt-lg rounded-lg border border-error bg-error-container px-md py-sm text-error">
+                  {loadError}
+                </p>
+              )}
 
-            {loading ? (
-              <LoadingBlock className="mt-xl py-xl" message="Loading menu…" />
-            ) : (
-              <div className="menu-grid menu-grid-enter mt-lg grid min-w-0 grid-cols-2 gap-2 content-start sm:gap-gutter sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                {items.map((item) => (
-                  <FoodCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </PageEnter>
-        </section>
-      </main>
+              {loading ? (
+                <LoadingBlock className="mt-xl py-xl" message="Loading menu…" />
+              ) : (
+                <div className="menu-grid menu-grid-enter mt-lg grid min-w-0 grid-cols-2 gap-2 content-start sm:gap-gutter sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                  {items.map((item) => (
+                    <FoodCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </PageEnter>
+          </section>
+        </main>
 
-      <MenuCheckoutBar />
+        <MenuCheckoutBar />
+      </div>
     </div>
   );
 }
