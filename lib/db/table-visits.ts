@@ -91,7 +91,7 @@ export async function openTableVisit(tableLetter: string): Promise<boolean> {
        VALUES (?, 1, ?, NULL, ?)
        ON DUPLICATE KEY UPDATE
          is_open = 1,
-         opened_at = VALUES(opened_at),
+         opened_at = IF(is_open = 1 AND opened_at IS NOT NULL, opened_at, VALUES(opened_at)),
          closed_at = NULL,
          updated_at = VALUES(updated_at)`,
       [table, now, now],

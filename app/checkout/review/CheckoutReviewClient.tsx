@@ -137,7 +137,10 @@ export default function CheckoutReviewClient() {
       saveOrder(placed);
       setPendingOrder(placed);
       placedSuccessfully.current = true;
-      router.push(pathWithSession(checkoutConfirmationPath(placed.orderId)));
+      // Full page load so the guest session cookie is sent to the checkout guard.
+      window.location.assign(
+        pathWithSession(checkoutConfirmationPath(placed.orderId)),
+      );
     } catch (err) {
       placedSuccessfully.current = false;
       setProcessingPayment(false);

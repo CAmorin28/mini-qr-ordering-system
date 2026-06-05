@@ -60,6 +60,14 @@ const defaultValue: TableSessionContextValue = {
 
 const CUSTOMER_PATH_PREFIXES = ["/menu", "/checkout", "/orders"];
 
+/** Order receipt/status pages — keep accessible while the device session is still valid. */
+function isPostOrderCustomerPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/checkout/confirmation") ||
+    pathname.startsWith("/orders")
+  );
+}
+
 const TableSessionContext = createContext<TableSessionContextValue>(defaultValue);
 
 function TableSessionSync({
@@ -115,7 +123,10 @@ function TableSessionSync({
           markTableVisitEnded(fromUrl);
           sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
           void clearServerGuestSession();
-          if (isGuestQrSecurityEnabledClient()) {
+          if (
+            isGuestQrSecurityEnabledClient() &&
+            !isPostOrderCustomerPath(pathname)
+          ) {
             router.replace(guestAccessDeniedUrl("visit_ended"));
             return;
           }
@@ -171,7 +182,10 @@ function TableSessionSync({
         markTableVisitEnded(stored);
         sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
         void clearServerGuestSession();
-        if (isGuestQrSecurityEnabledClient()) {
+        if (
+          isGuestQrSecurityEnabledClient() &&
+          !isPostOrderCustomerPath(pathname)
+        ) {
           router.replace(guestAccessDeniedUrl("visit_ended"));
         }
         return;

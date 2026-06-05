@@ -1,4 +1,4 @@
-import { isLoopbackHost, isPrivateLanHost } from "@/lib/origin";
+import { isLoopbackHost } from "@/lib/origin";
 
 function envFlag(name: string): string | undefined {
   return process.env[name]?.trim().toLowerCase();
@@ -28,14 +28,13 @@ export function isGuestQrSecurityEnabled(hostHeader?: string | null): boolean {
   if (process.env.NODE_ENV !== "production") return false;
 
   const host = hostFromHeader(hostHeader ?? null);
-  if (host && (isLoopbackHost(host) || isPrivateLanHost(host))) {
-    return false;
-  }
+  // localhost only — LAN IPs (192.168.x.x) enforce device binding like production.
+  if (host && isLoopbackHost(host)) return false;
 
   return true;
 }
 
-/** Client-side hint — production builds on a public host should enforce QR security. */
+/** Client-side hint — matches server rules (LAN IP included; localhost exempt). */
 export function isGuestQrSecurityEnabledClient(): boolean {
   const override = envFlag("NEXT_PUBLIC_GUEST_QR_SECURITY");
   if (isFalsyFlag(override)) return false;
@@ -44,6 +43,5 @@ export function isGuestQrSecurityEnabledClient(): boolean {
   if (process.env.NODE_ENV !== "production") return false;
   if (typeof window === "undefined") return false;
 
-  const host = window.location.hostname;
-  return !isLoopbackHost(host) && !isPrivateLanHost(host);
+  return !isLoopbackHost(window.location.hostname);
 }
