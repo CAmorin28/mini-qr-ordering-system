@@ -13,9 +13,18 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fetchTableVisitStatus } from "@/lib/api-table-visit";
 import { clearServerGuestSession, fetchGuestSessionStatus } from "@/lib/api-guest-session";
-import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
+import {
+  GUEST_ACCESS_DENIED_PATH,
+  guestAccessDeniedUrl,
+} from "@/lib/guest-session-paths";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
-import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
+import {
+  MENU_PAGE_PATH,
+  TABLE_ENTER_PAGE_PATH,
+  pathWithoutTable,
+  pathWithTable,
+  tableLetterFromSearch,
+} from "@/lib/menu-url";
 import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
 import { clearTableCustomerSession } from "@/lib/customer-table-session";
 import {
@@ -65,8 +74,14 @@ function TableSessionSync({
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Staff QR page uses ?table= for the generator — not a guest scan.
-    if (pathname.startsWith("/admin")) return;
+    // Routes that carry ?table= before a guest session exists (or by design).
+    if (
+      pathname.startsWith("/admin") ||
+      pathname === TABLE_ENTER_PAGE_PATH ||
+      pathname === GUEST_ACCESS_DENIED_PATH
+    ) {
+      return;
+    }
 
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
