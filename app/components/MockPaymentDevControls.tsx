@@ -9,9 +9,8 @@ import type { PaymentMethod } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const MODES: { id: MockPaymentMode; label: string }[] = [
-  { id: "random", label: "Random" },
-  { id: "success", label: "Force success" },
-  { id: "failure", label: "Force fail" },
+  { id: "success", label: "Success" },
+  { id: "failure", label: "Fail" },
 ];
 
 interface MockPaymentDevControlsProps {
@@ -20,7 +19,7 @@ interface MockPaymentDevControlsProps {
 
 /** Shown when GCash is selected so demo payment can be tested on Vercel. */
 export function MockPaymentDevControls({ paymentMethod }: MockPaymentDevControlsProps) {
-  const [mode, setMode] = useState<MockPaymentMode>("random");
+  const [mode, setMode] = useState<MockPaymentMode>("success");
 
   useEffect(() => {
     setMode(getMockPaymentMode());

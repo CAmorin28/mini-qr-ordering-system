@@ -1,6 +1,6 @@
 /** Client-only mock payment — no real gateway or payment APIs. */
 
-export type MockPaymentMode = "random" | "success" | "failure";
+export type MockPaymentMode = "success" | "failure";
 
 export type MockPaymentResult =
   | { success: true; message: string }
@@ -18,12 +18,12 @@ function processingDelayMs(): number {
 }
 
 export function getMockPaymentMode(): MockPaymentMode {
-  if (typeof window === "undefined") return "random";
+  if (typeof window === "undefined") return "success";
   const stored = sessionStorage.getItem(MODE_STORAGE_KEY);
-  if (stored === "success" || stored === "failure" || stored === "random") {
+  if (stored === "success" || stored === "failure") {
     return stored;
   }
-  return "random";
+  return "success";
 }
 
 export function setMockPaymentMode(mode: MockPaymentMode): void {
@@ -31,24 +31,16 @@ export function setMockPaymentMode(mode: MockPaymentMode): void {
   sessionStorage.setItem(MODE_STORAGE_KEY, mode);
 }
 
-function resolveOutcome(mode: MockPaymentMode): boolean {
-  if (mode === "success") return true;
-  if (mode === "failure") return false;
-  return Math.random() < 0.7;
-}
-
 /**
  * Simulates GCash payment processing for 2–3 seconds, then returns success or failure.
- * Outcome follows `mode`, session override, or ~70% random success. Not used for pay-at-counter.
+ * Outcome follows the selected demo mode. Not used for pay-at-counter.
  */
 export async function simulateMockPayment(
   mode: MockPaymentMode = getMockPaymentMode(),
 ): Promise<MockPaymentResult> {
   await new Promise((resolve) => setTimeout(resolve, processingDelayMs()));
 
-  const success = resolveOutcome(mode);
-
-  if (success) {
+  if (mode === "success") {
     return {
       success: true,
       message: "Payment successful. Your order has been sent to the kitchen.",

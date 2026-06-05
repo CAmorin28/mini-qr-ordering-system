@@ -116,7 +116,6 @@ export function StaffTableQrPanel({
         </div>
 
         <div className="qr-card-footer">
-          <p className="qr-card-footer-title">{formatTableLabel(tableLetter)}</p>
           <p className="qr-card-footer-sub">Scans start a new table visit at the restaurant</p>
         </div>
       </div>
