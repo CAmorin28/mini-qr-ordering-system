@@ -30,9 +30,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (keep .env.example committed for deployment reference)
+# env files (.env.local is committed as a template — fill in your own values locally)
 .env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local

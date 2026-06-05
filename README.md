@@ -102,6 +102,7 @@ Use this section only if you need to run the project on your own machine. Evalua
 
 - **Node.js 20.x** ([nodejs.org](https://nodejs.org))
 - **npm** (included with Node.js)
+- **MySQL 8.x** (local install or [MySQL Workbench](https://dev.mysql.com/downloads/workbench/))
 
 ### Step 1 — Clone and install
 
@@ -111,7 +112,38 @@ cd mini-qr-ordering-system
 npm install
 ```
 
-### Step 2 — Start the development server
+### Step 2 — Configure environment (`.env.local`)
+
+The repo includes `.env.local` as a **template**. Each machine must set its own connection details — do not rely on another developer’s passwords or hostnames.
+
+1. Open `.env.local` in the project root.
+2. Set **`MYSQL_PASSWORD`** to your local MySQL root (or app user) password.
+3. Adjust other values if your setup differs:
+
+| Variable | What to set on your machine |
+|----------|-----------------------------|
+| `MYSQL_HOST` | Usually `127.0.0.1` for local MySQL |
+| `MYSQL_PORT` | Usually `3306` |
+| `MYSQL_USER` | Your MySQL username (e.g. `root`) |
+| `MYSQL_PASSWORD` | **Required** — your MySQL password |
+| `MYSQL_DATABASE` | `tablebite` (created by the schema script) |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for desktop; use `http://YOUR_LAN_IP:3000` when testing QR on a phone (see [Local network environment](#local-network-environment)) |
+
+Optional: set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for staff login at `/admin/login`. If unset, defaults are `admin` / `12345`.
+
+> **Security:** Never commit real passwords. Keep placeholders in git; only store your actual credentials in your local copy of `.env.local`.
+
+### Step 3 — Create the database
+
+Run the schema and seed data in MySQL Workbench (or the `mysql` CLI):
+
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+Or open `database/schema.sql` in Workbench and execute the full script. This creates the `tablebite` database, tables, and sample menu items.
+
+### Step 4 — Start the development server
 
 ```bash
 npm run dev
@@ -123,6 +155,8 @@ The terminal shows two URLs:
 |-------|---------|
 | **Local** | `http://localhost:3000` — desktop browser on this PC |
 | **Network** | `http://192.168.x.x:3000` — phone or tablet on the same Wi‑Fi |
+
+Confirm the database connection at **http://localhost:3000/api/health** (or your Network URL). A healthy response means MySQL is configured correctly.
 
 > **Note:** If port 3000 is in use, stop the other process and run `npm run dev` again.
 
@@ -210,6 +244,12 @@ All API routes are same-origin with the app:
 ---
 
 ## Troubleshooting
+
+### Database connection fails locally
+
+- Check **http://localhost:3000/api/health** — if MySQL is unreachable, verify `.env.local` on **this machine** (especially `MYSQL_PASSWORD`, `MYSQL_USER`, and `MYSQL_HOST`).
+- Ensure MySQL is running and you executed `database/schema.sql`.
+- After changing `.env.local`, restart `npm run dev`.
 
 ### “Access Denied” when I expected the menu
 
