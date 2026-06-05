@@ -10,12 +10,13 @@ import {
 } from "@/lib/customer-table-session";
 import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
+import { orderSnapshotKey } from "@/lib/order-snapshot";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { listOrders, saveOrder } from "@/lib/order-history";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
-const POLL_INTERVAL_MS = 5_000;
+const POLL_INTERVAL_MS = 3_000;
 
 interface OrderStatusTrackerProps {
   orderId: string;
@@ -23,15 +24,6 @@ interface OrderStatusTrackerProps {
   onUpdate?: (order: PlacedOrder) => void;
   /** Called when staff completes this table visit and the QR session is cleared. */
   onVisitEnded?: () => void;
-}
-
-function orderSnapshotKey(order: PlacedOrder): string {
-  return [
-    order.status,
-    order.paymentStatus,
-    order.readyAt ?? "",
-    order.completedAt ?? "",
-  ].join("|");
 }
 
 function isKitchenHandoffStatus(order: PlacedOrder): boolean {
@@ -125,7 +117,7 @@ export function OrderStatusTracker({
     void pollRef.current();
   }, [orderId]);
 
-  useOrdersRealtime(
+  const liveConnected = useOrdersRealtime(
     { mode: "order", orderId },
     {
       onUpsert: (latest) => {
@@ -190,7 +182,9 @@ export function OrderStatusTracker({
         </p>
       ) : (
         <p className="mt-3 text-xs text-on-surface-variant">
-          Status updates automatically every few seconds.
+          {liveConnected
+            ? "Live updates — changes from staff appear here instantly."
+            : "Status updates automatically. Reconnecting to live updates…"}
         </p>
       )}
     </section>

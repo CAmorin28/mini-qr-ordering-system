@@ -61,6 +61,15 @@ export default function OrderConfirmationPage() {
           clearCheckout();
           setLoading(false);
         }
+        try {
+          const fromApi = await fetchOrderById(orderId);
+          if (fromApi && isPlacedOrder(fromApi) && !cancelled) {
+            saveOrder(fromApi);
+            setOrder(fromApi);
+          }
+        } catch {
+          /* keep pending snapshot until tracker polls */
+        }
         return;
       }
 

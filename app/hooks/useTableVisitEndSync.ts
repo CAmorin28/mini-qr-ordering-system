@@ -38,6 +38,6 @@ export function useTableVisitEndSync(tableLetter: string) {
         void applyTableOrderRealtimeUpdate(order, table);
       },
     },
-    { enabled: !!table, fallbackPoll: run, pollIntervalMs: 5_000 },
+    { enabled: !!table, fallbackPoll: run, pollIntervalMs: 3_000 },
   );
 }

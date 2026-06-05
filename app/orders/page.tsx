@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
 import { Header } from "@/app/components/Header";
 import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
 import { PageEnter } from "@/app/components/ui/PageEnter";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import {
+  applyCustomerOrderUpsert,
+  resolveCustomerRealtimeFilter,
+} from "@/lib/customer-order-realtime";
 import { formatPrice } from "@/lib/format";
 import { listOrders, saveOrder } from "@/lib/order-history";
-import { mergeOrderIntoList } from "@/lib/orders-merge";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { normalizeTableLetter } from "@/lib/table-session";
 import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
@@ -47,6 +50,8 @@ export default function OrdersHistoryPage() {
   const { tableLetter, hasTableSession, pathWithSession } = useTableSession();
   const table = normalizeTableLetter(tableLetter);
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"database" | "local">("database");
 
@@ -74,33 +79,36 @@ export default function OrdersHistoryPage() {
     loadOrders().finally(() => setLoading(false));
   }, [loadOrders]);
 
-  const realtimeFilter = table
-    ? ({ mode: "table" as const, tableLetter: table })
-    : ({ mode: "all" as const });
+  const realtimeFilter = useMemo(
+    () => resolveCustomerRealtimeFilter(tableLetter, orders),
+    [tableLetter, orders],
+  );
 
   useOrdersRealtime(
-    realtimeFilter,
+    realtimeFilter ?? { mode: "orderIds", orderIds: [] },
     {
       onUpsert: (order) => {
-        saveOrder(order);
-        if (table) {
-          setOrders((prev) =>
-            activePlacedOrdersForTable(mergeOrderIntoList(prev, order), table),
-          );
-          setSource("database");
-          return;
-        }
-        const tracked = new Set([
-          ...orders.map((o) => o.orderId),
-          ...activePlacedOrdersForTable(listOrders(""), "").map((o) => o.orderId),
-        ]);
-        if (!tracked.has(order.orderId)) return;
-        setOrders((prev) =>
-          activePlacedOrdersForTable(mergeOrderIntoList(prev, order), ""),
+        applyCustomerOrderUpsert(
+          order,
+          {
+            tableLetter,
+            trackedOrderIds: table
+              ? undefined
+              : new Set([
+                  ...ordersRef.current.map((o) => o.orderId),
+                  ...activePlacedOrdersForTable(listOrders(""), "").map((o) => o.orderId),
+                ]),
+          },
+          setOrders,
+          { onDatabaseSource: () => setSource("database") },
         );
       },
     },
-    { enabled: true, fallbackPoll: loadOrders, pollIntervalMs: 5_000 },
+    {
+      enabled: realtimeFilter !== null,
+      fallbackPoll: loadOrders,
+      pollIntervalMs: 3_000,
+    },
   );
 
   return (
@@ -110,13 +118,13 @@ export default function OrdersHistoryPage() {
         <h1 className="text-balance text-xl font-bold text-on-surface sm:text-2xl">Order status</h1>
         <p className="mt-1 text-pretty text-sm leading-relaxed text-on-surface-variant">
           {hasTableSession ? `Table ${tableLetter} · ` : ""}
-          Open an order to see your receipt and live kitchen updates (same as step 3
-          after checkout).
+          Each order updates live here — open one for the full receipt and kitchen
+          tracker (same as step 3 after checkout).
           {hasTableSession
             ? " When staff completes your visit, orders clear for the next guest."
             : " Orders on this device are saved locally until staff marks them complete."}
           {source === "local" ? " (Showing saved orders on this device.)" : ""}
-          {" "}Status refreshes automatically every few seconds.
+          {" "}Status updates live when staff change your order.
         </p>
 
         {loading ? (

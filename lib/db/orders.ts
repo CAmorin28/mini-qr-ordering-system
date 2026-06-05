@@ -12,6 +12,7 @@ import {
   hasReadyHandoff,
   resolveOrderAfterAdminUpdate,
 } from "@/lib/order-completion";
+import { publishOrderUpdated } from "@/lib/order-realtime-hub";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
@@ -127,6 +128,8 @@ export async function saveOrderToDb(order: PlacedOrder): Promise<SaveOrderResult
     if (table) {
       await openTableVisit(table);
     }
+
+    publishOrderUpdated(saved);
 
     return { ok: true, order: saved };
   } catch (err) {
@@ -273,6 +276,8 @@ export async function updateOrderInDb(
         await closeTableVisitIfNoActiveOrders(table);
       }
     }
+
+    publishOrderUpdated(updated);
 
     return { ok: true, order: updated };
   } catch (err) {
