@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import {
+  formatAdminSessionStatusMessage,
   readPersistedAdminQrPanel,
   shouldRestoreAdminQrFromStorage,
   writePersistedAdminQrPanel,
+  type AdminTableSessionStatus,
 } from "@/lib/admin-qr-persistence";
-import { openAdminTableVisit } from "@/lib/api-admin";
+import { fetchAdminTableVisitSummary, openAdminTableVisit } from "@/lib/api-admin";
 import { menuUrlForTable } from "@/lib/menu-url";
 import {
   MENU_QR_COLORS,
@@ -29,6 +31,8 @@ interface StaffTableQrPanelProps {
   initialSvg: string;
 }
 
+const STATUS_POLL_MS = 10_000;
+
 async function renderQrSvg(menuUrl: string): Promise<string> {
   return QRCode.toString(menuUrl, {
     type: "svg",
@@ -44,6 +48,9 @@ export function StaffTableQrPanel({
   serverMenuUrl,
   initialSvg,
 }: StaffTableQrPanelProps) {
+  const restoredRef = useRef(false);
+  const manualVisitMessageRef = useRef<string | null>(null);
+
   const [tableLetter, setTableLetter] = useState(
     normalizeTableLetter(initialTableLetter) || "A",
   );
@@ -54,18 +61,105 @@ export function StaffTableQrPanel({
   const [generating, setGenerating] = useState(false);
   const [openingVisit, setOpeningVisit] = useState(false);
   const [visitMessage, setVisitMessage] = useState<string | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<AdminTableSessionStatus | null>(null);
+
+  const persistPanel = useCallback(
+    (
+      next: {
+        tableLetter: string;
+        menuUrl: string;
+        qrSvg: string;
+        visitMessage: string | null;
+        sessionStatus: AdminTableSessionStatus | null;
+      },
+    ) => {
+      writePersistedAdminQrPanel(next);
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
-    if (!shouldRestoreAdminQrFromStorage()) return;
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
     const persisted = readPersistedAdminQrPanel();
     if (!persisted) return;
 
-    setTableLetter(persisted.tableLetter);
-    setInputValue(persisted.tableLetter);
-    setMenuUrl(persisted.menuUrl);
-    setQrSvg(persisted.qrSvg);
-    setVisitMessage(persisted.visitMessage);
-  }, []);
+    const urlTable = normalizeTableLetter(initialTableLetter);
+    const restoreFullPanel = shouldRestoreAdminQrFromStorage();
+    const sameTableAsUrl = Boolean(urlTable && persisted.tableLetter === urlTable);
+
+    if (restoreFullPanel || sameTableAsUrl) {
+      if (restoreFullPanel) {
+        const letter = normalizeTableLetter(persisted.tableLetter) || "A";
+        setTableLetter(letter);
+        setInputValue(letter);
+        setMenuUrl(persisted.menuUrl);
+        setQrSvg(persisted.qrSvg);
+      }
+      setSessionStatus(persisted.sessionStatus);
+      if (persisted.visitMessage) {
+        manualVisitMessageRef.current = persisted.visitMessage;
+        setVisitMessage(persisted.visitMessage);
+      } else if (persisted.sessionStatus) {
+        const letter = restoreFullPanel
+          ? persisted.tableLetter
+          : (urlTable ?? persisted.tableLetter);
+        setVisitMessage(formatAdminSessionStatusMessage(letter, persisted.sessionStatus));
+      }
+    }
+  }, [initialTableLetter]);
+
+  const refreshSessionStatus = useCallback(async (letter: string) => {
+    const normalized = normalizeTableLetter(letter);
+    if (!normalized) return;
+
+    const summary = await fetchAdminTableVisitSummary(normalized);
+    if (!summary) return;
+
+    const status: AdminTableSessionStatus = {
+      visitOpen: summary.visitOpen,
+      sessionOccupied: summary.sessionOccupied,
+      hasActiveOrders: summary.hasActiveOrders,
+    };
+
+    setSessionStatus(status);
+
+    if (!summary.visitOpen) {
+      manualVisitMessageRef.current = null;
+    }
+
+    const statusMessage = formatAdminSessionStatusMessage(normalized, status);
+    if (!manualVisitMessageRef.current) {
+      setVisitMessage(statusMessage);
+    }
+
+    persistPanel({
+      tableLetter: normalized,
+      menuUrl,
+      qrSvg,
+      visitMessage: manualVisitMessageRef.current ?? statusMessage,
+      sessionStatus: status,
+    });
+  }, [menuUrl, persistPanel, qrSvg]);
+
+  useEffect(() => {
+    void refreshSessionStatus(tableLetter);
+    const timer = window.setInterval(() => {
+      void refreshSessionStatus(tableLetter);
+    }, STATUS_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [tableLetter, refreshSessionStatus]);
+
+  useEffect(() => {
+    persistPanel({
+      tableLetter,
+      menuUrl,
+      qrSvg,
+      visitMessage,
+      sessionStatus,
+    });
+  }, [tableLetter, menuUrl, qrSvg, visitMessage, sessionStatus, persistPanel]);
 
   const refreshQr = useCallback(
     async (letter: string) => {
@@ -80,24 +174,24 @@ export function StaffTableQrPanel({
         setQrSvg(svg);
         setTableLetter(normalized);
         setInputValue(normalized);
-        writePersistedAdminQrPanel({
+        manualVisitMessageRef.current = null;
+        persistPanel({
           tableLetter: normalized,
           menuUrl: url,
           qrSvg: svg,
           visitMessage,
+          sessionStatus,
         });
       } finally {
         setGenerating(false);
       }
     },
-    [serverMenuUrl, visitMessage],
+    [serverMenuUrl, visitMessage, sessionStatus, persistPanel],
   );
 
   function updateQrFromInput() {
     if (!isValidTableLetterInput(inputValue)) {
-      setInputError(
-        `Enter 1–${TABLE_ID_MAX_LENGTH} letters or numbers (e.g. A, B, VIP, T1).`,
-      );
+      setInputError("Enter one table letter (A–Z).");
       return;
     }
 
@@ -138,9 +232,8 @@ export function StaffTableQrPanel({
       <section className="qr-card-staff-form w-full rounded-2xl border border-surface-variant bg-surface-container-low p-md">
         <h2 className="text-sm font-bold text-on-surface">Table letter</h2>
         <p className="mt-1 text-xs text-on-surface-variant">
-          Type any table letter or code (up to {TABLE_ID_MAX_LENGTH} characters). QR codes open a
-          short entry step, then the menu with a table session. After you complete an order, guests
-          must scan again (or use the button below).
+          Enter one letter (A–Z). QR codes open a short entry step, then the menu with a table
+          session. After you complete an order, guests must scan again (or use the button below).
         </p>
         <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <label className="sr-only" htmlFor="table-letter-input">
@@ -156,10 +249,10 @@ export function StaffTableQrPanel({
             maxLength={TABLE_ID_MAX_LENGTH}
             value={inputValue}
             onChange={(e) => {
-              setInputValue(e.target.value.toUpperCase());
+              setInputValue(e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 1));
               setInputError(null);
             }}
-            placeholder="e.g. A, VIP, T1"
+            placeholder="e.g. A"
             className="checkout-input w-full uppercase sm:max-w-[10rem]"
           />
           <button
@@ -183,20 +276,16 @@ export function StaffTableQrPanel({
         disabled={openingVisit}
         className="w-full rounded-xl border border-secondary/40 bg-secondary-container/20 px-4 py-3 text-sm font-bold text-on-surface disabled:opacity-60"
         onClick={() => {
-          setVisitMessage(null);
           setOpeningVisit(true);
           openAdminTableVisit(tableLetter)
             .then(() => {
               const message = `${formatTableLabel(tableLetter)} is open for new guests to scan.`;
+              manualVisitMessageRef.current = message;
               setVisitMessage(message);
-              writePersistedAdminQrPanel({
-                tableLetter,
-                menuUrl,
-                qrSvg,
-                visitMessage: message,
-              });
+              return refreshSessionStatus(tableLetter);
             })
             .catch((err: unknown) => {
+              manualVisitMessageRef.current = null;
               setVisitMessage(
                 err instanceof Error ? err.message : "Could not open table visit.",
               );

@@ -26,8 +26,6 @@ export interface OrderRow {
   lines: CartLine[];
   ready_at?: string | null;
   completed_at?: string | null;
-  delivery_fee?: number;
-  service_fee?: number;
 }
 
 function normalizePaymentMethod(method: string): PaymentMethod {
@@ -38,9 +36,7 @@ function normalizePaymentMethod(method: string): PaymentMethod {
 export function mapOrderRow(row: OrderRow | Record<string, unknown>): PlacedOrder {
   const r = row as OrderRow;
   const subtotal = Number(r.subtotal);
-  const legacyFees = Number(r.delivery_fee ?? 0) + Number(r.service_fee ?? 0);
-  const grandTotal =
-    r.grand_total != null ? Number(r.grand_total) : subtotal + legacyFees;
+  const grandTotal = Number(r.grand_total);
 
   const customer: CustomerDetails = {
     fullName: r.customer_name ?? "",

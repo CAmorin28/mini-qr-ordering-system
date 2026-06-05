@@ -1,43 +1,35 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
-import { isCompletedOrder } from "@/lib/order-completion";
-import { saveOrder } from "@/lib/order-history";
-import {
-  applyTableOrderRealtimeUpdate,
-  syncTableVisitEndIfNeeded,
-} from "@/lib/sync-table-visit-end";
+import { guestSessionBoundToTable } from "@/lib/api-guest-session";
+import { fetchTableVisitStatus } from "@/lib/api-table-visit";
+import { clearTableCustomerSession } from "@/lib/customer-table-session";
+import { syncTableVisitEndIfNeeded } from "@/lib/sync-table-visit-end";
 import { normalizeTableLetter } from "@/lib/table-session";
-import type { PlacedOrder } from "@/lib/types";
 
-/** Clears the table QR session when staff completes the visit (polled). */
+const POLL_INTERVAL_MS = 5_000;
+
+/** Clears the table QR session when staff closes the visit (polled). */
 export function useTableVisitEndSync(tableLetter: string) {
   const table = normalizeTableLetter(tableLetter);
 
   const run = useCallback(async () => {
     if (!table) return;
+    if (!(await guestSessionBoundToTable(table))) return;
+
+    const status = await fetchTableVisitStatus(table);
+    if (status && !status.visitOpen) {
+      clearTableCustomerSession(table);
+      return;
+    }
+
     await syncTableVisitEndIfNeeded(table);
   }, [table]);
 
   useEffect(() => {
     if (!table) return;
     void run();
+    const timer = setInterval(() => void run(), POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
   }, [table, run]);
-
-  useOrdersRealtime(
-    { mode: "table", tableLetter: table },
-    {
-      onUpsert: (order: PlacedOrder) => {
-        if (normalizeTableLetter(order.customer.tableLetter) !== table) return;
-        if (isCompletedOrder(order)) {
-          void applyTableOrderRealtimeUpdate(order, table);
-          return;
-        }
-        saveOrder(order);
-        void applyTableOrderRealtimeUpdate(order, table);
-      },
-    },
-    { enabled: !!table, fallbackPoll: run, pollIntervalMs: 3_000 },
-  );
 }

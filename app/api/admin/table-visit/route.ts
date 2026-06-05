@@ -2,10 +2,31 @@ import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import {
+  getTableSessionSummary,
   getTableVisitStatus,
   openTableForNewGuests,
 } from "@/lib/db/table-qr-session";
 import { normalizeTableLetter } from "@/lib/table-session";
+
+/** GET /api/admin/table-visit?table=A — live table session state for staff */
+export async function GET(request: Request) {
+  const denied = await requireAdminSession();
+  if (denied) return denied;
+
+  const { searchParams } = new URL(request.url);
+  const tableLetter = normalizeTableLetter(searchParams.get("table"));
+
+  if (!tableLetter) {
+    return NextResponse.json({ error: "Table required. Pass ?table=A." }, { status: 400 });
+  }
+
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  }
+
+  const summary = await getTableSessionSummary(tableLetter);
+  return NextResponse.json(summary);
+}
 
 /** POST /api/admin/table-visit — reset table and open for the next party */
 export async function POST(request: Request) {
@@ -56,7 +77,13 @@ export async function POST(request: Request) {
 
   const status = await getTableVisitStatus(tableLetter);
   if (!status) {
-    return NextResponse.json({ error: "Failed to load table session" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          "Table session could not be read from the database. Check MySQL is running and re-run database/schema.sql if needed.",
+      },
+      { status: 503 },
+    );
   }
 
   return NextResponse.json(status);

@@ -1,4 +1,5 @@
 import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
+import { normalizeTableLetter } from "@/lib/table-session";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -113,7 +114,10 @@ export async function completeAdminOrder(orderId: string): Promise<PlacedOrder> 
 }
 
 export async function openAdminTableVisit(tableLetter: string): Promise<void> {
-  const table = tableLetter.trim().toUpperCase();
+  const table = normalizeTableLetter(tableLetter);
+  if (!table) {
+    throw new Error("Enter one table letter (A–Z).");
+  }
   const res = await adminFetch("/api/admin/table-visit", {
     method: "POST",
     body: JSON.stringify({ table }),
@@ -124,5 +128,37 @@ export async function openAdminTableVisit(tableLetter: string): Promise<void> {
   }
   if (!res.ok) {
     throw new Error(data.error ?? "Failed to open table for new guests");
+  }
+}
+
+export interface AdminTableVisitSummary {
+  tableLetter: string;
+  visitOpen: boolean;
+  hasActiveOrders: boolean;
+  canBind: boolean;
+  sessionOccupied: boolean;
+}
+
+export async function fetchAdminTableVisitSummary(
+  tableLetter: string,
+): Promise<AdminTableVisitSummary | null> {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table) return null;
+
+  try {
+    const res = await adminFetch(
+      `/api/admin/table-visit?table=${encodeURIComponent(table)}`,
+      { cache: "no-store" },
+    );
+    if (res.status === 401) {
+      throw new Error("UNAUTHORIZED");
+    }
+    if (!res.ok) return null;
+    return (await res.json()) as AdminTableVisitSummary;
+  } catch (err) {
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      throw err;
+    }
+    return null;
   }
 }

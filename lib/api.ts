@@ -5,6 +5,8 @@ import type {
   OrderResponse,
   PlacedOrder,
 } from "./types";
+import { guestSessionBoundToTable } from "./api-guest-session";
+import { normalizeTableLetter } from "./table-session";
 
 /** Same-origin on Vercel and `next dev` — uses `/api/*` Route Handlers */
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -84,13 +86,22 @@ export async function fetchOrderById(orderId: string): Promise<PlacedOrder | nul
 
 export async function fetchOrderHistory(tableLetter = ""): Promise<PlacedOrder[]> {
   const params = new URLSearchParams();
-  const table = tableLetter.trim().toUpperCase();
-  if (table) params.set("table", table);
+  const table = normalizeTableLetter(tableLetter);
+  if (table) {
+    const bound = await guestSessionBoundToTable(table);
+    if (!bound) {
+      return [];
+    }
+    params.set("table", table);
+  }
   const qs = params.toString();
   const res = await fetch(`${API_BASE}/api/orders${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
     credentials: "include",
   });
+  if (res.status === 403) {
+    return [];
+  }
   if (!res.ok) {
     throw new Error("Failed to load order history");
   }

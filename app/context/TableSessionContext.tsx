@@ -6,26 +6,23 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
   Suspense,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fetchTableVisitStatus } from "@/lib/api-table-visit";
-import { clearServerGuestSession, fetchGuestSessionStatus } from "@/lib/api-guest-session";
-import {
-  GUEST_ACCESS_DENIED_PATH,
-  guestAccessDeniedUrl,
-} from "@/lib/guest-session-paths";
+import { fetchGuestSessionStatus } from "@/lib/api-guest-session";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
 import {
-  MENU_PAGE_PATH,
   TABLE_ENTER_PAGE_PATH,
-  pathWithoutTable,
+  MENU_PAGE_PATH,
   pathWithTable,
   tableLetterFromSearch,
 } from "@/lib/menu-url";
 import { useTableVisitEndSync } from "@/app/hooks/useTableVisitEndSync";
+import { useGuestSessionIdle } from "@/app/hooks/useGuestSessionIdle";
 import { clearTableCustomerSession } from "@/lib/customer-table-session";
 import {
   TABLE_SESSION_STORAGE_KEY,
@@ -33,7 +30,6 @@ import {
   clearTableVisitEndedMark,
   formatTableLabel,
   isTableVisitEnded,
-  markTableVisitEnded,
   normalizeTableLetter,
   type TableVisitEndedDetail,
 } from "@/lib/table-session";
@@ -41,10 +37,8 @@ import {
 interface TableSessionContextValue {
   tableLetter: string;
   tableLabel: string;
-  /** True only after scanning a table QR (?table=). Walk-in orders use no table session. */
   hasTableSession: boolean;
   setTableLetter: (letter: string) => void;
-  /** End table QR visit: clear storage, mark visit ended, hide session UI. */
   clearTableSession: () => void;
   pathWithSession: (path: string) => string;
 }
@@ -58,58 +52,133 @@ const defaultValue: TableSessionContextValue = {
   pathWithSession: (path) => path,
 };
 
-const CUSTOMER_PATH_PREFIXES = ["/menu", "/checkout", "/orders"];
-
-/** Order receipt/status pages — keep accessible while the device session is still valid. */
-function isPostOrderCustomerPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/checkout/confirmation") ||
-    pathname.startsWith("/orders")
-  );
-}
-
 const TableSessionContext = createContext<TableSessionContextValue>(defaultValue);
+
+function bindTableLetter(
+  letter: string,
+  setTableLetterState: (letter: string) => void,
+  currentLetter = "",
+): void {
+  const normalized = normalizeTableLetter(letter);
+  if (!normalized) return;
+  if (
+    currentLetter === normalized &&
+    sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY) === normalized
+  ) {
+    return;
+  }
+  clearTableVisitEndedMark(normalized);
+  setTableLetterState(normalized);
+  sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, normalized);
+}
 
 function TableSessionSync({
   tableLetter,
   setTableLetterState,
+  setSessionReady,
 }: {
   tableLetter: string;
   setTableLetterState: (letter: string) => void;
+  setSessionReady: (ready: boolean) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const redirectTargetRef = useRef<string | null>(null);
+
+  const redirectToEnter = useCallback(
+    (letter: string) => {
+      const target = pathWithTable(TABLE_ENTER_PAGE_PATH, letter);
+      if (redirectTargetRef.current === target) return;
+      redirectTargetRef.current = target;
+      window.location.replace(target);
+    },
+    [],
+  );
+
+  const redirectToBoundTable = useCallback((boundTable: string) => {
+    const normalized = normalizeTableLetter(boundTable);
+    if (!normalized) return false;
+    const target = pathWithTable(MENU_PAGE_PATH, normalized);
+    if (redirectTargetRef.current === target) return true;
+    redirectTargetRef.current = target;
+    window.location.replace(target);
+    return true;
+  }, []);
+
+  const wait = (ms: number) =>
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, ms);
+    });
+
+  function handleGuestSessionForUrl(
+    guest: Awaited<ReturnType<typeof fetchGuestSessionStatus>>,
+    fromUrl: string,
+  ): "ok" | "redirected" | "invalid" {
+    if (!guest || guest.enforced === false) return "ok";
+
+    const bound = normalizeTableLetter(guest.tableLetter);
+    if (!guest.valid) {
+      if (guest.code === "guest_table_mismatch" && bound) {
+        redirectToBoundTable(bound);
+        return "redirected";
+      }
+      return "invalid";
+    }
+
+    if (bound && bound !== fromUrl) {
+      redirectToBoundTable(bound);
+      return "redirected";
+    }
+
+    return "ok";
+  }
 
   useEffect(() => {
-    // Routes that carry ?table= before a guest session exists (or by design).
-    if (
-      pathname.startsWith("/admin") ||
-      pathname === TABLE_ENTER_PAGE_PATH ||
-      pathname === GUEST_ACCESS_DENIED_PATH
-    ) {
+    if (pathname.startsWith("/admin") || pathname === TABLE_ENTER_PAGE_PATH) {
+      redirectTargetRef.current = null;
       return;
     }
 
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
+      bindTableLetter(fromUrl, setTableLetterState, tableLetter);
+
       if (isTableVisitEnded(fromUrl)) {
-        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-        router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
+        setSessionReady(false);
+        redirectToEnter(fromUrl);
         return;
       }
 
       let cancelled = false;
 
       (async () => {
+        let guest: Awaited<ReturnType<typeof fetchGuestSessionStatus>> = null;
         if (isGuestQrSecurityEnabledClient()) {
-          const guest = await fetchGuestSessionStatus();
+          guest = await fetchGuestSessionStatus(fromUrl);
+          if (
+            cancelled ||
+            (guest?.enforced !== false &&
+              guest?.valid !== true &&
+              guest !== null)
+          ) {
+            await wait(300);
+            if (cancelled) return;
+            guest = await fetchGuestSessionStatus(fromUrl);
+          }
           if (cancelled) return;
 
-          if (guest?.enforced !== false) {
-            if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== fromUrl) {
-              sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-              router.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, fromUrl));
+          if (guest === null) {
+            setSessionReady(true);
+            return;
+          }
+
+          if (guest.enforced !== false) {
+            const outcome = handleGuestSessionForUrl(guest, fromUrl);
+            if (outcome === "redirected") return;
+            if (outcome === "invalid") {
+              setSessionReady(false);
+              redirectToEnter(fromUrl);
               return;
             }
           }
@@ -118,30 +187,21 @@ function TableSessionSync({
         const status = await fetchTableVisitStatus(fromUrl);
         if (cancelled) return;
 
-        if (status && !status.canBind) {
-          markTableVisitEnded(fromUrl);
-          sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-          void clearServerGuestSession();
-          if (
-            isGuestQrSecurityEnabledClient() &&
-            !isPostOrderCustomerPath(pathname)
-          ) {
-            if (!status.visitOpen) {
-              router.replace(guestAccessDeniedUrl("visit_ended"));
-              return;
-            }
-            router.replace(guestAccessDeniedUrl("device_locked"));
-            return;
-          }
-          router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
+        const guestSessionValid =
+          !isGuestQrSecurityEnabledClient() ||
+          guest?.enforced === false ||
+          (guest?.valid === true &&
+            normalizeTableLetter(guest.tableLetter) === fromUrl);
+
+        if (status && !status.canBind && !guestSessionValid) {
+          setSessionReady(false);
+          redirectToEnter(fromUrl);
           return;
         }
 
-        if (status?.canBind ?? true) {
-          clearTableVisitEndedMark(fromUrl);
-          setTableLetterState(fromUrl);
-          sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, fromUrl);
-        }
+        redirectTargetRef.current = null;
+        bindTableLetter(fromUrl, setTableLetterState, tableLetter);
+        setSessionReady(true);
       })();
 
       return () => {
@@ -149,29 +209,51 @@ function TableSessionSync({
       };
     }
 
-    if (tableLetter) return;
+    redirectTargetRef.current = null;
+
+    if (tableLetter) {
+      setSessionReady(true);
+      return;
+    }
 
     const stored = normalizeTableLetter(
       sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY),
     );
-    if (!stored) return;
+    if (!stored) {
+      setSessionReady(false);
+      if (pathname === MENU_PAGE_PATH || pathname === "/") {
+        router.replace(TABLE_ENTER_PAGE_PATH);
+      }
+      return;
+    }
 
     if (isTableVisitEnded(stored)) {
       sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+      setSessionReady(false);
       return;
     }
+
+    bindTableLetter(stored, setTableLetterState, tableLetter);
 
     let cancelled = false;
 
     (async () => {
+      let guest: Awaited<ReturnType<typeof fetchGuestSessionStatus>> = null;
       if (isGuestQrSecurityEnabledClient()) {
-        const guest = await fetchGuestSessionStatus();
+        guest = await fetchGuestSessionStatus(stored);
         if (cancelled) return;
 
-        if (guest?.enforced !== false) {
-          if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== stored) {
-            sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-            router.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, stored));
+        if (guest === null) {
+          setSessionReady(true);
+          return;
+        }
+
+        if (guest.enforced !== false) {
+          const outcome = handleGuestSessionForUrl(guest, stored);
+          if (outcome === "redirected") return;
+          if (outcome === "invalid") {
+            setSessionReady(false);
+            redirectToEnter(stored);
             return;
           }
         }
@@ -180,36 +262,48 @@ function TableSessionSync({
       const status = await fetchTableVisitStatus(stored);
       if (cancelled) return;
 
-      if (status && !status.canBind) {
-        markTableVisitEnded(stored);
-        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-        void clearServerGuestSession();
-        if (
-          isGuestQrSecurityEnabledClient() &&
-          !isPostOrderCustomerPath(pathname)
-        ) {
-          if (!status.visitOpen) {
-            router.replace(guestAccessDeniedUrl("visit_ended"));
-            return;
-          }
-          router.replace(guestAccessDeniedUrl("device_locked"));
-        }
+      const guestSessionValid =
+        !isGuestQrSecurityEnabledClient() ||
+        guest?.enforced === false ||
+        (guest?.valid === true &&
+          normalizeTableLetter(guest.tableLetter) === stored);
+
+      if (status && !status.canBind && !guestSessionValid) {
+        setSessionReady(false);
+        redirectToEnter(stored);
         return;
       }
 
-      setTableLetterState(stored);
+      bindTableLetter(stored, setTableLetterState, tableLetter);
+      setSessionReady(true);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [searchParams, tableLetter, setTableLetterState, pathname, router]);
+  }, [
+    searchParams,
+    tableLetter,
+    setTableLetterState,
+    pathname,
+    redirectToEnter,
+    redirectToBoundTable,
+    setSessionReady,
+    router,
+  ]);
 
   return null;
 }
 
-function TableVisitEndSync({ tableLetter }: { tableLetter: string }) {
-  useTableVisitEndSync(tableLetter);
+function TableVisitEndSync({
+  tableLetter,
+  enabled,
+}: {
+  tableLetter: string;
+  enabled: boolean;
+}) {
+  useTableVisitEndSync(enabled ? tableLetter : "");
+  useGuestSessionIdle(enabled ? tableLetter : "");
   return null;
 }
 
@@ -217,20 +311,20 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [tableLetter, setTableLetterState] = useState("");
+  const [sessionReady, setSessionReady] = useState(false);
 
   const setTableLetter = useCallback(
     (letter: string) => {
       const normalized = normalizeTableLetter(letter);
       if (!normalized) return;
-      clearTableVisitEndedMark(normalized);
-      setTableLetterState(normalized);
-      sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, normalized);
+      bindTableLetter(normalized, setTableLetterState, tableLetter);
+      setSessionReady(true);
 
       if (pathname.startsWith("/menu") || pathname === "/") {
         router.replace(pathWithTable("/menu", normalized));
       }
     },
-    [pathname, router],
+    [pathname, router, tableLetter],
   );
 
   const pathWithSession = useCallback(
@@ -240,17 +334,14 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
 
   const applySessionCleared = useCallback(() => {
     setTableLetterState("");
+    setSessionReady(false);
     sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
-    const onCustomerRoute = CUSTOMER_PATH_PREFIXES.some((p) => pathname.startsWith(p));
-    if (onCustomerRoute) {
-      router.replace(pathWithoutTable(pathname) || MENU_PAGE_PATH);
-    }
-  }, [pathname, router]);
+  }, []);
 
   const clearTableSession = useCallback(() => {
     const letter = normalizeTableLetter(tableLetter);
     if (letter) {
-      clearTableCustomerSession(letter);
+      clearTableCustomerSession(letter, { releaseServerSlot: true });
       return;
     }
     applySessionCleared();
@@ -282,9 +373,13 @@ export function TableSessionProvider({ children }: { children: ReactNode }) {
   return (
     <TableSessionContext.Provider value={value}>
       <Suspense fallback={null}>
-        <TableSessionSync tableLetter={tableLetter} setTableLetterState={setTableLetterState} />
+        <TableSessionSync
+          tableLetter={tableLetter}
+          setTableLetterState={setTableLetterState}
+          setSessionReady={setSessionReady}
+        />
       </Suspense>
-      <TableVisitEndSync tableLetter={tableLetter} />
+      <TableVisitEndSync tableLetter={tableLetter} enabled={sessionReady} />
       {children}
     </TableSessionContext.Provider>
   );

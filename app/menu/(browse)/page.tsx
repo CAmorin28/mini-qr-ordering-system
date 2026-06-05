@@ -9,7 +9,8 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
   const params = await searchParams;
   await enforceGuestQrAccess({
     tableLetter: params.table,
-    requireTableInUrl: true,
+    redirectIfMissing: true,
+    bindTableToMenuUrl: true,
   });
 
   return <OrderingPage />;

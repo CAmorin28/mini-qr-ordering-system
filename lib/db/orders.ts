@@ -21,7 +21,7 @@ function rowToPlacedOrder(row: RowDataPacket): PlacedOrder {
   return mapOrderRow(normalizeOrderRow(row));
 }
 
-function orderToRow(order: PlacedOrder): Omit<OrderRow, "delivery_fee" | "service_fee"> {
+function orderToRow(order: PlacedOrder): OrderRow {
   return {
     order_id: order.orderId,
     order_number: order.orderNumber,

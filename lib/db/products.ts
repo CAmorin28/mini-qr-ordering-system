@@ -1,4 +1,4 @@
-import { getMenuByCategory, menuItems } from "@/lib/data/menu";
+import { getMenuByCategory } from "@/lib/data/menu";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { getPool } from "@/lib/db/pool";
 import { ensureProductsSeeded } from "@/lib/db/seed-products";
@@ -54,13 +54,4 @@ export async function fetchProductsFromDb(
   } catch {
     return getMenuByCategory(category);
   }
-}
-
-export async function fetchProductMap(): Promise<Map<string, MenuItem>> {
-  const products = await fetchProductsFromDb("all");
-  return new Map(products.map((p) => [p.id, p]));
-}
-
-export function getLocalProducts(): MenuItem[] {
-  return menuItems;
 }

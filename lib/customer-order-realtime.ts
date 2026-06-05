@@ -4,7 +4,7 @@ import { isCompletedOrder } from "@/lib/order-completion";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import { saveOrder } from "@/lib/order-history";
 import { mergeOrderIntoList } from "@/lib/orders-merge";
-import { applyTableOrderRealtimeUpdate } from "@/lib/sync-table-visit-end";
+import { applyTableOrderRealtimeUpdate, isTrackedTableOrder } from "@/lib/sync-table-visit-end";
 import { normalizeTableLetter } from "@/lib/table-session";
 import type { PlacedOrder } from "@/lib/types";
 
@@ -21,7 +21,13 @@ export function resolveCustomerRealtimeFilter(
 ): OrdersRealtimeFilter | null {
   const table = normalizeTableLetter(tableLetter);
   if (table) {
-    return { mode: "table", tableLetter: table };
+    const active = activePlacedOrdersForTable(orders, table);
+    if (active.length === 0) return null;
+    if (active.length === 1) {
+      return { mode: "order", orderId: active[0].orderId };
+    }
+    const orderIds = active.map((o) => o.orderId).slice(0, MAX_TRACKED_ORDER_IDS);
+    return { mode: "orderIds", orderIds };
   }
 
   const active = activePlacedOrdersForTable(orders, "");
@@ -50,7 +56,9 @@ export function applyCustomerOrderUpsert(
 
   if (table) {
     if (isCompletedOrder(order)) {
-      void applyTableOrderRealtimeUpdate(order, table);
+      if (isTrackedTableOrder(order, table)) {
+        void applyTableOrderRealtimeUpdate(order, table);
+      }
       setOrders((prev) =>
         activePlacedOrdersForTable(
           prev.filter((o) => o.orderId !== order.orderId),

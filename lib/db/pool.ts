@@ -1,7 +1,9 @@
-import mysql, { type SslOptions } from "mysql2/promise";
+import mysql, { type Pool, type SslOptions } from "mysql2/promise";
 import { isDatabaseConfigured } from "@/lib/db/config";
 
-let pool: mysql.Pool | null = null;
+const globalStore = globalThis as typeof globalThis & {
+  __tablebiteMysqlPool?: Pool;
+};
 
 function useMysqlSsl(): boolean {
   const flag = process.env.MYSQL_SSL?.trim().toLowerCase();
@@ -21,14 +23,15 @@ function getSslOptions(): SslOptions | undefined {
   return { rejectUnauthorized: true };
 }
 
-export function getPool(): mysql.Pool {
+/** Shared pool — stored on globalThis so Next.js dev HMR does not leak connections. */
+export function getPool(): Pool {
   if (!isDatabaseConfigured()) {
     throw new Error("Database is not configured");
   }
 
-  if (!pool) {
+  if (!globalStore.__tablebiteMysqlPool) {
     const ssl = getSslOptions();
-    pool = mysql.createPool({
+    globalStore.__tablebiteMysqlPool = mysql.createPool({
       host: process.env.MYSQL_HOST!.trim(),
       port: Number(process.env.MYSQL_PORT ?? 3306),
       user: process.env.MYSQL_USER!.trim(),
@@ -36,10 +39,12 @@ export function getPool(): mysql.Pool {
       database: process.env.MYSQL_DATABASE!.trim(),
       waitForConnections: true,
       connectionLimit: 10,
+      maxIdle: 5,
+      idleTimeout: 60_000,
       dateStrings: false,
       ...(ssl ? { ssl } : {}),
     });
   }
 
-  return pool;
+  return globalStore.__tablebiteMysqlPool;
 }

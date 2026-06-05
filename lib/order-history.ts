@@ -1,4 +1,5 @@
 import { customerVisibleOrders } from "@/lib/customer-table-session";
+import { isCompletedOrder } from "@/lib/order-completion";
 import type { PlacedOrder } from "@/lib/types";
 import {
   activeOrderStorageKey,
@@ -29,7 +30,9 @@ export function saveOrder(order: PlacedOrder): void {
   const orders = readAll(tableLetter).filter((o) => o.orderId !== order.orderId);
   orders.unshift(order);
   writeAll(orders.slice(0, 50), tableLetter);
-  setActiveOrderId(order.orderId, tableLetter);
+  if (!isCompletedOrder(order)) {
+    setActiveOrderId(order.orderId, tableLetter);
+  }
 }
 
 export function getOrder(orderId: string, tableLetter = ""): PlacedOrder | null {

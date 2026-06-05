@@ -30,8 +30,24 @@ export function clearGuestCustomerSession(): void {
   sessionStorage.removeItem(PENDING_ORDER_KEY);
 }
 
+/** Clear cart and order history for a table without ending the QR device session. */
+export function clearStaleTableOrderStorage(tableLetter: string): void {
+  if (typeof window === "undefined") return;
+  const letter = normalizeTableLetter(tableLetter);
+  if (!letter) return;
+  localStorage.removeItem(ordersStorageKey(letter));
+  localStorage.removeItem(cartStorageKey(letter));
+  const activeKey = activeOrderStorageKey(letter);
+  localStorage.removeItem(activeKey);
+  sessionStorage.removeItem(activeKey);
+  sessionStorage.removeItem(PENDING_ORDER_KEY);
+}
+
 /** Clear cart, order history, and table QR session for this table (next party must scan again). */
-export function clearTableCustomerSession(tableLetter: string): void {
+export function clearTableCustomerSession(
+  tableLetter: string,
+  options?: { releaseServerSlot?: boolean },
+): void {
   if (typeof window === "undefined") return;
   const letter = normalizeTableLetter(tableLetter);
   if (!letter) return;
@@ -43,7 +59,9 @@ export function clearTableCustomerSession(tableLetter: string): void {
   sessionStorage.removeItem(PENDING_ORDER_KEY);
   sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
   markTableVisitEnded(letter);
-  void clearServerGuestSession();
+  void clearServerGuestSession({
+    releaseSlot: options?.releaseServerSlot ?? false,
+  });
   window.dispatchEvent(
     new CustomEvent<TableVisitEndedDetail>(TABLE_VISIT_ENDED_EVENT, {
       detail: { tableLetter: letter },
@@ -94,7 +112,7 @@ export function afterCustomerOrderCompleted(
 
   if (remaining.length === 0) {
     if (letter) {
-      clearTableCustomerSession(letter);
+      clearStaleTableOrderStorage(letter);
     } else {
       clearGuestCustomerSession();
     }

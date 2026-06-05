@@ -15,7 +15,8 @@ export async function GET() {
     await pool.query("SELECT 1");
     await pool.query("SELECT id FROM products LIMIT 1");
     await pool.query("SELECT completed_at, ready_at FROM orders LIMIT 1");
-    await pool.query("SELECT table_number FROM table_qr_sessions LIMIT 1");
+    await pool.query("SELECT table_number FROM table_qr_visits LIMIT 1");
+    await pool.query("SELECT table_number FROM qr_sessions LIMIT 1");
 
     return NextResponse.json({
       ok: true,

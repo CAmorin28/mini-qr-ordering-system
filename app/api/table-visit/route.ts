@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
-import { claimTableSessionOnScan, resolveTableVisitBinding } from "@/lib/db/table-qr-session";
-import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
-import { GUEST_SESSION_COOKIE, guestSessionCookieOptions } from "@/lib/guest-session-token";
+import { claimTableSessionOnScan, dbUnavailableMessage, resolveTableVisitBinding } from "@/lib/db/table-qr-session";
+import { GUEST_SESSION_CACHE_HEADERS } from "@/lib/guest-cookie-request";
+import { applyGuestSessionCookies } from "@/lib/guest-session-cookies-response";
 import { normalizeTableLetter } from "@/lib/table-session";
-
 const ACTIVE_ORDERS_MESSAGE =
   "This table already has an order in progress. Please wait until staff complete the current visit.";
 
@@ -27,21 +26,30 @@ export async function GET(request: Request) {
   }
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json({
-      tableLetter,
-      visitOpen: true,
-      hasActiveOrders: false,
-      canBind: true,
-      databaseConfigured: false,
-    });
+    return NextResponse.json(
+      {
+        tableLetter,
+        visitOpen: true,
+        hasActiveOrders: false,
+        canBind: true,
+        databaseConfigured: false,
+      },
+      { headers: GUEST_SESSION_CACHE_HEADERS },
+    );
   }
 
   const status = await resolveTableVisitBinding(request, tableLetter);
   if (!status) {
-    return NextResponse.json({ error: "Failed to load table session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load table session" },
+      { status: 500, headers: GUEST_SESSION_CACHE_HEADERS },
+    );
   }
 
-  return NextResponse.json({ ...status, databaseConfigured: true });
+  return NextResponse.json(
+    { ...status, databaseConfigured: true },
+    { headers: GUEST_SESSION_CACHE_HEADERS },
+  );
 }
 
 /** POST /api/table-visit — claim the single device slot after QR scan */
@@ -64,13 +72,16 @@ export async function POST(request: Request) {
   }
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json({
-      tableLetter,
-      visitOpen: true,
-      hasActiveOrders: false,
-      canBind: true,
-      databaseConfigured: false,
-    });
+    return NextResponse.json(
+      {
+        tableLetter,
+        visitOpen: true,
+        hasActiveOrders: false,
+        canBind: true,
+        databaseConfigured: false,
+      },
+      { headers: GUEST_SESSION_CACHE_HEADERS },
+    );
   }
 
   const before = await resolveTableVisitBinding(request, tableLetter);
@@ -87,7 +98,7 @@ export async function POST(request: Request) {
         code: "active_orders",
         error: ACTIVE_ORDERS_MESSAGE,
       },
-      { status: 403 },
+      { status: 403, headers: GUEST_SESSION_CACHE_HEADERS },
     );
   }
 
@@ -111,25 +122,26 @@ export async function POST(request: Request) {
             ? TABLE_SESSION_ACTIVE_MESSAGE
             : code === "visit_closed"
               ? VISIT_CLOSED_MESSAGE
-              : "Could not start table session. Run database/schema.sql.",
+              : dbUnavailableMessage(claimed.detail),
       },
-      { status: code === "db_unavailable" ? 503 : 403 },
+      { status: code === "db_unavailable" ? 503 : 403, headers: GUEST_SESSION_CACHE_HEADERS },
     );
   }
 
-  const response = NextResponse.json({
-    ...before,
-    visitOpen: true,
-    canBind: true,
-    databaseConfigured: true,
-  });
+  const response = NextResponse.json(
+    {
+      ...before,
+      visitOpen: true,
+      canBind: true,
+      databaseConfigured: true,
+    },
+    { headers: GUEST_SESSION_CACHE_HEADERS },
+  );
 
-  if (isGuestQrSecurityEnabled(request.headers.get("host"))) {
-    const xfProto = request.headers.get("x-forwarded-proto");
-    const secure =
-      xfProto != null ? xfProto.toLowerCase().includes("https") : process.env.NODE_ENV === "production";
-    response.cookies.set(GUEST_SESSION_COOKIE, claimed.token, guestSessionCookieOptions({ secure }));
-  }
+  applyGuestSessionCookies(response, request, {
+    sessionToken: claimed.token,
+    deviceId: claimed.deviceId,
+  });
 
   return response;
 }

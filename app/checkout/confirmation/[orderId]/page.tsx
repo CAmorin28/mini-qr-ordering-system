@@ -21,6 +21,7 @@ import {
   paymentStatusLabel,
 } from "@/lib/order-labels";
 import { consumePendingOrder, getOrder, saveOrder } from "@/lib/order-history";
+import { normalizeTableLetter } from "@/lib/table-session";
 import { isPlacedOrder } from "@/lib/place-order";
 import { downloadReceiptPdf } from "@/lib/receipt-pdf";
 import {
@@ -136,7 +137,7 @@ export default function OrderConfirmationPage() {
     setCancelling(true);
     try {
       const cancelled = await cancelOrderById(order.orderId);
-      const table = tableLetter.trim().toUpperCase();
+      const table = normalizeTableLetter(tableLetter);
       let remaining: PlacedOrder[] = [];
       if (table) {
         try {

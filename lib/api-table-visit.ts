@@ -1,3 +1,5 @@
+import { normalizeTableLetter } from "@/lib/table-session";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface TableVisitStatusResponse {
@@ -13,7 +15,7 @@ export interface TableVisitStatusResponse {
 export async function fetchTableVisitStatus(
   tableLetter: string,
 ): Promise<TableVisitStatusResponse | null> {
-  const table = tableLetter.trim().toUpperCase();
+  const table = normalizeTableLetter(tableLetter);
   if (!table) return null;
 
   try {
@@ -33,7 +35,7 @@ export async function fetchTableVisitStatus(
 export async function openTableVisitOnScan(
   tableLetter: string,
 ): Promise<TableVisitStatusResponse | null> {
-  const table = tableLetter.trim().toUpperCase();
+  const table = normalizeTableLetter(tableLetter);
   if (!table) return null;
 
   try {

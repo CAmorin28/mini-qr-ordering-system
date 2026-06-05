@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LoadingSpinner } from "@/app/components/ui/LoadingSpinner";
 import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
+import { isCompletedOrder } from "@/lib/order-completion";
 import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
 import {
   afterCustomerOrderCompleted,
-  clearTableCustomerSession,
+  clearStaleTableOrderStorage,
 } from "@/lib/customer-table-session";
-import { isCompletedOrder } from "@/lib/order-completion";
 import { customerOrderStatusLabel } from "@/lib/order-labels";
 import { orderSnapshotKey } from "@/lib/order-snapshot";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
@@ -86,7 +86,7 @@ export function OrderStatusTracker({
         }
       } catch {
         if (table) {
-          clearTableCustomerSession(table);
+          clearStaleTableOrderStorage(table);
         }
         onVisitEndedRef.current?.();
       }

@@ -2,12 +2,17 @@ import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 export const GUEST_SESSION_COOKIE = "tablebite_guest_session";
 
-/** Default session lifetime — one dining visit. */
+/** Absolute ceiling for a single device session. */
 export const GUEST_SESSION_MAX_AGE_SEC = 60 * 60 * 4;
+
+/** Release the table slot when the device has no activity for this long. */
+export const GUEST_SESSION_IDLE_TIMEOUT_SEC = 60 * 5;
 
 export interface GuestSessionPayload {
   sid: string;
   table: string;
+  /** Stable device id — paired with table for single-device slot validation. */
+  did: string;
   /** Increments when staff taps Open table for new guests — invalidates prior cookies. */
   gen: number;
   exp: number;
@@ -32,6 +37,7 @@ function decodePayload(encoded: string): GuestSessionPayload | null {
     if (
       typeof parsed.sid !== "string" ||
       typeof parsed.table !== "string" ||
+      typeof parsed.did !== "string" ||
       typeof parsed.gen !== "number" ||
       typeof parsed.exp !== "number"
     ) {
@@ -61,16 +67,15 @@ export function createGuestSessionToken(payload: GuestSessionPayload): string {
   return `${body}.${signBody(body)}`;
 }
 
-export function verifyGuestSessionToken(token: string | undefined): GuestSessionPayload | null {
+/** Verify signature only — session lifetime is enforced in MySQL (session_expires_at). */
+export function parseGuestSessionToken(
+  token: string | undefined,
+): GuestSessionPayload | null {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   if (!safeEqual(sig, signBody(body))) return null;
-
-  const payload = decodePayload(body);
-  if (!payload) return null;
-  if (Date.now() > payload.exp) return null;
-  return payload;
+  return decodePayload(body);
 }
 
 export function generateGuestSessionId(): string {
@@ -95,5 +100,5 @@ export function guestSessionTokenFromRequest(request: Request): GuestSessionPayl
   const cookieHeader = request.headers.get("cookie") ?? "";
   const match = cookieHeader.match(/(?:^|;\s*)tablebite_guest_session=([^;]+)/);
   const token = match?.[1] ? decodeURIComponent(match[1]) : undefined;
-  return verifyGuestSessionToken(token);
+  return parseGuestSessionToken(token);
 }

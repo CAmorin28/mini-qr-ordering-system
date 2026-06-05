@@ -3,52 +3,55 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
-import { getGuestSessionPayloadFromCookies } from "@/lib/guest-session-cookies";
-import { validateGuestSessionPayload } from "@/lib/db/table-qr-session";
+import { resolveGuestSessionFromServerCookies } from "@/lib/guest-session-cookies";
+import { resolveGuestSessionFromRequest } from "@/lib/db/table-qr-session";
 import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
 import {
-  guestAccessDeniedUrl,
-  type GuestAccessDeniedReason,
-} from "@/lib/guest-session-paths";
-import { guestSessionTokenFromRequest } from "@/lib/guest-session-token";
-import { TABLE_ENTER_PAGE_PATH, pathWithTable } from "@/lib/menu-url";
+  MENU_PAGE_PATH,
+  TABLE_ENTER_PAGE_PATH,
+  pathWithTable,
+} from "@/lib/menu-url";
 import { normalizeTableLetter } from "@/lib/table-session";
 
-export type { GuestAccessDeniedReason };
-export { GUEST_ACCESS_DENIED_PATH } from "@/lib/guest-session-paths";
-
-/** Server page guard — redirects when QR session is missing or invalid (production only). */
+/** Server page guard — redirects when QR session is missing or invalid. */
 export async function enforceGuestQrAccess(options?: {
   tableLetter?: string | null;
-  requireTableInUrl?: boolean;
+  /** Redirect to the QR entry page when there is no session (checkout/orders/menu). */
+  redirectIfMissing?: boolean;
+  /** When true, /menu without ?table= redirects to /menu?table={session}. */
+  bindTableToMenuUrl?: boolean;
 }): Promise<{ tableLetter: string } | null> {
   const headerStore = await headers();
   const host = headerStore.get("host");
   if (!isGuestQrSecurityEnabled(host)) return null;
 
   const urlTable = normalizeTableLetter(options?.tableLetter);
-  const payload = await getGuestSessionPayloadFromCookies();
-  const record = await validateGuestSessionPayload(payload);
+  const record = await resolveGuestSessionFromServerCookies({ tableLetter: urlTable });
   if (!record) {
-    // Stale or missing cookie — always re-run QR entry when a table is in the URL.
     if (urlTable) {
       redirect(pathWithTable(TABLE_ENTER_PAGE_PATH, urlTable));
     }
-    const reason: GuestAccessDeniedReason = payload ? "invalid_session" : "no_session";
-    redirect(guestAccessDeniedUrl(reason));
-  }
-  if (options?.requireTableInUrl && !urlTable) {
-    redirect(guestAccessDeniedUrl("scan_required"));
+    if (options?.redirectIfMissing) {
+      redirect(TABLE_ENTER_PAGE_PATH);
+    }
+    redirect(TABLE_ENTER_PAGE_PATH);
   }
 
   if (urlTable && urlTable !== record.tableLetter) {
-    redirect(guestAccessDeniedUrl("table_mismatch"));
+    redirect(pathWithTable(TABLE_ENTER_PAGE_PATH, urlTable));
+  }
+
+  if (!urlTable) {
+    if (options?.bindTableToMenuUrl) {
+      redirect(pathWithTable(MENU_PAGE_PATH, record.tableLetter));
+    }
+    return { tableLetter: record.tableLetter };
   }
 
   return { tableLetter: record.tableLetter };
 }
 
-/** API route guard — returns 401/403 when session is invalid (production only). */
+/** API route guard — returns 401/403 when session is invalid. */
 export async function requireGuestSessionForApi(
   request: Request,
   expectedTable?: string | null,
@@ -62,8 +65,8 @@ export async function requireGuestSessionForApi(
     return { ok: true, tableLetter: table, sessionId: "" };
   }
 
-  const payload = guestSessionTokenFromRequest(request);
-  const record = await validateGuestSessionPayload(payload);
+  const table = normalizeTableLetter(expectedTable);
+  const record = await resolveGuestSessionFromRequest(request, { tableLetter: table });
 
   if (!record) {
     return {
@@ -79,7 +82,6 @@ export async function requireGuestSessionForApi(
     };
   }
 
-  const table = normalizeTableLetter(expectedTable);
   if (table && table !== record.tableLetter) {
     return {
       ok: false,

@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GuestStatusScreen } from "@/app/components/GuestStatusScreen";
 import { openTableVisitOnScan } from "@/lib/api-table-visit";
-import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
-import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
-import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
+import { MENU_PAGE_PATH, TABLE_ENTER_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
 import {
+  TABLE_SESSION_STORAGE_KEY,
   clearTableVisitEndedMark,
   formatTableLabel,
 } from "@/lib/table-session";
@@ -24,11 +23,7 @@ export default function MenuEnterPage() {
   useEffect(() => {
     const table = tableLetterFromSearch(searchParams.toString());
     if (!table) {
-      if (isGuestQrSecurityEnabledClient()) {
-        router.replace(guestAccessDeniedUrl("scan_required"));
-        return;
-      }
-      router.replace(MENU_PAGE_PATH);
+      setError("Scan the QR code at your table to open the menu.");
       return;
     }
 
@@ -44,10 +39,6 @@ export default function MenuEnterPage() {
       }
 
       if (status.code === "visit_closed") {
-        if (isGuestQrSecurityEnabledClient()) {
-          router.replace(guestAccessDeniedUrl("visit_ended"));
-          return;
-        }
         setError(
           status.error ??
             `Table ${formatTableLabel(table)} is not open yet. Ask staff to tap Open table for new guests.`,
@@ -56,10 +47,6 @@ export default function MenuEnterPage() {
       }
 
       if (status.code === "session_locked") {
-        if (isGuestQrSecurityEnabledClient()) {
-          router.replace(guestAccessDeniedUrl("device_locked"));
-          return;
-        }
         setError(
           status.error ??
             "This table is already linked to another device. Shared links cannot be used.",
@@ -69,10 +56,6 @@ export default function MenuEnterPage() {
 
       if (!status.canBind) {
         if (status?.hasActiveOrders) {
-          if (isGuestQrSecurityEnabledClient()) {
-            router.replace(guestAccessDeniedUrl("active_orders"));
-            return;
-          }
           setError(
             status?.error ??
               `Table ${formatTableLabel(table)} already has an order in progress. Ask staff for help.`,
@@ -80,10 +63,6 @@ export default function MenuEnterPage() {
           return;
         }
 
-        if (isGuestQrSecurityEnabledClient()) {
-          router.replace(guestAccessDeniedUrl("device_locked"));
-          return;
-        }
         setError(
           status?.error ??
             `Table ${formatTableLabel(table)} is not accepting orders right now. Ask staff for help.`,
@@ -92,6 +71,7 @@ export default function MenuEnterPage() {
       }
 
       clearTableVisitEndedMark(table);
+      sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, table);
       // Full page load — menu guard validates the httpOnly cookie from the POST response.
       window.location.assign(pathWithTable(MENU_PAGE_PATH, table));
     })();
@@ -102,28 +82,21 @@ export default function MenuEnterPage() {
   }, [searchParams, router]);
 
   if (error) {
+    const table = tableLetterFromSearch(searchParams.toString());
     return (
       <GuestStatusScreen
         icon="table_restaurant"
-        title="Can't open this table"
+        title={table ? "Can't open this table" : "Scan your table QR"}
         action={
-          isGuestQrSecurityEnabledClient() ? (
+          table ? (
             <button
               type="button"
               className="guest-status-btn"
-              onClick={() => router.replace(guestAccessDeniedUrl("device_locked"))}
+              onClick={() => router.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, table))}
             >
-              Why can&apos;t I open this link?
+              Try again
             </button>
-          ) : (
-            <button
-              type="button"
-              className="guest-status-btn"
-              onClick={() => router.replace(MENU_PAGE_PATH)}
-            >
-              Browse menu without table
-            </button>
-          )
+          ) : undefined
         }
       >
         <p>{error}</p>

@@ -11,6 +11,7 @@ USE tablebite;
 -- Remove legacy QR tables from older project versions (no-op if already gone).
 DROP TABLE IF EXISTS guest_qr_sessions;
 DROP TABLE IF EXISTS table_visits;
+DROP TABLE IF EXISTS table_qr_sessions;
 
 CREATE TABLE IF NOT EXISTS products (
   id VARCHAR(64) PRIMARY KEY,
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_status VARCHAR(32) NOT NULL DEFAULT 'pending',
   payment_method ENUM('gcash', 'cash') NOT NULL,
   order_type ENUM('dine_in', 'pickup') NOT NULL DEFAULT 'dine_in',
-  table_number VARCHAR(4) NULL,
+  table_number VARCHAR(1) NULL,
   cutlery TINYINT(1) NOT NULL DEFAULT 0,
   subtotal DECIMAL(10, 2) NOT NULL,
   grand_total DECIMAL(10, 2) NOT NULL,
@@ -42,21 +43,53 @@ CREATE TABLE IF NOT EXISTS orders (
   ready_at TIMESTAMP NULL,
   completed_at TIMESTAMP NULL,
   INDEX orders_created_at_idx (created_at),
-  INDEX orders_ready_at_idx (ready_at),
   INDEX orders_completed_at_idx (completed_at)
 );
 
--- One row per table: open/closed state + single active device session.
-CREATE TABLE IF NOT EXISTS table_qr_sessions (
-  table_number VARCHAR(4) PRIMARY KEY,
+-- Per-table visit cycle (staff open / close for guests).
+CREATE TABLE IF NOT EXISTS table_qr_visits (
+  table_number VARCHAR(1) PRIMARY KEY,
   is_open TINYINT(1) NOT NULL DEFAULT 0,
   session_generation BIGINT UNSIGNED NOT NULL DEFAULT 0,
-  active_session_id VARCHAR(64) NULL,
-  session_expires_at TIMESTAMP NULL,
   opened_at TIMESTAMP NULL,
   closed_at TIMESTAMP NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX table_qr_sessions_open_idx (is_open)
+  INDEX table_qr_visits_open_idx (is_open)
+);
+
+-- One active device session per table (device_id + table_number).
+CREATE TABLE IF NOT EXISTS qr_sessions (
+  table_number VARCHAR(1) PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  session_generation BIGINT UNSIGNED NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY qr_sessions_session_id_idx (session_id),
+  INDEX qr_sessions_device_idx (device_id),
+  INDEX qr_sessions_expires_idx (expires_at),
+  INDEX qr_sessions_updated_idx (updated_at)
+);
+
+-- Historical log when a QR session ends.
+CREATE TABLE IF NOT EXISTS qr_ended_sessions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  table_number VARCHAR(1) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  device_id VARCHAR(64) NOT NULL,
+  session_generation BIGINT UNSIGNED NOT NULL,
+  end_reason ENUM(
+    'expired',
+    'released',
+    'table_closed',
+    'new_guests'
+  ) NOT NULL,
+  started_at TIMESTAMP NULL,
+  ended_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX qr_ended_table_idx (table_number),
+  INDEX qr_ended_ended_at_idx (ended_at),
+  INDEX qr_ended_device_idx (device_id)
 );
 
 -- Sample menu (safe to re-run)
@@ -82,3 +115,4 @@ ON DUPLICATE KEY UPDATE
   category = VALUES(category),
   image_url = VALUES(image_url),
   emoji = VALUES(emoji);
+

@@ -15,16 +15,13 @@ export function isGuestQrSecurityEnabled(_hostHeader?: string | null): boolean {
   const override = envFlag("GUEST_QR_SECURITY");
   if (isFalsyFlag(override)) return false;
   if (isTruthyFlag(override)) return true;
-
-  // Default on everywhere (localhost, LAN IP, production) so dev matches live behavior.
   return true;
 }
 
-/** Client-side hint — keep in sync with server rules. */
+/** Client-side hint — keep in sync with server (default on everywhere). */
 export function isGuestQrSecurityEnabledClient(): boolean {
   const override = envFlag("NEXT_PUBLIC_GUEST_QR_SECURITY");
   if (isFalsyFlag(override)) return false;
   if (isTruthyFlag(override)) return true;
-
   return true;
 }

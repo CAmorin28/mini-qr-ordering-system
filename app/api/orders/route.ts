@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { listOrdersFromDb, saveOrderToDb } from "@/lib/db/orders";
+import { touchGuestSessionActivity } from "@/lib/db/table-qr-session";
 import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
 import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
 import { normalizeTableLetter } from "@/lib/table-session";
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
+
+  await touchGuestSessionActivity(request);
 
   return NextResponse.json(
     {

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { MENU_PAGE_PATH } from "@/lib/menu-url";
+import { TABLE_ENTER_PAGE_PATH } from "@/lib/menu-url";
 
-/** QR codes and bookmarks should land on the menu directly. */
+/** Landing route — guests must scan a table QR to reach the menu. */
 export default function Home() {
-  redirect(MENU_PAGE_PATH);
+  redirect(TABLE_ENTER_PAGE_PATH);
 }

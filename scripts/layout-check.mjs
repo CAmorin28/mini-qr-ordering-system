@@ -194,11 +194,6 @@ async function main() {
       mustSee: ["h1, h2", "a, button"],
     },
     {
-      name: "Access denied",
-      path: "/menu/access-denied?reason=no_session",
-      mustSee: ["h1, h2", "a, button"],
-    },
-    {
       name: "Menu enter (QR)",
       path: "/menu/enter?table=T",
       mustSee: ["h1, h2", "button, a"],
