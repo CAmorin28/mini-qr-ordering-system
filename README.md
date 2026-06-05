@@ -112,9 +112,17 @@ cd mini-qr-ordering-system
 npm install
 ```
 
-### Step 2 — Configure environment (`.env.local`)
+### Step 2 — Enable git hooks (one time per clone)
 
-The repo includes `.env.local` as a **template**. Each machine must set its own connection details — do not rely on another developer’s passwords or hostnames.
+The repo includes a pre-commit hook that **strips `MYSQL_PASSWORD` from `.env.local` before each commit**, so you can keep your real password locally without pushing it to git.
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Step 3 — Configure environment (`.env.local`)
+
+The repo includes `.env.local` with **`MYSQL_PASSWORD` left empty**. Each laptop must add its own MySQL password after cloning.
 
 1. Open `.env.local` in the project root.
 2. Set **`MYSQL_PASSWORD`** to your local MySQL root (or app user) password.
@@ -125,15 +133,15 @@ The repo includes `.env.local` as a **template**. Each machine must set its own 
 | `MYSQL_HOST` | Usually `127.0.0.1` for local MySQL |
 | `MYSQL_PORT` | Usually `3306` |
 | `MYSQL_USER` | Your MySQL username (e.g. `root`) |
-| `MYSQL_PASSWORD` | **Required** — your MySQL password |
+| `MYSQL_PASSWORD` | **Required locally** — empty in git; add your password here |
 | `MYSQL_DATABASE` | `tablebite` (created by the schema script) |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for desktop; use `http://YOUR_LAN_IP:3000` when testing QR on a phone (see [Local network environment](#local-network-environment)) |
 
 Optional: set `ADMIN_USERNAME` and `ADMIN_PASSWORD` for staff login at `/admin/login`. If unset, defaults are `admin` / `12345`.
 
-> **Security:** Never commit real passwords. Keep placeholders in git; only store your actual credentials in your local copy of `.env.local`.
+> **Security:** Your local `.env.local` can keep your real password. On commit, the hook clears `MYSQL_PASSWORD` in the version that goes to git. Other machines clone the empty value and fill in their own password.
 
-### Step 3 — Create the database
+### Step 4 — Create the database
 
 Run the schema and seed data in MySQL Workbench (or the `mysql` CLI):
 
@@ -143,7 +151,7 @@ mysql -u root -p < database/schema.sql
 
 Or open `database/schema.sql` in Workbench and execute the full script. This creates the `tablebite` database, tables, and sample menu items.
 
-### Step 4 — Start the development server
+### Step 5 — Start the development server
 
 ```bash
 npm run dev

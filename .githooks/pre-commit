@@ -1,0 +1,2 @@
+#!/bin/sh
+node scripts/sanitize-env-local-for-commit.mjs
