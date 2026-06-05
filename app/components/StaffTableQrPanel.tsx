@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { MenuQrDisplay } from "@/app/components/MenuQrDisplay";
 import { QrDownloadActions } from "@/app/components/QrDownloadActions";
 import { openAdminTableVisit } from "@/lib/api-admin";
-import { menuUrlForTable, staffQrPath } from "@/lib/menu-url";
+import { menuUrlForTable } from "@/lib/menu-url";
 import {
   MENU_QR_COLORS,
   MENU_QR_DISPLAY_WIDTH,
@@ -90,11 +90,6 @@ export function StaffTableQrPanel({
 
     setInputError(null);
     const normalized = normalizeTableLetter(inputValue)!;
-
-    if (typeof window !== "undefined") {
-      // Keep the URL in sync (use replaceState so we don't navigate away from /admin/qr).
-      window.history.replaceState(null, "", staffQrPath(normalized));
-    }
 
     refreshQr(normalized).catch(() => {
       /* handled above */

@@ -65,6 +65,9 @@ function TableSessionSync({
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Staff QR page uses ?table= for the generator — not a guest scan.
+    if (pathname.startsWith("/admin")) return;
+
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
       if (isTableVisitEnded(fromUrl)) {
