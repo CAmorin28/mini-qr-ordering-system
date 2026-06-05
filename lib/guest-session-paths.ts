@@ -5,6 +5,7 @@ export type GuestAccessDeniedReason =
   | "no_session"
   | "invalid_session"
   | "table_mismatch"
+  | "device_locked"
   | "visit_ended";
 
 export function guestAccessDeniedUrl(reason: GuestAccessDeniedReason): string {

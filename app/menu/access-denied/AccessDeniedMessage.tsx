@@ -12,6 +12,8 @@ const MESSAGES: Record<GuestAccessDeniedReason, string> = {
     "Your table session has expired or is no longer valid. Scan the QR code again to continue.",
   table_mismatch:
     "This link was opened for a different table or device. Scan the QR code at your own table — shared links will not work.",
+  device_locked:
+    "This table is already linked to another phone. Shared QR links cannot be used — scan the code at your table with the device that will place the order.",
   visit_ended:
     "This table visit has ended. Ask staff if you need help, or scan the QR again when your table is ready for the next party.",
 };

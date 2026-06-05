@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { openTableVisitOnScan } from "@/lib/api-table-visit";
+import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
+import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
 import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
 import { clearTableVisitEndedMark, formatTableLabel } from "@/lib/table-session";
 
@@ -18,6 +20,10 @@ export default function MenuEnterPage() {
   useEffect(() => {
     const table = tableLetterFromSearch(searchParams.toString());
     if (!table) {
+      if (isGuestQrSecurityEnabledClient()) {
+        router.replace(guestAccessDeniedUrl("scan_required"));
+        return;
+      }
       router.replace(MENU_PAGE_PATH);
       return;
     }
@@ -28,9 +34,22 @@ export default function MenuEnterPage() {
       const status = await openTableVisitOnScan(table);
       if (cancelled) return;
 
+      if (status?.code === "session_locked") {
+        if (isGuestQrSecurityEnabledClient()) {
+          router.replace(guestAccessDeniedUrl("device_locked"));
+          return;
+        }
+        setError(
+          status.error ??
+            "This table is already linked to another device. Shared links cannot be used.",
+        );
+        return;
+      }
+
       if (!status?.canBind) {
         setError(
-          `Table ${formatTableLabel(table)} is not accepting orders right now. Ask staff for help.`,
+          status?.error ??
+            `Table ${formatTableLabel(table)} is not accepting orders right now. Ask staff for help.`,
         );
         return;
       }
@@ -52,13 +71,23 @@ export default function MenuEnterPage() {
             table_restaurant
           </span>
           <p className="text-on-surface">{error}</p>
-          <button
-            type="button"
-            className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
-            onClick={() => router.replace(MENU_PAGE_PATH)}
-          >
-            Browse menu without table
-          </button>
+          {isGuestQrSecurityEnabledClient() ? (
+            <button
+              type="button"
+              className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
+              onClick={() => router.replace(guestAccessDeniedUrl("device_locked"))}
+            >
+              Why can&apos;t I open this link?
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="rounded-full bg-secondary px-6 py-3 text-sm font-bold text-on-secondary"
+              onClick={() => router.replace(MENU_PAGE_PATH)}
+            >
+              Browse menu without table
+            </button>
+          )}
         </main>
       </div>
     );

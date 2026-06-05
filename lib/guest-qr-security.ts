@@ -23,6 +23,8 @@ export function isGuestQrSecurityEnabled(hostHeader?: string | null): boolean {
   if (isFalsyFlag(override)) return false;
   if (isTruthyFlag(override)) return true;
 
+  if (process.env.VERCEL_ENV === "production") return true;
+
   if (process.env.NODE_ENV !== "production") return false;
 
   const host = hostFromHeader(hostHeader ?? null);

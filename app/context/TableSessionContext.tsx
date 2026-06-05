@@ -12,7 +12,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fetchTableVisitStatus } from "@/lib/api-table-visit";
-import { clearServerGuestSession } from "@/lib/api-guest-session";
+import { clearServerGuestSession, fetchGuestSessionStatus } from "@/lib/api-guest-session";
 import { guestAccessDeniedUrl } from "@/lib/guest-session-paths";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
 import { MENU_PAGE_PATH, pathWithoutTable, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
@@ -76,6 +76,20 @@ function TableSessionSync({
       let cancelled = false;
 
       (async () => {
+        if (isGuestQrSecurityEnabledClient()) {
+          const guest = await fetchGuestSessionStatus();
+          if (cancelled) return;
+          if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== fromUrl) {
+            sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+            router.replace(
+              guestAccessDeniedUrl(
+                guest?.code === "invalid_session" ? "invalid_session" : "no_session",
+              ),
+            );
+            return;
+          }
+        }
+
         const status = await fetchTableVisitStatus(fromUrl);
         if (cancelled) return;
 
@@ -118,6 +132,20 @@ function TableSessionSync({
     let cancelled = false;
 
     (async () => {
+      if (isGuestQrSecurityEnabledClient()) {
+        const guest = await fetchGuestSessionStatus();
+        if (cancelled) return;
+        if (!guest?.valid || normalizeTableLetter(guest.tableLetter) !== stored) {
+          sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+          router.replace(
+            guestAccessDeniedUrl(
+              guest?.code === "invalid_session" ? "invalid_session" : "no_session",
+            ),
+          );
+          return;
+        }
+      }
+
       const status = await fetchTableVisitStatus(stored);
       if (cancelled) return;
 

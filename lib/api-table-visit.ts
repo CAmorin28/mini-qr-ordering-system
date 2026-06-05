@@ -6,6 +6,8 @@ export interface TableVisitStatusResponse {
   hasActiveOrders: boolean;
   canBind: boolean;
   databaseConfigured?: boolean;
+  error?: string;
+  code?: string;
 }
 
 export async function fetchTableVisitStatus(
@@ -42,8 +44,18 @@ export async function openTableVisitOnScan(
       cache: "no-store",
       credentials: "include",
     });
-    if (!res.ok) return null;
-    return (await res.json()) as TableVisitStatusResponse;
+    const data = (await res.json()) as TableVisitStatusResponse;
+    if (!res.ok) {
+      return {
+        tableLetter: table,
+        visitOpen: false,
+        hasActiveOrders: false,
+        canBind: false,
+        error: data.error,
+        code: data.code,
+      };
+    }
+    return data;
   } catch {
     return null;
   }
