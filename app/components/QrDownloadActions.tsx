@@ -2,19 +2,19 @@
 
 import { useCallback, useState } from "react";
 import QRCode from "qrcode";
-import { menuUrlFromWindow } from "@/lib/menu-url";
-import { shouldRefreshQrFromBrowser } from "@/lib/origin";
+import { menuUrlForTable } from "@/lib/menu-url";
 import {
   getQrDownloadFilename,
   MENU_QR_COLORS,
   MENU_QR_DOWNLOAD_WIDTH,
   MENU_QR_MARGIN,
 } from "@/lib/qr-code";
+import { normalizeTableLetter } from "@/lib/table-session";
 
 interface QrDownloadActionsProps {
   menuUrl: string;
   tableLetter?: string | null;
-  devNetworkOrigin?: string | null;
+  scannableOrigin: string;
 }
 
 type SaveResult = "downloaded" | "shared" | "opened" | "cancelled";
@@ -116,7 +116,7 @@ async function createPngFile(menuUrl: string, filename: string): Promise<File> {
 export function QrDownloadActions({
   menuUrl,
   tableLetter,
-  devNetworkOrigin,
+  scannableOrigin,
 }: QrDownloadActionsProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,11 +128,11 @@ export function QrDownloadActions({
     setSuccessHint(null);
 
     try {
-      const letter = tableLetter ?? undefined;
-      const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl, devNetworkOrigin)
-        ? (menuUrlFromWindow(letter, devNetworkOrigin) ?? menuUrl)
+      const letter = normalizeTableLetter(tableLetter ?? "");
+      const targetMenuUrl = letter
+        ? menuUrlForTable(letter, scannableOrigin)
         : menuUrl;
-      const filename = getQrDownloadFilename(letter);
+      const filename = getQrDownloadFilename(letter || undefined);
       const file = await createPngFile(targetMenuUrl, filename);
       const result = await saveQrFile(file);
 
@@ -164,7 +164,7 @@ export function QrDownloadActions({
     } finally {
       setBusy(false);
     }
-  }, [menuUrl, tableLetter, devNetworkOrigin]);
+  }, [menuUrl, tableLetter, scannableOrigin]);
 
   return (
     <section

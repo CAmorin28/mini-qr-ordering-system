@@ -5,16 +5,14 @@ import {
   MENU_QR_DISPLAY_WIDTH,
   MENU_QR_MARGIN,
 } from "@/lib/qr-code";
-import { devNetworkOriginFromHost } from "@/lib/dev-network-origin.server";
-import { getSiteOrigin } from "@/lib/site-url";
+import { resolveScannableOriginFromRequest } from "@/lib/qr-origin.server";
 import { normalizeTableLetter } from "@/lib/table-session";
-import { headers } from "next/headers";
 
 export interface StaffQrPanelServerProps {
   initialTableLetter: string;
   serverMenuUrl: string;
   initialSvg: string;
-  devNetworkOrigin: string | null;
+  scannableOrigin: string;
 }
 
 /** Server-side props for the staff table QR panel. */
@@ -22,11 +20,8 @@ export async function loadStaffQrPanelProps(
   tableParam?: string | null,
 ): Promise<StaffQrPanelServerProps> {
   const tableLetter = normalizeTableLetter(tableParam) || "A";
-  const headersList = await headers();
-  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
-  const devNetworkOrigin = devNetworkOriginFromHost(host);
-  const origin = await getSiteOrigin();
-  const menuUrl = menuUrlFromOrigin(origin, tableLetter);
+  const scannableOrigin = await resolveScannableOriginFromRequest();
+  const menuUrl = menuUrlFromOrigin(scannableOrigin, tableLetter);
   const initialSvg = await QRCode.toString(menuUrl, {
     type: "svg",
     margin: MENU_QR_MARGIN,
@@ -39,6 +34,6 @@ export async function loadStaffQrPanelProps(
     initialTableLetter: tableLetter,
     serverMenuUrl: menuUrl,
     initialSvg,
-    devNetworkOrigin,
+    scannableOrigin,
   };
 }

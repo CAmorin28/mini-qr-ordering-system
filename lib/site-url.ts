@@ -1,10 +1,4 @@
-import { headers } from "next/headers";
-import {
-  getDeploymentOrigin,
-  isLoopbackOrigin,
-  originFromEnvValue,
-} from "@/lib/origin";
-import { preferLanOriginWhenLoopback } from "@/lib/dev-network-origin.server";
+import { resolveScannableOriginFromRequest } from "@/lib/qr-origin.server";
 import { menuUrlFromOrigin } from "@/lib/menu-url";
 
 /**
@@ -15,28 +9,7 @@ import { menuUrlFromOrigin } from "@/lib/menu-url";
  * (Production) to lock QR codes to your canonical domain (recommended for custom domains).
  */
 export async function getSiteOrigin(): Promise<string> {
-  const canonical = originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL);
-  // Ignore localhost NEXT_PUBLIC_APP_URL on Vercel — it breaks deployed QR codes.
-  const useCanonical =
-    canonical && !(process.env.VERCEL && isLoopbackOrigin(canonical));
-  if (useCanonical) return preferLanOriginWhenLoopback(canonical);
-
-  const headersList = await headers();
-  const host =
-    headersList.get("x-forwarded-host") ?? headersList.get("host");
-  const protocol =
-    headersList.get("x-forwarded-proto") ??
-    (process.env.VERCEL ? "https" : "http");
-
-  if (host) {
-    const hostname = host.split(",")[0]?.trim().split("/")[0] ?? host;
-    return preferLanOriginWhenLoopback(`${protocol}://${hostname}`);
-  }
-
-  const deployment = getDeploymentOrigin();
-  if (deployment) return preferLanOriginWhenLoopback(deployment);
-
-  return preferLanOriginWhenLoopback("http://localhost:3000");
+  return resolveScannableOriginFromRequest();
 }
 
 /** Absolute URL of the customer menu (`/menu`), with optional table letter. */

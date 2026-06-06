@@ -62,12 +62,23 @@ export function isTableVisitEnded(tableLetter: string): boolean {
 /** True when navigation likely came from scanning the table QR (not an in-app link). */
 export function isLikelyFreshQrEntry(): boolean {
   if (typeof window === "undefined") return false;
+
+  const navEntries = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
+  const navType = navEntries[0]?.type;
+  if (navType === "reload" || navType === "back_forward") {
+    return false;
+  }
+
   const ref = document.referrer;
-  if (!ref) return true;
+  if (!ref) {
+    return navType === "navigate";
+  }
   try {
     return new URL(ref).origin !== window.location.origin;
   } catch {
-    return true;
+    return navType === "navigate";
   }
 }
 

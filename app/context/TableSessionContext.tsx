@@ -27,7 +27,6 @@ import { clearTableCustomerSession } from "@/lib/customer-table-session";
 import {
   TABLE_SESSION_STORAGE_KEY,
   TABLE_VISIT_ENDED_EVENT,
-  clearTableVisitEndedMark,
   formatTableLabel,
   isTableVisitEnded,
   normalizeTableLetter,
@@ -67,7 +66,6 @@ function bindTableLetter(
   ) {
     return;
   }
-  clearTableVisitEndedMark(normalized);
   setTableLetterState(normalized);
   sessionStorage.setItem(TABLE_SESSION_STORAGE_KEY, normalized);
 }
@@ -142,8 +140,6 @@ function TableSessionSync({
 
     const fromUrl = tableLetterFromSearch(searchParams.toString());
     if (fromUrl) {
-      bindTableLetter(fromUrl, setTableLetterState, tableLetter);
-
       if (isTableVisitEnded(fromUrl)) {
         setSessionReady(false);
         redirectToEnter(fromUrl);
@@ -169,7 +165,8 @@ function TableSessionSync({
           if (cancelled) return;
 
           if (guest === null) {
-            setSessionReady(true);
+            setSessionReady(false);
+            redirectToEnter(fromUrl);
             return;
           }
 
@@ -233,8 +230,6 @@ function TableSessionSync({
       return;
     }
 
-    bindTableLetter(stored, setTableLetterState, tableLetter);
-
     let cancelled = false;
 
     (async () => {
@@ -244,7 +239,8 @@ function TableSessionSync({
         if (cancelled) return;
 
         if (guest === null) {
-          setSessionReady(true);
+          setSessionReady(false);
+          redirectToEnter(stored);
           return;
         }
 

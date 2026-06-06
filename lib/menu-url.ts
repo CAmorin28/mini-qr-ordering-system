@@ -1,5 +1,4 @@
 import { normalizeTableLetter } from "@/lib/table-session";
-import { isLoopbackHost, shouldRefreshQrFromBrowser } from "@/lib/origin";
 export const MENU_PAGE_PATH = "/menu" as const;
 
 /** QR scan entry — opens server visit, then redirects to /menu?table= */
@@ -38,43 +37,13 @@ export function menuUrlFromOrigin(origin: string, tableLetter?: string): string 
   return url.href;
 }
 
-/**
- * Resolve the scannable menu URL for a table using a reference URL for origin detection.
- * Uses the browser origin on LAN/dev so phone scans work on desktop-generated codes.
- */
-export function menuUrlForTable(
-  referenceMenuUrl: string,
-  tableLetter: string,
-  devNetworkOrigin?: string | null,
-): string {
+/** Build the scannable menu URL for a table letter using the resolved site origin. */
+export function menuUrlForTable(tableLetter: string, scannableOrigin: string): string {
   const table = normalizeTableLetter(tableLetter);
   if (!table) {
-    try {
-      return new URL(referenceMenuUrl).href;
-    } catch {
-      return referenceMenuUrl;
-    }
+    return scannableOrigin;
   }
-
-  if (typeof window !== "undefined") {
-    if (devNetworkOrigin && isLoopbackHost(window.location.hostname)) {
-      return menuUrlFromOrigin(devNetworkOrigin, table);
-    }
-
-    if (shouldRefreshQrFromBrowser(referenceMenuUrl, devNetworkOrigin)) {
-      if (devNetworkOrigin) {
-        return menuUrlFromOrigin(devNetworkOrigin, table);
-      }
-      return menuUrlFromOrigin(window.location.origin, table);
-    }
-  }
-
-  try {
-    return menuUrlFromOrigin(new URL(referenceMenuUrl).origin, table);
-  } catch {
-    const fallback = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    return menuUrlFromOrigin(fallback.replace(/\/$/, ""), table);
-  }
+  return menuUrlFromOrigin(scannableOrigin, table);
 }
 
 /** Read table letter from menu page search params. */
@@ -104,20 +73,16 @@ export function pathWithTable(path: string, tableLetter: string): string {
   return query ? `${pathname}?${query}` : pathname;
 }
 
-/** Menu URL for the current browser tab (client only). */
+/** @deprecated Use menuUrlForTable with scannableOrigin from the server. */
 export function menuUrlFromWindow(
   tableLetter?: string,
-  devNetworkOrigin?: string | null,
+  scannableOrigin?: string | null,
 ): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || !scannableOrigin) return null;
   const table =
     normalizeTableLetter(tableLetter) ||
     tableLetterFromSearch(window.location.search);
-  const origin =
-    devNetworkOrigin && isLoopbackHost(window.location.hostname)
-      ? devNetworkOrigin
-      : window.location.origin;
-  return menuUrlFromOrigin(origin, table || undefined);
+  return menuUrlFromOrigin(scannableOrigin, table || undefined);
 }
 
 /** @deprecated Use tableLetterFromSearch */
