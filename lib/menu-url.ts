@@ -1,5 +1,5 @@
 import { normalizeTableLetter } from "@/lib/table-session";
-import { shouldRefreshQrFromBrowser } from "@/lib/origin";
+import { isLoopbackHost, shouldRefreshQrFromBrowser } from "@/lib/origin";
 export const MENU_PAGE_PATH = "/menu" as const;
 
 /** QR scan entry — opens server visit, then redirects to /menu?table= */
@@ -42,7 +42,11 @@ export function menuUrlFromOrigin(origin: string, tableLetter?: string): string 
  * Resolve the scannable menu URL for a table using a reference URL for origin detection.
  * Uses the browser origin on LAN/dev so phone scans work on desktop-generated codes.
  */
-export function menuUrlForTable(referenceMenuUrl: string, tableLetter: string): string {
+export function menuUrlForTable(
+  referenceMenuUrl: string,
+  tableLetter: string,
+  devNetworkOrigin?: string | null,
+): string {
   const table = normalizeTableLetter(tableLetter);
   if (!table) {
     try {
@@ -52,8 +56,17 @@ export function menuUrlForTable(referenceMenuUrl: string, tableLetter: string): 
     }
   }
 
-  if (typeof window !== "undefined" && shouldRefreshQrFromBrowser(referenceMenuUrl)) {
-    return menuUrlFromOrigin(window.location.origin, table);
+  if (typeof window !== "undefined") {
+    if (devNetworkOrigin && isLoopbackHost(window.location.hostname)) {
+      return menuUrlFromOrigin(devNetworkOrigin, table);
+    }
+
+    if (shouldRefreshQrFromBrowser(referenceMenuUrl, devNetworkOrigin)) {
+      if (devNetworkOrigin) {
+        return menuUrlFromOrigin(devNetworkOrigin, table);
+      }
+      return menuUrlFromOrigin(window.location.origin, table);
+    }
   }
 
   try {
@@ -92,12 +105,19 @@ export function pathWithTable(path: string, tableLetter: string): string {
 }
 
 /** Menu URL for the current browser tab (client only). */
-export function menuUrlFromWindow(tableLetter?: string): string | null {
+export function menuUrlFromWindow(
+  tableLetter?: string,
+  devNetworkOrigin?: string | null,
+): string | null {
   if (typeof window === "undefined") return null;
   const table =
     normalizeTableLetter(tableLetter) ||
     tableLetterFromSearch(window.location.search);
-  return menuUrlFromOrigin(window.location.origin, table || undefined);
+  const origin =
+    devNetworkOrigin && isLoopbackHost(window.location.hostname)
+      ? devNetworkOrigin
+      : window.location.origin;
+  return menuUrlFromOrigin(origin, table || undefined);
 }
 
 /** @deprecated Use tableLetterFromSearch */

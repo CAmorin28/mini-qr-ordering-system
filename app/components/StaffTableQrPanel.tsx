@@ -29,6 +29,7 @@ interface StaffTableQrPanelProps {
   initialTableLetter: string;
   serverMenuUrl: string;
   initialSvg: string;
+  devNetworkOrigin: string | null;
 }
 
 const STATUS_POLL_MS = 10_000;
@@ -47,6 +48,7 @@ export function StaffTableQrPanel({
   initialTableLetter,
   serverMenuUrl,
   initialSvg,
+  devNetworkOrigin,
 }: StaffTableQrPanelProps) {
   const restoredRef = useRef(false);
   const manualVisitMessageRef = useRef<string | null>(null);
@@ -169,7 +171,7 @@ export function StaffTableQrPanel({
 
       setGenerating(true);
       try {
-        const url = menuUrlForTable(serverMenuUrl, normalized);
+        const url = menuUrlForTable(serverMenuUrl, normalized, devNetworkOrigin);
         const svg = await renderQrSvg(url);
         setMenuUrl(url);
         setQrSvg(svg);
@@ -187,8 +189,25 @@ export function StaffTableQrPanel({
         setGenerating(false);
       }
     },
-    [serverMenuUrl, visitMessage, sessionStatus, persistPanel],
+    [serverMenuUrl, visitMessage, sessionStatus, persistPanel, devNetworkOrigin],
   );
+
+  useEffect(() => {
+    if (!devNetworkOrigin) return;
+
+    try {
+      const host = new URL(menuUrl).hostname;
+      if (host !== "localhost" && host !== "127.0.0.1") return;
+    } catch {
+      return;
+    }
+
+    const url = menuUrlForTable(serverMenuUrl, tableLetter, devNetworkOrigin);
+    if (url === menuUrl) return;
+
+    setMenuUrl(url);
+    void renderQrSvg(url).then(setQrSvg);
+  }, [devNetworkOrigin, menuUrl, serverMenuUrl, tableLetter]);
 
   function updateQrFromInput() {
     if (!isValidTableLetterInput(inputValue)) {
@@ -326,7 +345,11 @@ export function StaffTableQrPanel({
         </p>
       ) : null}
 
-      <QrDownloadActions menuUrl={menuUrl} tableLetter={tableLetter} />
+      <QrDownloadActions
+        menuUrl={menuUrl}
+        tableLetter={tableLetter}
+        devNetworkOrigin={devNetworkOrigin}
+      />
     </div>
   );
 }

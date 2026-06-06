@@ -4,6 +4,7 @@ import {
   isLoopbackOrigin,
   originFromEnvValue,
 } from "@/lib/origin";
+import { preferLanOriginWhenLoopback } from "@/lib/dev-network-origin.server";
 import { menuUrlFromOrigin } from "@/lib/menu-url";
 
 /**
@@ -18,7 +19,7 @@ export async function getSiteOrigin(): Promise<string> {
   // Ignore localhost NEXT_PUBLIC_APP_URL on Vercel — it breaks deployed QR codes.
   const useCanonical =
     canonical && !(process.env.VERCEL && isLoopbackOrigin(canonical));
-  if (useCanonical) return canonical;
+  if (useCanonical) return preferLanOriginWhenLoopback(canonical);
 
   const headersList = await headers();
   const host =
@@ -29,13 +30,13 @@ export async function getSiteOrigin(): Promise<string> {
 
   if (host) {
     const hostname = host.split(",")[0]?.trim().split("/")[0] ?? host;
-    return `${protocol}://${hostname}`;
+    return preferLanOriginWhenLoopback(`${protocol}://${hostname}`);
   }
 
   const deployment = getDeploymentOrigin();
-  if (deployment) return deployment;
+  if (deployment) return preferLanOriginWhenLoopback(deployment);
 
-  return "http://localhost:3000";
+  return preferLanOriginWhenLoopback("http://localhost:3000");
 }
 
 /** Absolute URL of the customer menu (`/menu`), with optional table letter. */

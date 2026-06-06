@@ -60,10 +60,18 @@ export function isPrivateLanHost(hostname: string): boolean {
 }
 
 /** True when QR should use the browser origin instead of the server-rendered URL. */
-export function shouldRefreshQrFromBrowser(serverMenuUrl: string): boolean {
+export function shouldRefreshQrFromBrowser(
+  serverMenuUrl: string,
+  devNetworkOrigin?: string | null,
+): boolean {
   if (typeof window === "undefined") return false;
 
   const browserHost = window.location.hostname;
+
+  if (devNetworkOrigin && isLoopbackHost(browserHost)) {
+    return true;
+  }
+
   const canonical = originFromEnvValue(process.env.NEXT_PUBLIC_APP_URL);
 
   // Local dev: NEXT_PUBLIC_APP_URL is often localhost, but phones must scan a LAN IP.
@@ -74,6 +82,7 @@ export function shouldRefreshQrFromBrowser(serverMenuUrl: string): boolean {
         if (isPrivateLanHost(browserHost) || !isLoopbackHost(browserHost)) {
           return true;
         }
+        if (devNetworkOrigin) return true;
       }
       return false;
     } catch {

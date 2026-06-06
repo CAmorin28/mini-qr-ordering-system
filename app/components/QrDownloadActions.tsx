@@ -14,6 +14,7 @@ import {
 interface QrDownloadActionsProps {
   menuUrl: string;
   tableLetter?: string | null;
+  devNetworkOrigin?: string | null;
 }
 
 type SaveResult = "downloaded" | "shared" | "opened" | "cancelled";
@@ -115,6 +116,7 @@ async function createPngFile(menuUrl: string, filename: string): Promise<File> {
 export function QrDownloadActions({
   menuUrl,
   tableLetter,
+  devNetworkOrigin,
 }: QrDownloadActionsProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +129,8 @@ export function QrDownloadActions({
 
     try {
       const letter = tableLetter ?? undefined;
-      const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl)
-        ? (menuUrlFromWindow(letter) ?? menuUrl)
+      const targetMenuUrl = shouldRefreshQrFromBrowser(menuUrl, devNetworkOrigin)
+        ? (menuUrlFromWindow(letter, devNetworkOrigin) ?? menuUrl)
         : menuUrl;
       const filename = getQrDownloadFilename(letter);
       const file = await createPngFile(targetMenuUrl, filename);
@@ -162,7 +164,7 @@ export function QrDownloadActions({
     } finally {
       setBusy(false);
     }
-  }, [menuUrl, tableLetter]);
+  }, [menuUrl, tableLetter, devNetworkOrigin]);
 
   return (
     <section
