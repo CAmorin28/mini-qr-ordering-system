@@ -4,7 +4,11 @@ import Link from "next/link";
 import { OrderStatusNavButton } from "@/app/components/OrderStatusNavButton";
 import { useCart } from "@/app/context/CartContext";
 import { useTableSession } from "@/app/context/TableSessionContext";
-import { ADMIN_DASHBOARD_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
+import {
+  ADMIN_DASHBOARD_PATH,
+  customerMenuNavHref,
+  navigateCustomerMenuBack,
+} from "@/lib/menu-url";
 
 interface HeaderProps {
   showCart?: boolean;
@@ -27,9 +31,9 @@ export function Header({
   variant = "default",
 }: HeaderProps) {
   const { itemCount, isCartOpen, toggleCart } = useCart();
-  const { tableLabel, hasTableSession, pathWithSession } = useTableSession();
+  const { tableLabel, hasTableSession, tableLetter } = useTableSession();
   const isQr = variant === "qr";
-  const menuHref = hasTableSession ? pathWithSession(MENU_PAGE_PATH) : MENU_PAGE_PATH;
+  const menuHref = customerMenuNavHref(tableLetter);
   const navBackHref = backHref ?? menuHref;
   const navBackLabel = backLabel ?? "Back to menu";
 
@@ -74,6 +78,14 @@ export function Header({
             <Link
               href={navBackHref}
               aria-label={navBackLabel}
+              onClick={(e) => {
+                e.preventDefault();
+                if (backHref) {
+                  window.location.assign(backHref);
+                  return;
+                }
+                void navigateCustomerMenuBack(tableLetter);
+              }}
               className={`flex min-h-11 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 sm:px-3 sm:text-base ${
                 isQr
                   ? "qr-header-back"

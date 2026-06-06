@@ -1,4 +1,9 @@
-import { normalizeTableLetter } from "@/lib/table-session";
+import { fetchGuestSessionStatus } from "@/lib/api-guest-session";
+import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
+import {
+  normalizeTableLetter,
+  resolveTerminatedTableLetter,
+} from "@/lib/table-session";
 export const MENU_PAGE_PATH = "/menu" as const;
 
 /** QR scan entry — opens server visit, then redirects to /menu?table= */
@@ -60,6 +65,66 @@ export function pathWithoutTable(path: string): string {
   params.delete("table");
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
+}
+
+function resolvedTableHint(
+  ...hints: (string | null | undefined)[]
+): string {
+  return hints.map((hint) => normalizeTableLetter(hint)).find(Boolean) ?? "";
+}
+
+/** Menu href for in-app navigation; terminated sessions go to the enter page. */
+export function customerMenuNavHref(
+  ...hints: (string | null | undefined)[]
+): string {
+  const endedTable = resolveTerminatedTableLetter(...hints);
+  if (endedTable) {
+    return pathWithTable(TABLE_ENTER_PAGE_PATH, endedTable);
+  }
+  const table = resolvedTableHint(...hints);
+  return table ? pathWithTable(MENU_PAGE_PATH, table) : MENU_PAGE_PATH;
+}
+
+/** Full-page redirect when the table visit was terminated (e.g. header back). */
+export function redirectTerminatedTableNav(
+  ...hints: (string | null | undefined)[]
+): boolean {
+  if (typeof window === "undefined") return false;
+  const endedTable = resolveTerminatedTableLetter(...hints);
+  if (!endedTable) return false;
+  window.location.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, endedTable));
+  return true;
+}
+
+/**
+ * Header back / return-to-menu: honor terminated visits and dead server sessions.
+ * Always performs a full-page navigation so guards cannot be skipped by SPA routing.
+ */
+export async function navigateCustomerMenuBack(
+  ...hints: (string | null | undefined)[]
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const urlTable = tableLetterFromSearch(window.location.search);
+  const allHints = [...hints, urlTable];
+
+  if (redirectTerminatedTableNav(...allHints)) return;
+
+  const table = resolvedTableHint(...allHints);
+  if (table && isGuestQrSecurityEnabledClient()) {
+    try {
+      const guest = await fetchGuestSessionStatus(table);
+      if (guest?.enforced !== false && guest?.valid !== true) {
+        window.location.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, table));
+        return;
+      }
+    } catch {
+      window.location.replace(pathWithTable(TABLE_ENTER_PAGE_PATH, table));
+      return;
+    }
+  }
+
+  window.location.assign(customerMenuNavHref(...allHints));
 }
 
 /** Append ?table=X to an app path when a table session is active. */

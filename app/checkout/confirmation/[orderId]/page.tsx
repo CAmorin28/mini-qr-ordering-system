@@ -13,7 +13,10 @@ import { useActiveCustomerOrders } from "@/app/hooks/useActiveCustomerOrders";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { isCompletedOrder } from "@/lib/order-completion";
 import { cancelOrderById, fetchOrderById, fetchOrderHistory } from "@/lib/api";
-import { afterCustomerOrderCompleted } from "@/lib/customer-table-session";
+import {
+  afterCustomerOrderCompleted,
+  clearTableCustomerSession,
+} from "@/lib/customer-table-session";
 import { canCustomerCancelOrder } from "@/lib/order-workflow";
 import {
   PAYMENT_METHOD_LABELS,
@@ -28,6 +31,7 @@ import {
   CHECKOUT_REVIEW_PATH,
   MENU_PAGE_PATH,
   ORDERS_HISTORY_PATH,
+  navigateCustomerMenuBack,
 } from "@/lib/menu-url";
 import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
 import type { PlacedOrder } from "@/lib/types";
@@ -202,11 +206,15 @@ export default function OrderConfirmationPage() {
           href={MENU_PAGE_PATH}
           onClick={(e) => {
             e.preventDefault();
-            if (hasTableSession) {
+            const table = normalizeTableLetter(order.customer.tableLetter);
+            if (table) {
+              clearTableCustomerSession(table, { releaseServerSlot: true });
+              clearCart();
+            } else if (hasTableSession) {
               clearTableSession();
               clearCart();
             }
-            router.push(MENU_PAGE_PATH);
+            void navigateCustomerMenuBack(table, tableLetter);
           }}
           className="checkout-cta checkout-actions-primary rounded-xl bg-primary font-bold text-on-primary shadow-md hover:bg-primary-container"
         >
@@ -240,6 +248,7 @@ export default function OrderConfirmationPage() {
     <CheckoutShell
       step={3}
       asideFirstOnMobile
+      showBackToMenu={!visitComplete}
       title={paidViaGcash ? "Payment successful" : "Order placed"}
       subtitle="Track your order status below. The kitchen will update progress as your food is prepared."
       aside={

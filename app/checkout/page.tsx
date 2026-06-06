@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { TableSessionBanner } from "@/app/components/TableSessionBanner";
 import { CheckoutLineItem } from "@/app/components/CheckoutLineItem";
@@ -11,21 +10,24 @@ import { useCart } from "@/app/context/CartContext";
 import { useCheckout } from "@/app/context/CheckoutContext";
 import { useTableSession } from "@/app/context/TableSessionContext";
 import { computeSubtotal } from "@/lib/checkout";
-import { CHECKOUT_REVIEW_PATH, MENU_PAGE_PATH } from "@/lib/menu-url";
+import {
+  CHECKOUT_REVIEW_PATH,
+  customerMenuNavHref,
+  navigateCustomerMenuBack,
+} from "@/lib/menu-url";
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const { lines, itemCount } = useCart();
   const { cutlery, setCutlery } = useCheckout();
-  const { pathWithSession } = useTableSession();
+  const { pathWithSession, tableLetter } = useTableSession();
   const subtotal = computeSubtotal(lines);
-  const menuPath = pathWithSession(MENU_PAGE_PATH);
+  const menuPath = customerMenuNavHref(tableLetter);
 
   useEffect(() => {
     if (itemCount === 0) {
-      router.replace(menuPath);
+      void navigateCustomerMenuBack(tableLetter);
     }
-  }, [itemCount, router, menuPath]);
+  }, [itemCount, tableLetter]);
 
   if (itemCount === 0) {
     return null;

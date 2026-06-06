@@ -28,8 +28,10 @@ import {
   TABLE_SESSION_STORAGE_KEY,
   TABLE_VISIT_ENDED_EVENT,
   formatTableLabel,
+  isCustomerOrderingPath,
   isTableVisitEnded,
   normalizeTableLetter,
+  resolveTerminatedTableLetter,
   type TableVisitEndedDetail,
 } from "@/lib/table-session";
 
@@ -83,6 +85,7 @@ function TableSessionSync({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const redirectTargetRef = useRef<string | null>(null);
+  const [sessionCheckEpoch, setSessionCheckEpoch] = useState(0);
 
   const redirectToEnter = useCallback(
     (letter: string) => {
@@ -133,12 +136,48 @@ function TableSessionSync({
   }
 
   useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setSessionCheckEpoch((epoch) => epoch + 1);
+      }
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
+    function onVisitEnded(event: Event) {
+      const { tableLetter: endedTable } = (event as CustomEvent<TableVisitEndedDetail>)
+        .detail;
+      if (!endedTable || !isCustomerOrderingPath(pathname)) return;
+      setSessionReady(false);
+      redirectToEnter(endedTable);
+    }
+    window.addEventListener(TABLE_VISIT_ENDED_EVENT, onVisitEnded);
+    return () => window.removeEventListener(TABLE_VISIT_ENDED_EVENT, onVisitEnded);
+  }, [pathname, redirectToEnter, setSessionReady]);
+
+  useEffect(() => {
     if (pathname.startsWith("/admin") || pathname === TABLE_ENTER_PAGE_PATH) {
       redirectTargetRef.current = null;
       return;
     }
 
     const fromUrl = tableLetterFromSearch(searchParams.toString());
+    const stored = normalizeTableLetter(
+      sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY),
+    );
+
+    if (isCustomerOrderingPath(pathname)) {
+      const endedTable = resolveTerminatedTableLetter(fromUrl, tableLetter, stored);
+      if (endedTable) {
+        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        setSessionReady(false);
+        redirectToEnter(endedTable);
+        return;
+      }
+    }
+
     if (fromUrl) {
       if (isTableVisitEnded(fromUrl)) {
         setSessionReady(false);
@@ -209,16 +248,28 @@ function TableSessionSync({
     redirectTargetRef.current = null;
 
     if (tableLetter) {
+      const endedFromState = resolveTerminatedTableLetter(
+        tableLetter,
+        fromUrl,
+        stored,
+      );
+      if (endedFromState) {
+        sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
+        setSessionReady(false);
+        redirectToEnter(endedFromState);
+        return;
+      }
       setSessionReady(true);
       return;
     }
 
-    const stored = normalizeTableLetter(
-      sessionStorage.getItem(TABLE_SESSION_STORAGE_KEY),
-    );
     if (!stored) {
       setSessionReady(false);
-      if (pathname === MENU_PAGE_PATH || pathname === "/") {
+      if (
+        isCustomerOrderingPath(pathname) ||
+        pathname === MENU_PAGE_PATH ||
+        pathname === "/"
+      ) {
         router.replace(TABLE_ENTER_PAGE_PATH);
       }
       return;
@@ -227,6 +278,7 @@ function TableSessionSync({
     if (isTableVisitEnded(stored)) {
       sessionStorage.removeItem(TABLE_SESSION_STORAGE_KEY);
       setSessionReady(false);
+      redirectToEnter(stored);
       return;
     }
 
@@ -286,6 +338,7 @@ function TableSessionSync({
     redirectToBoundTable,
     setSessionReady,
     router,
+    sessionCheckEpoch,
   ]);
 
   return null;

@@ -59,6 +59,45 @@ export function isTableVisitEnded(tableLetter: string): boolean {
   return key ? sessionStorage.getItem(key) === "1" : false;
 }
 
+const TABLE_ENTER_PAGE_SEGMENT = "/menu/enter";
+const VISIT_ENDED_KEY_PREFIX = "tablebite_visit_ended_";
+
+/** Menu, cart (on menu), checkout, and order pages that require an active table session. */
+export function isCustomerOrderingPath(pathname: string): boolean {
+  if (!pathname || pathname.startsWith("/admin")) return false;
+  if (pathname === TABLE_ENTER_PAGE_SEGMENT) return false;
+  return (
+    pathname === "/menu" ||
+    pathname.startsWith("/menu/") ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/orders")
+  );
+}
+
+/** First table letter with a terminated visit mark in sessionStorage. */
+export function findEndedTableVisit(): string {
+  if (typeof window === "undefined") return "";
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const key = sessionStorage.key(i);
+    if (!key?.startsWith(VISIT_ENDED_KEY_PREFIX)) continue;
+    if (sessionStorage.getItem(key) !== "1") continue;
+    const letter = normalizeTableLetter(key.slice(VISIT_ENDED_KEY_PREFIX.length));
+    if (letter) return letter;
+  }
+  return "";
+}
+
+/** Resolve a terminated table from URL, React state, storage, or visit-ended marks. */
+export function resolveTerminatedTableLetter(
+  ...hints: (string | null | undefined)[]
+): string {
+  for (const hint of hints) {
+    const letter = normalizeTableLetter(hint);
+    if (letter && isTableVisitEnded(letter)) return letter;
+  }
+  return findEndedTableVisit();
+}
+
 /** True when navigation likely came from scanning the table QR (not an in-app link). */
 export function isLikelyFreshQrEntry(): boolean {
   if (typeof window === "undefined") return false;

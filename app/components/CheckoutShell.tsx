@@ -38,6 +38,10 @@ interface CheckoutShellProps {
 
   asideFirstOnMobile?: boolean;
 
+  /** Header back-to-menu control (hidden on confirmation once the order is complete). */
+
+  showBackToMenu?: boolean;
+
 }
 
 
@@ -65,6 +69,8 @@ export function CheckoutShell({
   onSubmit,
 
   asideFirstOnMobile = false,
+
+  showBackToMenu = true,
 
 }: CheckoutShellProps) {
 
@@ -226,7 +232,7 @@ export function CheckoutShell({
 
     <div className="checkout-page customer-page-shell flex h-full min-h-0 w-full min-w-0 max-w-full flex-1 flex-col bg-background">
 
-      <Header showCart={false} showBackToMenu showOrderStatus />
+      <Header showCart={false} showBackToMenu={showBackToMenu} showOrderStatus />
 
       {pageBody}
 
