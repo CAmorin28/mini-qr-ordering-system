@@ -18,6 +18,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   serving: "Serving",
   served: "Food served",
   ready_for_pickup: "Ready for pick-up",
+  discontinued: "Discontinued",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -39,6 +40,7 @@ export function normalizeOrderStatus(
   orderType: OrderType = "dine_in",
 ): OrderStatus {
   if (!status) return "pending_payment";
+  if (status === "discontinued") return "discontinued";
 
   let resolved: OrderStatus;
   if (status in ORDER_STATUS_LABELS) {
@@ -71,6 +73,10 @@ export function customerOrderStatusLabel(order: PlacedOrder): string {
   }
 
   const status = normalizeOrderStatus(order.status, order.customer.orderType);
+
+  if (status === "discontinued") {
+    return "Order discontinued by staff";
+  }
 
   if (
     order.paymentStatus === "paid" &&
@@ -106,6 +112,9 @@ export function adminStatusOptions(order: PlacedOrder): OrderStatus[] {
 /** Admin order badge — never shows "Pending payment" (see payment badge). */
 export function adminOrderStatusLabel(order: PlacedOrder): string {
   const status = normalizeOrderStatus(order.status, order.customer.orderType);
+  if (status === "discontinued") {
+    return ORDER_STATUS_LABELS.discontinued;
+  }
   if (status === "pending_payment" || status === "paid") {
     return "Awaiting kitchen";
   }

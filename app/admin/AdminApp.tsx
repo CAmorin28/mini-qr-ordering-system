@@ -12,6 +12,7 @@ import { AdminStatusBadge } from "@/app/components/admin/AdminStatusBadge";
 import {
   adminSignOut,
   completeAdminOrder,
+  discontinueAdminOrder,
   type DatabaseHealth,
   fetchAdminOrders,
   fetchAdminSession,
@@ -72,50 +73,75 @@ const ORDER_TYPE_TABS: { key: OrderType; label: string; icon: string }[] = [
 function OrderListCard({
   order,
   onSelect,
+  onDiscontinue,
+  discontinuing,
 }: {
   order: PlacedOrder;
   onSelect: (orderId: string) => void;
+  onDiscontinue?: (order: PlacedOrder) => void;
+  discontinuing?: boolean;
 }) {
+  const showDiscontinue = !isCompletedOrder(order) && onDiscontinue != null;
+
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => onSelect(order.orderId)}
-        className="admin-order-card w-full touch-manipulation rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md active:scale-[0.99]"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="admin-order-card__id font-bold text-on-surface">{order.orderNumber}</p>
-            <p className="admin-order-card__meta break-words text-xs text-on-surface-variant">
-              {new Date(order.createdAt).toLocaleString("en-PH")} · {order.customer.fullName}
-              {order.customer.tableLetter
-                ? ` · ${formatTableLabel(order.customer.tableLetter)}`
-                : ""}
+      <div className="admin-order-card flex w-full touch-manipulation items-start gap-2 rounded-2xl border border-surface-variant bg-surface-container-lowest p-md text-left shadow-sm transition-all hover:border-secondary-container/60 hover:shadow-md sm:gap-3">
+        <button
+          type="button"
+          onClick={() => onSelect(order.orderId)}
+          className="min-w-0 flex-1 text-left active:scale-[0.99]"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="admin-order-card__id font-bold text-on-surface">{order.orderNumber}</p>
+              <p className="admin-order-card__meta break-words text-xs text-on-surface-variant">
+                {new Date(order.createdAt).toLocaleString("en-PH")} · {order.customer.fullName}
+                {order.customer.tableLetter
+                  ? ` · ${formatTableLabel(order.customer.tableLetter)}`
+                  : ""}
+              </p>
+            </div>
+            {!showDiscontinue ? (
+              <p className="admin-order-card__total shrink-0 text-lg font-bold tabular-nums text-secondary">
+                {formatPrice(order.grandTotal)}
+              </p>
+            ) : null}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <AdminStatusBadge
+              className="admin-status-badge"
+              kind="order"
+              value={order.status}
+              label={adminOrderStatusLabel(order)}
+            />
+            <AdminStatusBadge
+              className="admin-status-badge"
+              kind="payment"
+              value={order.paymentStatus}
+              label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
+            />
+            <span className="admin-order-card__detail text-xs text-on-surface-variant">
+              {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
+              {PAYMENT_METHOD_LABELS[order.paymentMethod]}
+            </span>
+          </div>
+        </button>
+        {showDiscontinue ? (
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <button
+              type="button"
+              disabled={discontinuing}
+              onClick={() => onDiscontinue(order)}
+              className="rounded-xl border border-error/40 bg-error-container/15 px-3 py-1.5 text-xs font-bold text-error hover:bg-error-container/25 disabled:opacity-60"
+            >
+              {discontinuing ? "Discontinuing…" : "Discontinue"}
+            </button>
+            <p className="admin-order-card__total text-lg font-bold tabular-nums text-secondary">
+              {formatPrice(order.grandTotal)}
             </p>
           </div>
-          <p className="admin-order-card__total shrink-0 text-lg font-bold tabular-nums text-secondary">
-            {formatPrice(order.grandTotal)}
-          </p>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <AdminStatusBadge
-            className="admin-status-badge"
-            kind="order"
-            value={order.status}
-            label={adminOrderStatusLabel(order)}
-          />
-          <AdminStatusBadge
-            className="admin-status-badge"
-            kind="payment"
-            value={order.paymentStatus}
-            label={PAYMENT_STATUS_LABELS[order.paymentStatus]}
-          />
-          <span className="admin-order-card__detail text-xs text-on-surface-variant">
-            {order.lines.length} item{order.lines.length === 1 ? "" : "s"} ·{" "}
-            {PAYMENT_METHOD_LABELS[order.paymentMethod]}
-          </span>
-        </div>
-      </button>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -260,9 +286,13 @@ function CompletedOrdersArchive({
 function OrderBoardSection({
   section,
   onSelectOrder,
+  onDiscontinueOrder,
+  discontinuingOrderId,
 }: {
   section: AdminBoardSection;
   onSelectOrder: (orderId: string) => void;
+  onDiscontinueOrder?: (order: PlacedOrder) => void;
+  discontinuingOrderId?: string | null;
 }) {
   return (
     <section
@@ -296,7 +326,13 @@ function OrderBoardSection({
 
       <ul className="mt-md space-y-sm">
         {section.orders.map((order) => (
-          <OrderListCard key={order.orderId} order={order} onSelect={onSelectOrder} />
+          <OrderListCard
+            key={order.orderId}
+            order={order}
+            onSelect={onSelectOrder}
+            onDiscontinue={onDiscontinueOrder}
+            discontinuing={discontinuingOrderId === order.orderId}
+          />
         ))}
       </ul>
     </section>
@@ -666,6 +702,7 @@ export function AdminApp() {
   const [archiveDay, setArchiveDay] = useState(todayDateKey);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [completionNotice, setCompletionNotice] = useState<string | null>(null);
+  const [discontinuingOrderId, setDiscontinuingOrderId] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -783,6 +820,35 @@ export function AdminApp() {
 
   function handleOrderUpdated(updated: PlacedOrder) {
     setOrders((prev) => prev.map((o) => (o.orderId === updated.orderId ? updated : o)));
+  }
+
+  async function handleDiscontinueOrder(order: PlacedOrder) {
+    if (discontinuingOrderId || isCompletedOrder(order)) return;
+    if (
+      !window.confirm(
+        `Discontinue ${order.orderNumber}? This ends the customer session immediately and releases the table for a new guest.`,
+      )
+    ) {
+      return;
+    }
+
+    setDiscontinuingOrderId(order.orderId);
+    setOrdersError(null);
+    try {
+      const updated = await discontinueAdminOrder(order.orderId);
+      handleOrderUpdated(updated);
+      if (selectedId === order.orderId) {
+        setSelectedId(null);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "UNAUTHORIZED") {
+        window.location.reload();
+        return;
+      }
+      setOrdersError(err instanceof Error ? err.message : "Failed to discontinue order");
+    } finally {
+      setDiscontinuingOrderId(null);
+    }
   }
 
   if (booting) {
@@ -1022,6 +1088,8 @@ export function AdminApp() {
                 key={section.id}
                 section={section}
                 onSelectOrder={setSelectedId}
+                onDiscontinueOrder={handleDiscontinueOrder}
+                discontinuingOrderId={discontinuingOrderId}
               />
             ))}
           </div>

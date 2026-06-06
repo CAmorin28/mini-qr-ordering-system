@@ -113,6 +113,21 @@ export async function completeAdminOrder(orderId: string): Promise<PlacedOrder> 
   return updateAdminOrder(orderId, { completed: true });
 }
 
+export async function discontinueAdminOrder(orderId: string): Promise<PlacedOrder> {
+  const res = await adminFetch(
+    `/api/admin/orders/${encodeURIComponent(orderId)}/discontinue`,
+    { method: "POST" },
+  );
+  const data = await res.json();
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+  if (!res.ok) {
+    throw new Error(data.error ?? "Failed to discontinue order");
+  }
+  return (data as { order: PlacedOrder }).order;
+}
+
 export async function openAdminTableVisit(tableLetter: string): Promise<void> {
   const table = normalizeTableLetter(tableLetter);
   if (!table) {
@@ -128,6 +143,24 @@ export async function openAdminTableVisit(tableLetter: string): Promise<void> {
   }
   if (!res.ok) {
     throw new Error(data.error ?? "Failed to open table for new guests");
+  }
+}
+
+export async function terminateAdminTableSession(tableLetter: string): Promise<void> {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table) {
+    throw new Error("Enter one table letter (A–Z).");
+  }
+  const res = await adminFetch("/api/admin/table-visit/terminate", {
+    method: "POST",
+    body: JSON.stringify({ table }),
+  });
+  const data = await res.json();
+  if (res.status === 401) {
+    throw new Error("UNAUTHORIZED");
+  }
+  if (!res.ok) {
+    throw new Error(data.error ?? "Failed to terminate table session");
   }
 }
 

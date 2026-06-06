@@ -277,7 +277,17 @@ async function loadActiveSessionRow(
      FROM ${ACTIVE_TABLE} WHERE table_number = ?${liveSql} LIMIT 1`,
     [table],
   );
-  return activeRowToState(rows[0]);
+  const live = activeRowToState(rows[0]);
+  if (live || !liveOnly) return live;
+
+  if (!(await tableHasIdleProtectedOrders(table))) return null;
+
+  const [idleRows] = await executor.query<RowDataPacket[]>(
+    `SELECT session_id, device_id, session_generation, expires_at, started_at, updated_at
+     FROM ${ACTIVE_TABLE} WHERE table_number = ? AND expires_at > NOW() LIMIT 1`,
+    [table],
+  );
+  return activeRowToState(idleRows[0]);
 }
 
 async function activeSessionRowIsStale(
@@ -294,7 +304,9 @@ async function activeSessionRowIsStale(
      LIMIT 1`,
     [table],
   );
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  if (await tableHasIdleProtectedOrders(table)) return false;
+  return true;
 }
 
 async function loadTableSessionState(
@@ -387,15 +399,34 @@ async function hasActiveOrders(tableLetter: string): Promise<boolean> {
   }
 }
 
+async function tableHasIdleProtectedOrders(tableLetter: string): Promise<boolean> {
+  const table = normalizeTableLetter(tableLetter);
+  if (!table || !isDatabaseConfigured()) return false;
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1 FROM orders
+       WHERE table_number = ? AND completed_at IS NULL
+         AND payment_status != 'paid'
+         AND status IN ('preparing', 'serving', 'served', 'ready_for_pickup')
+       LIMIT 1`,
+      [table],
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 function buildStatus(
   state: TableSessionState,
   hasOrders: boolean,
   requesterHasCurrentSession: boolean,
 ): TableVisitStatus {
-  const visitOpen = state.isOpen;
   const hasActiveSession = hasLiveDevice(state);
   const vacant = !hasOrders && !hasActiveSession;
-  const canBind = visitOpen && (vacant || requesterHasCurrentSession);
+  const canBind = vacant || requesterHasCurrentSession;
+  const visitOpen = vacant || state.isOpen || hasOrders || hasActiveSession;
 
   return {
     tableLetter: state.tableLetter,
@@ -429,6 +460,7 @@ async function clearStaleActiveSession(tableLetter: string): Promise<void> {
   const table = normalizeTableLetter(tableLetter);
   if (!table || !isDatabaseConfigured()) return;
   if (!(await ensureQrSessionSchema())) return;
+  if (await tableHasIdleProtectedOrders(table)) return;
 
   const pool = getPool();
   const visit = await loadVisitRow(pool, table);
@@ -539,7 +571,7 @@ async function resolveDeviceTableSession(
 
   const pool = getPool();
   const visit = await loadVisitRow(pool, table);
-  if (!visit || !visit.isOpen) return null;
+  if (!visit) return null;
 
   const active = await loadActiveSessionRow(pool, table);
   if (!active || !hasLiveDevice(mergeState(visit, active))) return null;
@@ -566,7 +598,7 @@ async function findActiveDeviceSession(
               v.is_open, v.session_generation AS visit_generation
        FROM ${ACTIVE_TABLE} q
        INNER JOIN ${VISITS_TABLE} v ON v.table_number = q.table_number
-       WHERE q.device_id = ? AND v.is_open = 1
+       WHERE q.device_id = ?
          AND q.expires_at > NOW() AND ${idleSessionSqlClause("q.updated_at")}
        LIMIT 1`,
       [deviceId],
@@ -625,8 +657,7 @@ async function validateGuestSessionPayload(
 
   const pool = getPool();
   const visit = await loadVisitRow(pool, table);
-  if (!visit || !visit.isOpen) return null;
-  if (visit.sessionGeneration !== Number(payload.gen)) return null;
+  if (!visit || visit.sessionGeneration !== Number(payload.gen)) return null;
 
   const active = await loadActiveSessionRow(pool, table);
   if (!active || active.sessionId !== payload.sid) return null;
@@ -639,8 +670,11 @@ async function validateGuestSessionPayload(
   };
 }
 
-/** Admin completes order — close table and revoke all device access. */
-async function closeTableSession(tableLetter: string): Promise<boolean> {
+/** Clears the device slot and bumps generation so all guest cookies are invalidated. */
+async function forceInvalidateTableQrSession(
+  tableLetter: string,
+  endReason: SessionEndReason,
+): Promise<boolean> {
   const table = normalizeTableLetter(tableLetter);
   if (!table || !isDatabaseConfigured()) return false;
   if (!(await ensureQrSessionSchema())) return false;
@@ -652,15 +686,16 @@ async function closeTableSession(tableLetter: string): Promise<boolean> {
     await connection.beginTransaction();
     const now = mysqlNow();
 
-    await archiveAndClearActiveSession(connection, table, "table_closed");
+    await archiveAndClearActiveSession(connection, table, endReason);
 
     await connection.query(
       `INSERT INTO ${VISITS_TABLE}
          (table_number, is_open, session_generation, opened_at, closed_at, updated_at)
-       VALUES (?, 0, 0, NULL, ?, ?)
+       VALUES (?, 1, 1, ?, NULL, ?)
        ON DUPLICATE KEY UPDATE
-         is_open = 0,
-         closed_at = VALUES(closed_at),
+         is_open = 1,
+         session_generation = session_generation + 1,
+         closed_at = NULL,
          updated_at = VALUES(updated_at)`,
       [table, now, now],
     );
@@ -675,13 +710,18 @@ async function closeTableSession(tableLetter: string): Promise<boolean> {
   }
 }
 
-export async function closeTableSessionIfNoActiveOrders(
+/** Ends the table QR session when staff discontinues an order — invalidates all device cookies. */
+export async function terminateTableSessionForDiscontinuedOrder(
   tableLetter: string,
-): Promise<void> {
-  const table = normalizeTableLetter(tableLetter);
-  if (!table || !isDatabaseConfigured()) return;
-  if (await hasActiveOrders(table)) return;
-  await closeTableSession(table);
+): Promise<boolean> {
+  return forceInvalidateTableQrSession(tableLetter, "released");
+}
+
+/** Admin QR page — force-terminate the active device session without changing orders. */
+export async function terminateActiveTableSession(
+  tableLetter: string,
+): Promise<boolean> {
+  return forceInvalidateTableQrSession(tableLetter, "released");
 }
 
 /** Admin opens table for the next party — new generation, no active device. */
@@ -786,15 +826,19 @@ export async function claimTableSessionOnScan(
       [table],
     );
 
-    if (!visitRows[0]) {
-      await connection.rollback();
-      return { ok: false, code: "visit_closed" };
-    }
+    const now = mysqlNow();
+    let visit: TableVisitRow;
 
-    const visit = visitRowToState(visitRows[0], table);
-    if (!visit.isOpen) {
-      await connection.rollback();
-      return { ok: false, code: "visit_closed" };
+    if (!visitRows[0]) {
+      await connection.query(
+        `INSERT INTO ${VISITS_TABLE}
+           (table_number, is_open, session_generation, opened_at, closed_at, updated_at)
+         VALUES (?, 1, 1, ?, NULL, ?)`,
+        [table, now, now],
+      );
+      visit = { tableLetter: table, isOpen: true, sessionGeneration: 1 };
+    } else {
+      visit = visitRowToState(visitRows[0], table);
     }
 
     const [activeRows] = await connection.query<RowDataPacket[]>(
@@ -814,6 +858,25 @@ export async function claimTableSessionOnScan(
       active = null;
     }
 
+    const tableHasOrders = await hasActiveOrders(table);
+    const preClaimState = mergeState(visit, active);
+    const vacantBeforeClaim = !tableHasOrders && !hasLiveDevice(preClaimState);
+
+    if (!visit.isOpen) {
+      if (vacantBeforeClaim) {
+        await connection.query(
+          `UPDATE ${VISITS_TABLE}
+           SET is_open = 1, opened_at = ?, closed_at = NULL, updated_at = ?
+           WHERE table_number = ?`,
+          [now, now, table],
+        );
+        visit = { ...visit, isOpen: true };
+      } else {
+        await connection.rollback();
+        return { ok: false, code: "visit_closed" };
+      }
+    }
+
     const state = mergeState(visit, active);
 
     const requesterPayload = guestSessionTokenFromRequest(request);
@@ -829,9 +892,9 @@ export async function claimTableSessionOnScan(
       requesterPayload.sid === state.activeSessionId;
 
     const hasActiveSession = hasLiveDevice(state);
-    const tableHasOrders = await hasActiveOrders(table);
+    const tableHasOrdersAfterClaim = tableHasOrders;
 
-    if (hasActiveSession || tableHasOrders) {
+    if (hasActiveSession || tableHasOrdersAfterClaim) {
       if (requesterMatchesSession) {
         const activeDeviceId =
           state.activeDeviceId ?? requesterDeviceId ?? generateGuestDeviceId();
@@ -901,13 +964,15 @@ export async function touchGuestSessionActivity(
 
   const table = record.tableLetter;
   const pool = getPool();
+  const idleProtected = await tableHasIdleProtectedOrders(table);
+  const idleSql = idleProtected ? "" : ` AND ${idleSessionSqlClause()}`;
 
   try {
     const [result] = await pool.query<ResultSetHeader>(
       `UPDATE ${ACTIVE_TABLE}
        SET updated_at = CURRENT_TIMESTAMP
        WHERE table_number = ? AND session_id = ?
-         AND expires_at > NOW() AND ${idleSessionSqlClause()}`,
+         AND expires_at > NOW()${idleSql}`,
       [table, record.sessionId],
     );
     return result.affectedRows > 0;

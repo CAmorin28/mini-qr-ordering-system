@@ -11,7 +11,7 @@ import {
   writePersistedAdminQrPanel,
   type AdminTableSessionStatus,
 } from "@/lib/admin-qr-persistence";
-import { fetchAdminTableVisitSummary, openAdminTableVisit } from "@/lib/api-admin";
+import { fetchAdminTableVisitSummary, openAdminTableVisit, terminateAdminTableSession } from "@/lib/api-admin";
 import { menuUrlForTable } from "@/lib/menu-url";
 import {
   MENU_QR_COLORS,
@@ -60,6 +60,7 @@ export function StaffTableQrPanel({
   const [qrSvg, setQrSvg] = useState(initialSvg);
   const [generating, setGenerating] = useState(false);
   const [openingVisit, setOpeningVisit] = useState(false);
+  const [terminatingSession, setTerminatingSession] = useState(false);
   const [visitMessage, setVisitMessage] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<AdminTableSessionStatus | null>(null);
 
@@ -262,6 +263,30 @@ export function StaffTableQrPanel({
             onClick={updateQrFromInput}
           >
             {generating ? "Updating…" : "Update QR"}
+          </button>
+          <button
+            type="button"
+            disabled={terminatingSession || !sessionStatus?.sessionOccupied}
+            className="inline-flex min-h-11 w-full shrink-0 touch-manipulation items-center justify-center rounded-xl border border-error bg-error px-4 py-2.5 text-sm font-bold text-on-primary shadow-sm hover:brightness-110 active:brightness-95 disabled:opacity-60 sm:w-auto"
+            onClick={() => {
+              setTerminatingSession(true);
+              terminateAdminTableSession(tableLetter)
+                .then(() => {
+                  const message = `${formatTableLabel(tableLetter)} session terminated — guest must scan the QR again.`;
+                  manualVisitMessageRef.current = message;
+                  setVisitMessage(message);
+                  return refreshSessionStatus(tableLetter);
+                })
+                .catch((err: unknown) => {
+                  manualVisitMessageRef.current = null;
+                  setVisitMessage(
+                    err instanceof Error ? err.message : "Could not terminate table session.",
+                  );
+                })
+                .finally(() => setTerminatingSession(false));
+            }}
+          >
+            {terminatingSession ? "Terminating…" : "Terminate session"}
           </button>
         </form>
         {inputError ? (

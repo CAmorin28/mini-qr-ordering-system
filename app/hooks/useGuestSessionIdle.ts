@@ -6,13 +6,26 @@ import {
   guestSessionBoundToTable,
   touchGuestSessionActivity,
 } from "@/lib/api-guest-session";
+import { fetchOrderHistory } from "@/lib/api";
 import { clearTableCustomerSession } from "@/lib/customer-table-session";
 import { isGuestQrSecurityEnabledClient } from "@/lib/guest-qr-security";
+import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
+import { orderBlocksIdleSessionRelease } from "@/lib/order-workflow";
 import { normalizeTableLetter } from "@/lib/table-session";
 
 const IDLE_MS = 5 * 60 * 1000;
 const ACTIVITY_TOUCH_MS = 30_000;
 const SESSION_CHECK_MS = 15_000;
+
+async function idleReleaseBlockedByOrder(tableLetter: string): Promise<boolean> {
+  try {
+    const orders = await fetchOrderHistory(tableLetter);
+    const active = activePlacedOrdersForTable(orders, tableLetter);
+    return active.some(orderBlocksIdleSessionRelease);
+  } catch {
+    return false;
+  }
+}
 
 /** End the table session after 5 minutes without guest interaction. */
 export function useGuestSessionIdle(tableLetter: string) {
@@ -45,14 +58,15 @@ export function useGuestSessionIdle(tableLetter: string) {
       void touchGuestSessionActivity();
     }
 
-    function onIdleTimeout() {
+    async function onIdleTimeout() {
+      if (await idleReleaseBlockedByOrder(table)) return;
       clearTableCustomerSession(table, { releaseServerSlot: true });
     }
 
     async function verifySessionStillValid() {
       if (!(await guestSessionBoundToTable(table))) return;
       if (Date.now() - lastActivityRef.current >= IDLE_MS) {
-        onIdleTimeout();
+        await onIdleTimeout();
         return;
       }
 
@@ -76,7 +90,7 @@ export function useGuestSessionIdle(tableLetter: string) {
 
       idleTimer = setInterval(() => {
         if (Date.now() - lastActivityRef.current >= IDLE_MS) {
-          onIdleTimeout();
+          void onIdleTimeout();
         }
       }, SESSION_CHECK_MS);
 

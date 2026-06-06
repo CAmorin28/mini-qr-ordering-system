@@ -59,6 +59,18 @@ export function isTableVisitEnded(tableLetter: string): boolean {
   return key ? sessionStorage.getItem(key) === "1" : false;
 }
 
+/** True when navigation likely came from scanning the table QR (not an in-app link). */
+export function isLikelyFreshQrEntry(): boolean {
+  if (typeof window === "undefined") return false;
+  const ref = document.referrer;
+  if (!ref) return true;
+  try {
+    return new URL(ref).origin !== window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
 /** Fired on window when staff completes the table visit and client storage is cleared. */
 export const TABLE_VISIT_ENDED_EVENT = "tablebite:visit-ended";
 

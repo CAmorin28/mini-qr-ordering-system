@@ -9,6 +9,7 @@ const ORDER_STYLES: Record<OrderStatus, string> = {
   serving: "bg-violet-100 text-violet-900 ring-violet-200",
   served: "bg-emerald-100 text-emerald-900 ring-emerald-200",
   ready_for_pickup: "bg-teal-100 text-teal-900 ring-teal-200",
+  discontinued: "bg-error-container text-error ring-error/20",
 };
 
 const PAYMENT_STYLES: Record<PaymentStatus, string> = {

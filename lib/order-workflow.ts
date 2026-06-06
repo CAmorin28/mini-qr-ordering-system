@@ -28,6 +28,8 @@ export function coerceStatusForOrderType(
   status: OrderStatus,
   orderType: OrderType,
 ): OrderStatus {
+  if (status === "discontinued") return "discontinued";
+
   const flow = statusFlowForOrderType(orderType);
   if (flow.includes(status)) return status;
 
@@ -96,4 +98,18 @@ export function initialOrderStatus(paymentMethod: PlacedOrder["paymentMethod"]):
     return { status: "paid", paymentStatus: "paid" };
   }
   return { status: "pending_payment", paymentStatus: "pending" };
+}
+
+const KITCHEN_STARTED_STATUSES: OrderStatus[] = [
+  "preparing",
+  "serving",
+  "served",
+  "ready_for_pickup",
+];
+
+/** Unpaid orders past kitchen start must keep the table QR session alive. */
+export function orderBlocksIdleSessionRelease(order: PlacedOrder): boolean {
+  if (order.completedAt != null && order.completedAt !== "") return false;
+  if (order.paymentStatus === "paid") return false;
+  return KITCHEN_STARTED_STATUSES.includes(order.status);
 }

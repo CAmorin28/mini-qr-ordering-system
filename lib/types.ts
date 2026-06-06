@@ -48,7 +48,8 @@ export type OrderStatus =
   | "preparing"
   | "serving"
   | "served"
-  | "ready_for_pickup";
+  | "ready_for_pickup"
+  | "discontinued";
 
 export type PaymentStatus = "pending" | "paid" | "failed";
 
