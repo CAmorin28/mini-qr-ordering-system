@@ -1,8 +1,8 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
-import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
-import CheckoutReviewClient from "./CheckoutReviewClient";
+import { LoadingBlock } from "@/components/ui/LoadingBlock";
+import CheckoutReviewClient from "@/components/checkout/CheckoutReviewClient";
 
 export default function CheckoutReviewPage() {
   return (

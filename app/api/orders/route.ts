@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { listOrdersFromDb, saveOrderToDb } from "@/lib/db/orders";
 import { touchGuestSessionActivity } from "@/lib/db/table-qr-session";
-import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
-import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
-import { normalizeTableLetter } from "@/lib/table-session";
-import type { PlacedOrder } from "@/lib/types";
+import { requireGuestSessionForApi } from "@/lib/server/guest-session-guard";
+import { isGuestQrSecurityEnabled } from "@/lib/shared/guest-qr-security";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
+import type { PlacedOrder } from "@/types";
 
 function isPlacedOrder(body: unknown): body is PlacedOrder {
   if (!body || typeof body !== "object") return false;

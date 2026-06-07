@@ -1,4 +1,4 @@
-import { isDatabaseConfigured } from "@/lib/db/config";
+﻿import { isDatabaseConfigured } from "@/lib/db/config";
 import { getPool } from "@/lib/db/pool";
 import { mysqlNow } from "@/lib/db/row-utils";
 import {
@@ -8,13 +8,13 @@ import {
   generateGuestSessionId,
   guestSessionTokenFromRequest,
   type GuestSessionPayload,
-} from "@/lib/guest-session-token";
-import { normalizeTableLetter } from "@/lib/table-session";
+} from "@/lib/server/guest-session-token";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 import {
   generateGuestDeviceId,
   guestDeviceIdFromRequest,
   normalizeGuestDeviceId,
-} from "@/lib/guest-device-id";
+} from "@/lib/server/guest-device-id";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 const VISITS_TABLE = "table_qr_visits";

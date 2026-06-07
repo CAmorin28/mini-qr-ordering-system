@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { getOrderFromDb } from "@/lib/db/orders";
-import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
+import { requireGuestSessionForApi } from "@/lib/server/guest-session-guard";
 import {
   createOrderEventStream,
   orderStreamResponse,
-} from "@/lib/order-stream";
-import { normalizeTableLetter } from "@/lib/table-session";
+} from "@/lib/server/order-stream";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

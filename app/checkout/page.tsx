@@ -1,20 +1,20 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { TableSessionBanner } from "@/app/components/TableSessionBanner";
-import { CheckoutLineItem } from "@/app/components/CheckoutLineItem";
-import { CheckoutShell } from "@/app/components/CheckoutShell";
-import { PriceBreakdown } from "@/app/components/PriceBreakdown";
-import { useCart } from "@/app/context/CartContext";
-import { useCheckout } from "@/app/context/CheckoutContext";
-import { useTableSession } from "@/app/context/TableSessionContext";
-import { computeSubtotal } from "@/lib/checkout";
+import { TableSessionBanner } from "@/components/TableSessionBanner";
+import { CheckoutLineItem } from "@/components/CheckoutLineItem";
+import { CheckoutShell } from "@/components/CheckoutShell";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
+import { useCart } from "@/context/CartContext";
+import { useCheckout } from "@/context/CheckoutContext";
+import { useTableSession } from "@/context/TableSessionContext";
+import { computeSubtotal } from "@/lib/shared/checkout";
 import {
   CHECKOUT_REVIEW_PATH,
   customerMenuNavHref,
   navigateCustomerMenuBack,
-} from "@/lib/menu-url";
+} from "@/lib/shared/menu-url";
 
 export default function CheckoutPage() {
   const { lines, itemCount } = useCart();

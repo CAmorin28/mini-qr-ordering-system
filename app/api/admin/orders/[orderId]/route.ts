@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/admin-api-route";
+import { requireAdminSession } from "@/lib/server/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { updateOrderInDb } from "@/lib/db/orders";
-import type { OrderStatus, PaymentStatus } from "@/lib/types";
+import type { OrderStatus, PaymentStatus } from "@/types";
 
 const ORDER_STATUSES: OrderStatus[] = [
   "pending_payment",

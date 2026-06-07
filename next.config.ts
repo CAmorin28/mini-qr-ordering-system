@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { getLanIpv4Addresses } from "./lib/lan-ipv4";
+import { getLanIpv4Addresses } from "./lib/server/lan-ipv4";
 
 const nextConfig: NextConfig = {
   // Allow phone/LAN access during `npm run dev` (e.g. http://192.168.x.x:3000).

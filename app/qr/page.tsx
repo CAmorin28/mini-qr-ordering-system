@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { QrPageLayout } from "@/app/components/QrPageLayout";
-import { MENU_PAGE_PATH, staffQrPath } from "@/lib/menu-url";
-import { normalizeTableLetter } from "@/lib/table-session";
+import { QrPageLayout } from "@/components/QrPageLayout";
+import { MENU_PAGE_PATH, staffQrPath } from "@/lib/shared/menu-url";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 
 export const metadata: Metadata = {
   title: "Scan to Order — TableBite",

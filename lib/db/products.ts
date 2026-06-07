@@ -1,8 +1,8 @@
-import { getMenuByCategory } from "@/lib/data/menu";
+﻿import { getMenuByCategory } from "@/lib/data/menu";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { getPool } from "@/lib/db/pool";
 import { ensureProductsSeeded } from "@/lib/db/seed-products";
-import type { MenuCategory, MenuItem } from "@/lib/types";
+import type { MenuCategory, MenuItem } from "@/types";
 import type { RowDataPacket } from "mysql2";
 
 interface ProductRow {

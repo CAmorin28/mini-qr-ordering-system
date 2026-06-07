@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminLoginPage } from "@/app/admin/login/AdminLoginPage";
+import { AdminLoginPage } from "@/components/admin/AdminLoginPage";
 
 export const metadata: Metadata = {
   title: "Admin sign in — TableBite",

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { fetchProductsFromDb } from "@/lib/db/products";
-import type { MenuCategory } from "@/lib/types";
+import type { MenuCategory } from "@/types";
 
 /** GET /api/products — list menu products (optional ?category=starters) */
 export async function GET(request: NextRequest) {

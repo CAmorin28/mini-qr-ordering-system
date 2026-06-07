@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminApp } from "@/app/admin/AdminApp";
+import { AdminApp } from "@/components/admin/AdminApp";
 
 export const metadata: Metadata = {
   title: "Admin — TableBite",

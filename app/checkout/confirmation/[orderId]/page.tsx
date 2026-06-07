@@ -3,38 +3,38 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CheckoutShell } from "@/app/components/CheckoutShell";
-import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
-import { OrderReceipt } from "@/app/components/OrderReceipt";
-import { OrderStatusTracker } from "@/app/components/OrderStatusTracker";
-import { useCart } from "@/app/context/CartContext";
-import { useCheckout } from "@/app/context/CheckoutContext";
-import { useActiveCustomerOrders } from "@/app/hooks/useActiveCustomerOrders";
-import { useTableSession } from "@/app/context/TableSessionContext";
-import { isCompletedOrder } from "@/lib/order-completion";
-import { cancelOrderById, fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import { CheckoutShell } from "@/components/CheckoutShell";
+import { LoadingBlock } from "@/components/ui/LoadingBlock";
+import { OrderReceipt } from "@/components/OrderReceipt";
+import { OrderStatusTracker } from "@/components/OrderStatusTracker";
+import { useCart } from "@/context/CartContext";
+import { useCheckout } from "@/context/CheckoutContext";
+import { useActiveCustomerOrders } from "@/hooks/useActiveCustomerOrders";
+import { useTableSession } from "@/context/TableSessionContext";
+import { isCompletedOrder } from "@/lib/shared/order-completion";
+import { cancelOrderById, fetchOrderById, fetchOrderHistory } from "@/lib/client/api";
 import {
   afterCustomerOrderCompleted,
   clearTableCustomerSession,
-} from "@/lib/customer-table-session";
-import { canCustomerCancelOrder } from "@/lib/order-workflow";
+} from "@/lib/client/customer-table-session";
+import { canCustomerCancelOrder } from "@/lib/shared/order-workflow";
 import {
   PAYMENT_METHOD_LABELS,
   customerOrderStatusLabel,
   paymentStatusLabel,
-} from "@/lib/order-labels";
-import { consumePendingOrder, getOrder, saveOrder } from "@/lib/order-history";
-import { normalizeTableLetter } from "@/lib/table-session";
-import { isPlacedOrder } from "@/lib/place-order";
-import { downloadReceiptPdf } from "@/lib/receipt-pdf";
+} from "@/lib/shared/order-labels";
+import { consumePendingOrder, getOrder, saveOrder } from "@/lib/client/order-history";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
+import { isPlacedOrder } from "@/lib/client/place-order";
+import { downloadReceiptPdf } from "@/lib/client/receipt-pdf";
 import {
   CHECKOUT_REVIEW_PATH,
   MENU_PAGE_PATH,
   ORDERS_HISTORY_PATH,
   navigateCustomerMenuBack,
-} from "@/lib/menu-url";
-import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
-import type { PlacedOrder } from "@/lib/types";
+} from "@/lib/shared/menu-url";
+import { activePlacedOrdersForTable } from "@/lib/client/order-status-nav";
+import type { PlacedOrder } from "@/types";
 
 export default function OrderConfirmationPage() {
   const params = useParams();

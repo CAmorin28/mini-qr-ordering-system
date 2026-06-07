@@ -1,20 +1,20 @@
-import { NextResponse } from "next/server";
-import { clearGuestSessionCookie, getGuestSessionPayloadFromCookies } from "@/lib/guest-session-cookies";
+﻿import { NextResponse } from "next/server";
+import { clearGuestSessionCookie, getGuestSessionPayloadFromCookies } from "@/lib/server/guest-session-cookies";
 import {
   releaseTableSessionIfMatches,
   resolveGuestSessionFromRequest,
   touchGuestSessionActivity,
 } from "@/lib/db/table-qr-session";
-import { isGuestQrSecurityEnabled } from "@/lib/guest-qr-security";
+import { isGuestQrSecurityEnabled } from "@/lib/shared/guest-qr-security";
 import {
   GUEST_SESSION_CACHE_HEADERS,
   guestCookiesSecureFromRequest,
-} from "@/lib/guest-cookie-request";
+} from "@/lib/server/guest-cookie-request";
 import {
   GUEST_SESSION_COOKIE,
   guestSessionCookieOptions,
-} from "@/lib/guest-session-token";
-import { formatTableLabel, normalizeTableLetter } from "@/lib/table-session";
+} from "@/lib/server/guest-session-token";
+import { formatTableLabel, normalizeTableLetter } from "@/lib/shared/table-session";
 
 /** GET /api/guest-session — validate device + table session (MySQL is source of truth). */
 export async function GET(request: Request) {

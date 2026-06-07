@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem } from "@/lib/types";
+﻿import type { MenuCategory, MenuItem } from "@/types";
 
 export const menuItems: MenuItem[] = [
   {

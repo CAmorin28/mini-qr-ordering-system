@@ -1,4 +1,4 @@
-import type { CartLine, PaymentStatus } from "@/lib/types";
+﻿import type { CartLine, PaymentStatus } from "@/types";
 import type { OrderRow } from "@/lib/db/order-mapper";
 import type { RowDataPacket } from "mysql2";
 

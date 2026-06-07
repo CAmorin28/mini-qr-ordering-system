@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { claimTableSessionOnScan, dbUnavailableMessage, resolveTableVisitBinding } from "@/lib/db/table-qr-session";
-import { GUEST_SESSION_CACHE_HEADERS } from "@/lib/guest-cookie-request";
-import { applyGuestSessionCookies } from "@/lib/guest-session-cookies-response";
-import { normalizeTableLetter } from "@/lib/table-session";
+import { GUEST_SESSION_CACHE_HEADERS } from "@/lib/server/guest-cookie-request";
+import { applyGuestSessionCookies } from "@/lib/server/guest-session-cookies-response";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 const ACTIVE_ORDERS_MESSAGE =
   "This table already has an order in progress. Please wait until staff complete the current visit.";
 

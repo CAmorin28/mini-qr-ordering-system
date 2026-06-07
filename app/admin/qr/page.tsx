@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { QrPageLayout } from "@/app/components/QrPageLayout";
-import { StaffTableQrPanel } from "@/app/components/StaffTableQrPanel";
-import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
-import { ADMIN_DASHBOARD_PATH, ADMIN_LOGIN_PATH } from "@/lib/menu-url";
-import { loadStaffQrPanelProps } from "@/lib/staff-qr-props";
-import { getAdminSessionFromCookies } from "@/lib/admin-auth";
+import { QrPageLayout } from "@/components/QrPageLayout";
+import { StaffTableQrPanel } from "@/components/StaffTableQrPanel";
+import { LoadingBlock } from "@/components/ui/LoadingBlock";
+import { ADMIN_DASHBOARD_PATH, ADMIN_LOGIN_PATH } from "@/lib/shared/menu-url";
+import { loadStaffQrPanelProps } from "@/lib/server/staff-qr-props";
+import { getAdminSessionFromCookies } from "@/lib/server/admin-auth";
 
 export const metadata: Metadata = {
   title: "Table QR codes — TableBite Admin",

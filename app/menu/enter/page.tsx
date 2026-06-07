@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { GuestStatusScreen } from "@/app/components/GuestStatusScreen";
-import { openTableVisitOnScan } from "@/lib/api-table-visit";
-import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/menu-url";
+import { GuestStatusScreen } from "@/components/GuestStatusScreen";
+import { openTableVisitOnScan } from "@/lib/client/api-table-visit";
+import { MENU_PAGE_PATH, pathWithTable, tableLetterFromSearch } from "@/lib/shared/menu-url";
 import {
   TABLE_SESSION_STORAGE_KEY,
   clearTableVisitEndedMark,
   formatTableLabel,
   isLikelyFreshQrEntry,
   isTableVisitEnded,
-} from "@/lib/table-session";
+} from "@/lib/shared/table-session";
 
 /**
  * QR codes point here (not /menu?table=). Opens the server visit, then redirects to the menu.

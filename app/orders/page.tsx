@@ -1,27 +1,27 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useOrdersRealtime } from "@/app/hooks/useOrdersRealtime";
-import { Header } from "@/app/components/Header";
-import { LoadingBlock } from "@/app/components/ui/LoadingBlock";
-import { PageEnter } from "@/app/components/ui/PageEnter";
-import { useTableSession } from "@/app/context/TableSessionContext";
-import { fetchOrderById, fetchOrderHistory } from "@/lib/api";
+import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
+import { Header } from "@/components/Header";
+import { LoadingBlock } from "@/components/ui/LoadingBlock";
+import { PageEnter } from "@/components/ui/PageEnter";
+import { useTableSession } from "@/context/TableSessionContext";
+import { fetchOrderById, fetchOrderHistory } from "@/lib/client/api";
 import {
   applyCustomerOrderUpsert,
   resolveCustomerRealtimeFilter,
-} from "@/lib/customer-order-realtime";
-import { formatPrice } from "@/lib/format";
-import { listOrders, saveOrder } from "@/lib/order-history";
-import { activePlacedOrdersForTable } from "@/lib/order-status-nav";
-import { normalizeTableLetter } from "@/lib/table-session";
-import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/menu-url";
+} from "@/lib/client/customer-order-realtime";
+import { formatPrice } from "@/lib/shared/format";
+import { listOrders, saveOrder } from "@/lib/client/order-history";
+import { activePlacedOrdersForTable } from "@/lib/client/order-status-nav";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
+import { checkoutConfirmationPath, MENU_PAGE_PATH } from "@/lib/shared/menu-url";
 import {
   PAYMENT_METHOD_LABELS,
   customerOrderStatusLabel,
-} from "@/lib/order-labels";
-import type { PlacedOrder } from "@/lib/types";
+} from "@/lib/shared/order-labels";
+import type { PlacedOrder } from "@/types";
 
 async function loadGuestOrders(): Promise<PlacedOrder[]> {
   let local = listOrders("");

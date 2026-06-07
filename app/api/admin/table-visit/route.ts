@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/admin-api-route";
+﻿import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/server/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import {
   getTableSessionSummary,
   getTableVisitStatus,
   openTableForNewGuests,
 } from "@/lib/db/table-qr-session";
-import { normalizeTableLetter } from "@/lib/table-session";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 
 /** GET /api/admin/table-visit?table=A — live table session state for staff */
 export async function GET(request: Request) {

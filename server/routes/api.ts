@@ -1,7 +1,7 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { getMenuByCategory } from "@/lib/data/menu";
-import { placeOrder } from "@/lib/orders";
-import type { MenuCategory, OrderPayload } from "@/lib/types";
+import { placeOrder } from "@/lib/server/orders";
+import type { MenuCategory, OrderPayload } from "@/types";
 
 export const apiRouter = Router();
 

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ADMIN_SESSION_COOKIE,
@@ -6,7 +6,7 @@ import {
   createAdminSessionToken,
   getAdminSessionFromCookies,
   verifyAdminCredentials,
-} from "@/lib/admin-auth";
+} from "@/lib/server/admin-auth";
 
 /** GET /api/admin/auth — session status */
 export async function GET() {

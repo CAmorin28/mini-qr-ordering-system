@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { STAFF_QR_PAGE_PATH } from "@/lib/menu-url";
+import { STAFF_QR_PAGE_PATH } from "@/lib/shared/menu-url";
 
 /** Staff open the QR display page with this query param (legacy URL). */
 export const STAFF_QR_VIEW_PARAM = "view";

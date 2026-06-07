@@ -1,5 +1,5 @@
-import { OrderingPage } from "@/app/components/OrderingPage";
-import { enforceGuestQrAccess } from "@/lib/guest-session-guard";
+﻿import { OrderingPage } from "@/components/OrderingPage";
+import { enforceGuestQrAccess } from "@/lib/server/guest-session-guard";
 
 interface MenuPageProps {
   searchParams: Promise<{ table?: string }>;

@@ -1,4 +1,4 @@
-import { normalizeOrderStatus } from "@/lib/order-labels";
+﻿import { normalizeOrderStatus } from "@/lib/shared/order-labels";
 import type {
   CartLine,
   CustomerDetails,
@@ -6,7 +6,7 @@ import type {
   PaymentMethod,
   PaymentStatus,
   PlacedOrder,
-} from "@/lib/types";
+} from "@/types";
 
 export interface OrderRow {
   order_id: string;

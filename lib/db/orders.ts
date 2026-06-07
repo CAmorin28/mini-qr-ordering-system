@@ -1,4 +1,4 @@
-import { isDatabaseConfigured } from "@/lib/db/config";
+﻿import { isDatabaseConfigured } from "@/lib/db/config";
 import { mapOrderRow, type OrderRow } from "@/lib/db/order-mapper";
 import { getPool } from "@/lib/db/pool";
 import { mysqlNow, normalizeOrderRow, toMysqlDatetime } from "@/lib/db/row-utils";
@@ -8,12 +8,12 @@ import {
   hasReadyHandoff,
   isCompletedOrder,
   resolveOrderAfterAdminUpdate,
-} from "@/lib/order-completion";
-import { canCustomerCancelOrder } from "@/lib/order-workflow";
-import { publishOrderUpdated } from "@/lib/order-realtime-hub";
+} from "@/lib/shared/order-completion";
+import { canCustomerCancelOrder } from "@/lib/shared/order-workflow";
+import { publishOrderUpdated } from "@/lib/server/order-realtime-hub";
 import { terminateTableSessionForDiscontinuedOrder } from "@/lib/db/table-qr-session";
-import { normalizeTableLetter } from "@/lib/table-session";
-import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/lib/types";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
+import type { OrderStatus, PaymentStatus, PlacedOrder } from "@/types";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 function rowToPlacedOrder(row: RowDataPacket): PlacedOrder {

@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/admin-api-route";
+﻿import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/server/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import {
   createOrderEventStream,
   orderStreamResponse,
-} from "@/lib/order-stream";
+} from "@/lib/server/order-stream";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

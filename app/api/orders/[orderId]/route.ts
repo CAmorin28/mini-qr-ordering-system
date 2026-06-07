@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import { cancelOrderInDb, getOrderFromDb } from "@/lib/db/orders";
-import { requireGuestSessionForApi } from "@/lib/guest-session-guard";
-import { normalizeTableLetter } from "@/lib/table-session";
+import { requireGuestSessionForApi } from "@/lib/server/guest-session-guard";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 
 /** GET /api/orders/:orderId — single order by client order id */
 export async function GET(

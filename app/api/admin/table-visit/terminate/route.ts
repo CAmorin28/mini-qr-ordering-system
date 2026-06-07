@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/admin-api-route";
+﻿import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/server/admin-api-route";
 import { isDatabaseConfigured } from "@/lib/db/config";
 import {
   getTableSessionSummary,
   terminateActiveTableSession,
 } from "@/lib/db/table-qr-session";
-import { normalizeTableLetter } from "@/lib/table-session";
+import { normalizeTableLetter } from "@/lib/shared/table-session";
 
 /** POST /api/admin/table-visit/terminate — force-end the active QR device session */
 export async function POST(request: Request) {
